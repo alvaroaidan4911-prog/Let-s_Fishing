@@ -301,7 +301,7 @@ function buildHarbour(){
     new THREE.BoxGeometry(17, 0.4, 8),
     new THREE.MeshStandardMaterial({ visible: false })
   );
-  floor.position.set(50,0,15);
+  floor.position.set(0,0.2,0);
   g.add(floor);
   return g;
 }
@@ -1295,9 +1295,9 @@ document.getElementById("sellBtn").addEventListener("click",()=>{if(nearSeller)s
 document.getElementById("mountJetskiBtn").addEventListener("click",()=>{if(onJetski)dismountJetski();else if(nearJetski)mountJetski();});
 document.getElementById("openRodShopBtn").addEventListener("click",()=>{toggleInventory();if(inventoryOpen)switchTab("rods");});
 document.getElementById("openJetskiShopBtn").addEventListener("click",()=>{
-  // near bait shop -> open bait tab; near jetski -> open jetski shop
   const baitPos=new THREE.Vector3();baitShopCounter.getWorldPosition(baitPos);
-  if(playerWorldPos.distanceTo(baitPos)<8){toggleInventory();if(inventoryOpen)switchTab("bait");}
+  const _pwp=new THREE.Vector3();player.getWorldPosition(_pwp);
+  if(_pwp.distanceTo(baitPos)<8){toggleInventory();if(inventoryOpen)switchTab("bait");}
   else{document.getElementById("jetskiShopUI").style.display="flex";freezeInput=true;}
 });
 
