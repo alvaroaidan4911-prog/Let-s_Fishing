@@ -303,7 +303,7 @@ let currentOwnerTab = "players";
 function switchOwnerTab(tab) {
   currentOwnerTab = tab;
   // Update tab styles
-8  const tabs = document.querySelectorAll("#ownerPanel [data-tab]");
+  const tabs = document.querySelectorAll("#ownerPanel [data-tab]");
   tabs.forEach(t => {
     const active = t.dataset.tab === tab;
     t.style.color = active ? "#f39c12" : "#888";
