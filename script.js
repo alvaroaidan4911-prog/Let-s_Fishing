@@ -17,7 +17,7 @@ let nearSeller=false,gamePaused=false;
 
 // ═══════ SWIM STATE ═══════
 let isSwimming=false,swimAnim=0,swimCycle=0;
-let playerWaterY=-0.6;
+let playerWaterY=-1;
 
 // ═══════ JETSKI STATE ═══════
 let onJetski=false,jetskiSpeed=0,nearJetski=false,jetskiOwned=false;
