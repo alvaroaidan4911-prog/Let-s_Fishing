@@ -624,7 +624,7 @@ function spawnJetski(){
   jetskiSpawned=true;
   jetski.position.set(jetskiSpawnPos.x,jetskiSpawnPos.y,jetskiSpawnPos.z);
   jetski.visible=true;
-  jetski.rotation.set(0,0,0);
+  jetski.rotation.set(0,0,0);  // ← pastikan ini ada, x=0 bukan miring
   showMessage("🛥️ Jetski di-spawn di Pelabuhan!");
 }
 function despawnJetski(){
@@ -648,11 +648,6 @@ function updateJetski(){
   jetski.position.z+=Math.cos(jetski.rotation.y)*jetskiSpeed;
   jetski.position.y=0.1+Math.sin(Date.now()*0.002)*0.08;
   jetski.rotation.x=jetskiSpeed*0.18; jetski.rotation.z=-mX*0.07;
-  // Duduk di atas jetski
-  player.position.copy(jetski.position);
-  player.position.y=jetski.position.y+0.55;
-  player.rotation.y=jetski.rotation.y;
-  torso.position.y=3;
   // Tangan gerak ikut setir saat belok
   armL.rotation.z=0.4+mX*0.15; armR.rotation.z=-0.4+mX*0.15;
   torso.rotation.z=mX*-0.05;
@@ -693,6 +688,8 @@ function startCastAnimation(){
   if(!inventory.equipped){showMessage("Equip a rod first!");return;}
   if(isSwimming){showMessage("❌ Can't fish while swimming!");return;}
   if(onJetski){showMessage("❌ Dismount first! [E]");return;}
+  // Tambah ini — hanya bisa mancing di air:
+  if(checkOnLand()){showMessage("❌ Tidak bisa memancing didaratan!);return;}
   castingNow=true;castAnimation=0;castReleased=false;
 }
 
@@ -1188,13 +1185,15 @@ function updateNPCInteraction(){
   nearHarbour=playerWorldPos.distanceTo(HARBOUR_POS)<8;
 
   // Harbour spawn button
-  const harbBtn=document.getElementById("harbourBtn");
   if(harbBtn){
-    if(nearHarbour&&jetskiOwned&&!onJetski){
+    // Sembunyikan tombol harbour SAAT naik jetski
+    if(onJetski){
+      harbBtn.style.display="none";
+    } else if(nearHarbour&&jetskiOwned){
       harbBtn.style.display="block";
       harbBtn.textContent=jetskiSpawned?"🛥️ Despawn Jetski":"🛥️ Spawn Jetski";
       harbBtn.onclick=jetskiSpawned?despawnJetski:spawnJetski;
-    } else if(!onJetski){
+    } else {
       harbBtn.style.display="none";
     }
   }
@@ -1362,6 +1361,21 @@ function forceLandscape(){
   }
 }
 
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+    document.getElementById("fullscreenBtn").textContent="⛷";
+  } else {
+    document.exitFullscreen();
+    document.getElementById("fullscreenBtn").textContent="⛶";
+  }
+}
+// Update icon saat fullscreen berubah (misal tekan Escape)
+document.addEventListener("fullscreenchange",()=>{
+  const btn=document.getElementById("fullscreenBtn");
+  if(btn)btn.textContent=document.fullscreenElement?"⛷":"⛶";
+});
+  
 // ═══════ MAIN LOOP ═══════
 let lastTime=0;
 function animate(time){
