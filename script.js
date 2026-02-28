@@ -465,6 +465,8 @@ function checkOnLand(){
   if((px-500)**2+pz**2<34*34)return true;
   if((px+600)**2+(pz+500)**2<30*30)return true;
   if((px-200)**2+(pz-800)**2<25*25)return true;
+  // Area pelabuhan dianggap darat
+  if((px-50)**2+(pz-15)**2<12*12)return true;
   return false;
 }
 
