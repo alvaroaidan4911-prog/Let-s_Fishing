@@ -1067,32 +1067,27 @@ function renderBaitTab(el){
 }
 
 function renderFishTab(el){
-function renderFishTab(el){
   if(inventory.fish.length===0){
-    el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;font-size:14px;">
-      🐟 No fish in your bag!<br><span style="font-size:12px">Go catch some.</span></div>`;
+    el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;">🐟 No fish!</div>`;
     return;
   }
-  el.innerHTML=`
-    <div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish — tap 📸 untuk pasang foto ikan</div>
-    <div class="fishBagGrid">`
-    +inventory.fish.map((f,i)=>`
-      <div class="fishCard${heldFishIndex===i?" holding":""}">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-          ${getFishPhotoEl(f.name,44)}
-          <button onclick="uploadFishPhoto('${f.name}')" style="
-            background:rgba(255,255,255,0.12);border:none;color:#fff;
-            border-radius:8px;padding:4px 7px;font-size:13px;cursor:pointer;" title="Upload foto">📸</button>
-        </div>
-        <h4>${f.name}</h4>
-        <div class="fishRar rarity-${f.rarity}">${f.rarity}</div>
-        <div class="fishPrice">💰${f.price}</div>
-        <button class="holdBtn ${heldFishIndex===i?"unhold":"hold"}" onclick="toggleHoldFish(${i})">${heldFishIndex===i?"Put down":"Hold 🤚"}</button>
-      </div>`).join("")
-    +`</div>
-    <button id="invSellAllBtn" onclick="sellAllFish()">💰 Sell All Fish (+💰${inventory.fish.reduce((s,f)=>s+f.price,0)})</button>`;
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish</div>
+  <div class="fishBagGrid">`
+  +inventory.fish.map((f,i)=>{
+    // Ambil canvas dari cache tekstur
+    const tex = getFishTexture(f.name);
+    const imgSrc = tex.image.toDataURL();
+    return`<div class="fishCard${heldFishIndex===i?" holding":""}">
+      <img src="${imgSrc}" style="width:100%;height:52px;object-fit:cover;border-radius:8px;margin-bottom:4px;">
+      <h4>${f.name}</h4>
+      <div class="fishRar rarity-${f.rarity}">${f.rarity}</div>
+      <div class="fishPrice">💰${f.price}</div>
+      <button class="holdBtn ${heldFishIndex===i?"unhold":"hold"}" onclick="toggleHoldFish(${i})">${heldFishIndex===i?"Put down":"Hold 🤚"}</button>
+    </div>`;
+  }).join("")
+  +`</div>
+  <button id="invSellAllBtn" onclick="sellAllFish()">💰 Sell All (+💰${inventory.fish.reduce((s,f)=>s+f.price,0)})</button>`;
 }
-
 function equipRod(name){
   if(!inventory.rods.includes(name)){showMessage("You don't own this rod!");return;}
   inventory.equipped=name;
@@ -1520,6 +1515,7 @@ window.addEventListener("load",()=>{
   loadGameProgress();
   const ss=localStorage.getItem("playerShirt");if(ss)setShirt(ss);
   updateLevelUI();
+  preloadAllFishTextures();
   if(!inventory.equipped){
     backHolder.add(rod);rod.position.set(0,0,0);rod.rotation.set(0,Math.PI,0.5);
   }
