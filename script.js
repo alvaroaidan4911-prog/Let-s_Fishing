@@ -78,6 +78,47 @@ const fishTypes=[
   {name:"Rainbow Fish",  rarity:"Epic",     price:250, xp:90,  color:"#ff69b4",emoji:"🌈",diff:1.9},
 ];
 
+// ═══ FISH PHOTO SYSTEM ═══
+const fishPhotos={}; // {fishName: dataURL}
+
+// Load foto dari localStorage saat startup
+function loadFishPhotos(){
+  try{
+    const saved=JSON.parse(localStorage.getItem("fishPhotos_v1")||"{}");
+    Object.assign(fishPhotos,saved);
+  }catch(e){}
+}
+loadFishPhotos();
+
+function saveFishPhotos(){
+  try{localStorage.setItem("fishPhotos_v1",JSON.stringify(fishPhotos));}catch(e){}
+}
+
+// Buka dialog upload foto untuk ikan tertentu
+function uploadFishPhoto(fishName){
+  const input=document.createElement("input");
+  input.type="file"; input.accept="image/*";
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      fishPhotos[fishName]=ev.target.result;
+      saveFishPhotos();
+      showMessage("📸 Foto "+fishName+" disimpan!");
+      if(inventoryOpen)renderTab("fish");
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function getFishPhotoEl(fishName,size=48){
+  if(fishPhotos[fishName]){
+    return`<img src="${fishPhotos[fishName]}" style="width:${size}px;height:${size}px;object-fit:cover;border-radius:8px;border:2px solid #fff3;">`;
+  }
+  return`<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border-radius:8px;font-size:${size*0.5}px;">${fishTypes.find(f=>f.name===fishName)?.emoji||"🐟"}</div>`;
+}
+
 // ═══════ BAIT DATABASE ═══════
 const baitTypes=[
   {id:"none",   name:"No Bait",    icon:"❌",desc:"Default, no bonus.",      luckBonus:0,  speedBonus:0,  rareBonus:0,  price:0,   infinite:true},
@@ -152,36 +193,30 @@ const water=new THREE.Mesh(
 water.rotation.x=-Math.PI/2; water.position.y=-1; scene.add(water);
 
 // ═══════ ISLAND BUILDER ═══════
-function buildIsland(x,z,radius,grassRadius,label,grassColor){
+function buildIsland(x,z,radius,grassRadius,label,grassColor,noTree){
   const g=new THREE.Group(); g.position.set(x,-2.5,z); scene.add(g);
   g.add(new THREE.Mesh(new THREE.CylinderGeometry(radius,radius+4,4,64),new THREE.MeshStandardMaterial({map:sandTex})));
   const gr=new THREE.Mesh(new THREE.CylinderGeometry(grassRadius,grassRadius+2,0.5,32),new THREE.MeshStandardMaterial({color:grassColor||0x27ae60}));
   gr.position.y=2.3; g.add(gr);
-  // Palm tree
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.6,6,8),new THREE.MeshStandardMaterial({color:0x8B6914}));
-  trunk.position.y=5; g.add(trunk);
-  const leaves=new THREE.Mesh(new THREE.ConeGeometry(4,2.5,8),new THREE.MeshStandardMaterial({color:0x1a7a1a}));
-  leaves.position.y=9.5; g.add(leaves);
-  // Sign
-  const sc=document.createElement("canvas"); sc.width=512; sc.height=128;
-  const sx=sc.getContext("2d");
-  sx.fillStyle="rgba(0,0,0,.75)"; sx.fillRect(0,0,512,128);
-  sx.fillStyle="#fff"; sx.font="bold 50px Arial"; sx.textAlign="center"; sx.textBaseline="middle";
-  sx.fillText(label,256,64);
-  const sm=new THREE.Mesh(new THREE.BoxGeometry(5,1.2,0.2),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
-  sm.position.set(0,5,radius-0.3); g.add(sm);
+  // Palm tree — skip kalau noTree=true
+  if(!noTree){
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.6,6,8),new THREE.MeshStandardMaterial({color:0x8B6914}));
+    trunk.position.y=5; g.add(trunk);
+    const leaves=new THREE.Mesh(new THREE.ConeGeometry(4,2.5,8),new THREE.MeshStandardMaterial({color:0x1a7a1a}));
+    leaves.position.y=9.5; g.add(leaves);
+  }
   return g;
 }
 
 // MAIN ISLAND
 const mainIsland=buildIsland(0,0,50,45,"🏝️ Main Island",0x27ae60);
 
-// DISTANT ISLANDS — moved far apart
+// DISTANT ISLANDS
 const island2=buildIsland(500,  0,   35,30,"🏝️ Mystic Isle",  0x2ecc71);
-const island3=buildIsland(-600,-500, 30,26,"🌋 Volcano Isle",  0x8B0000);
+const island3=buildIsland(-600,-500, 30,26,"🌋 Volcano Isle",  0x8B0000, true); // noTree=true
 const island4=buildIsland(200,  800, 25,22,"💎 Crystal Isle",  0x00bcd4);
 
-// Extra trees & rocks on remote islands
+// Rocks
 function addRock(g,x,z,s){
   const r=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),new THREE.MeshStandardMaterial({color:0x777777}));
   r.position.set(x,2.5+s,z); r.rotation.set(Math.random(),Math.random(),Math.random()); g.add(r);
@@ -190,9 +225,79 @@ addRock(island2,8,6,1.5); addRock(island2,-6,4,1);
 addRock(island3,0,0,3); addRock(island3,7,-5,1.8);
 addRock(island4,-4,5,1.2); addRock(island4,5,3,0.9);
 
-// Lava on volcano
-const lava=new THREE.Mesh(new THREE.CylinderGeometry(3,3,0.4,16),new THREE.MeshStandardMaterial({color:0xff4500,emissive:0xff2200,emissiveIntensity:0.9}));
-lava.position.set(-600,-503,-500); scene.add(lava);
+// ═══ GUNUNG VOLCANO di island3 ═══
+function buildVolcano(parentGroup){
+  // Badan gunung — cone besar
+  const body=new THREE.Mesh(
+    new THREE.ConeGeometry(18,22,16),
+    new THREE.MeshStandardMaterial({color:0x4a2800,roughness:1})
+  );
+  body.position.set(0,13.5,0); parentGroup.add(body);
+
+  // Puncak kawah — kerucut terpotong (frustrumGeometry simulasi dengan 2 cone)
+  const crater=new THREE.Mesh(
+    new THREE.CylinderGeometry(4,8,5,16),
+    new THREE.MeshStandardMaterial({color:0x333333,roughness:1})
+  );
+  crater.position.set(0,26,0); parentGroup.add(crater);
+
+  // Lava di dalam kawah
+  const lavaPool=new THREE.Mesh(
+    new THREE.CylinderGeometry(3.5,3.5,0.5,16),
+    new THREE.MeshStandardMaterial({color:0xff4500,emissive:0xff2200,emissiveIntensity:1.2})
+  );
+  lavaPool.position.set(0,28.6,0); parentGroup.add(lavaPool);
+
+  // Batu-batu di sisi gunung
+  for(let i=0;i<8;i++){
+    const angle=(i/8)*Math.PI*2;
+    const dist=10+Math.random()*5;
+    const rock=new THREE.Mesh(
+      new THREE.DodecahedronGeometry(1+Math.random()*1.5,0),
+      new THREE.MeshStandardMaterial({color:0x3a3a3a,roughness:1})
+    );
+    rock.position.set(Math.cos(angle)*dist,3+Math.random()*4,Math.sin(angle)*dist);
+    rock.rotation.set(Math.random(),Math.random(),Math.random());
+    parentGroup.add(rock);
+  }
+
+  // Asap/partikel kawah (visual static — mesh putih transparan)
+  for(let i=0;i<5;i++){
+    const smoke=new THREE.Mesh(
+      new THREE.SphereGeometry(1.5+i*0.5,8,8),
+      new THREE.MeshStandardMaterial({color:0xaaaaaa,transparent:true,opacity:0.12-i*0.018})
+    );
+    smoke.position.set((Math.random()-.5)*2,30+i*3,(Math.random()-.5)*2);
+    parentGroup.add(smoke);
+  }
+
+  return lavaPool; // return supaya bisa dianimasikan
+}
+const volcanoLava=buildVolcano(island3);
+
+// Sign pulau (dibuat terpisah, ditaruh di tepi island)
+function addIslandSign(g,label,radius){
+  const sc=document.createElement("canvas"); sc.width=512; sc.height=128;
+  const sx=sc.getContext("2d");
+  sx.fillStyle="rgba(0,0,0,.8)"; sx.fillRect(0,0,512,128);
+  sx.fillStyle="#fff"; sx.font="bold 48px Arial"; sx.textAlign="center"; sx.textBaseline="middle";
+  sx.fillText(label,256,64);
+  const sm=new THREE.Mesh(
+    new THREE.BoxGeometry(5,1.2,0.2),
+    new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)})
+  );
+  // Tiang sign
+  const pole=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1,0.1,3,8),
+    new THREE.MeshStandardMaterial({color:0x8B6914})
+  );
+  pole.position.set(0,4,radius-0.5); g.add(pole);
+  sm.position.set(0,5.8,radius-0.3); g.add(sm);
+}
+addIslandSign(mainIsland,"🏝️ Main Island",45);
+addIslandSign(island2,"🏝️ Mystic Isle",29);
+addIslandSign(island3,"🌋 Volcano Isle",25);
+addIslandSign(island4,"💎 Crystal Isle",21);
 
 // ═══════ SHOP BUILDER ═══════
 function buildShop(px,pz,label){
@@ -221,7 +326,7 @@ function buildShop(px,pz,label){
   sx.fillStyle="#fff"; sx.font="bold 58px Arial"; sx.textAlign="center"; sx.textBaseline="middle";
   sx.fillText(label,256,128);
   const sg=new THREE.Mesh(new THREE.BoxGeometry(4,1,0.3),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
-  sg.position.set(0,8.2,2.9); g.add(sg);
+  sg.position.set(0,6.2,2.9); g.add(sg);
   return{shop:g,counter:ctr};
 }
 
@@ -962,17 +1067,23 @@ function renderBaitTab(el){
 }
 
 function renderFishTab(el){
+function renderFishTab(el){
   if(inventory.fish.length===0){
     el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;font-size:14px;">
       🐟 No fish in your bag!<br><span style="font-size:12px">Go catch some.</span></div>`;
     return;
   }
   el.innerHTML=`
-    <div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish · Tap to hold in hand · Sell all below</div>
+    <div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish — tap 📸 untuk pasang foto ikan</div>
     <div class="fishBagGrid">`
     +inventory.fish.map((f,i)=>`
       <div class="fishCard${heldFishIndex===i?" holding":""}">
-        <div class="fishIcon">${f.emoji}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          ${getFishPhotoEl(f.name,44)}
+          <button onclick="uploadFishPhoto('${f.name}')" style="
+            background:rgba(255,255,255,0.12);border:none;color:#fff;
+            border-radius:8px;padding:4px 7px;font-size:13px;cursor:pointer;" title="Upload foto">📸</button>
+        </div>
         <h4>${f.name}</h4>
         <div class="fishRar rarity-${f.rarity}">${f.rarity}</div>
         <div class="fishPrice">💰${f.price}</div>
@@ -1071,8 +1182,13 @@ function closeJetskiShop(){document.getElementById("jetskiShopUI").style.display
 // ═══════ NOTIFICATIONS ═══════
 function showFishNotification(fish){
   const el=document.getElementById("fishNotify");
-  el.style.display="block";el.style.color=fish.color;
-  el.textContent=fish.emoji+" "+fish.name+" ("+fish.rarity+") +💰"+fish.price;
+  el.style.display="block";
+  el.style.color=fish.color;
+  // Tampilkan foto kalau ada
+  const photoHtml=fishPhotos[fish.name]
+    ?`<img src="${fishPhotos[fish.name]}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px;">`
+    :fish.emoji+" ";
+  el.innerHTML=photoHtml+fish.name+" ("+fish.rarity+") +💰"+fish.price;
   clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",2800);
 }
 function showEventNotification(text){
@@ -1395,7 +1511,7 @@ function animate(time){
   updateWake(dt);
   updateBubbles(dt);
   updateMultiplayerFrame(dt);
-  lava.material.emissiveIntensity=0.6+Math.sin(time*.005)*.4;
+  volcanoLava.material.emissiveIntensity=0.7+Math.sin(time*.003)*.5;
   renderer.render(scene,camera);
 }
 
