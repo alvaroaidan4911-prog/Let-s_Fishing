@@ -298,10 +298,10 @@ function buildHarbour(){
   indicator.rotation.x=-Math.PI/2; indicator.position.set(0,0.22,5); g.add(indicator);
   // Invisible collision floor supaya bisa diinjak
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(16, 0.5, 12),
+    new THREE.BoxGeometry(17, 0.4, 8),
     new THREE.MeshStandardMaterial({ visible: false })
   );
-  floor.position.set(50,0.1,15);
+  floor.position.set(50,0,15);
   g.add(floor);
   return g;
 }
