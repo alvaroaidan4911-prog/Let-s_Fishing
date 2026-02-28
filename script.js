@@ -26,7 +26,7 @@ let jetskiPassenger=null; // id of passenger player (multiplayer)
 const jetskiMaxSpeed=0.45;
 // Pelabuhan di tepi main island
 const HARBOUR_POS=new THREE.Vector3(50,0,15);
-const jetskiSpawnPos=new THREE.Vector3(-20,0.1,18); // di depan pelabuhan
+const jetskiSpawnPos=new THREE.Vector3(50,0.1,15.1); // di depan pelabuhan
 
 // ═══════ TENSION BAR SYSTEM ═══════
 let tensionActive=false;
