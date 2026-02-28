@@ -257,7 +257,7 @@ const {counter:jetskiShopCounter} = makeShop(44, -15,"🛥️ JETSKI");
 
 // ═══ PELABUHAN (HARBOUR) ═══
 function buildHarbour(){
-  const g=new THREE.Group(); g.position.set(25,0,15); scene.add(g);
+  const g=new THREE.Group(); g.position.set(50,0,20); scene.add(g);
   // Dermaga / dock platform
   const dock=new THREE.Mesh(new THREE.BoxGeometry(14,0.4,8),
     new THREE.MeshStandardMaterial({color:0x8B6914,roughness:0.9}));
