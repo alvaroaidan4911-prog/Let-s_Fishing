@@ -794,7 +794,7 @@ function startCastAnimation(){
   if(isSwimming){showMessage("❌ Can't fish while swimming!");return;}
   if(onJetski){showMessage("❌ Dismount first! [E]");return;}
   // Tambah ini — hanya bisa mancing di air:
-  if(checkOnLand()){showMessage("❌ Tidak bisa memancing didaratan!);return;}
+  if(checkOnLand()){showMessage("❌ Tidak bisa memancing didaratan!");return;}
   castingNow=true;castAnimation=0;castReleased=false;
 }
 
@@ -1268,7 +1268,8 @@ function updateNPCInteraction(){
   const rodBtn=document.getElementById("openRodShopBtn");
   const baitBtn=document.getElementById("openJetskiShopBtn"); // reusing this button for bait
   const mountBtn=document.getElementById("mountJetskiBtn");
-
+  const harbBtn=document.getElementById("harbourBtn");
+  
   // Sell fish
   if(playerWorldPos.distanceTo(fishPos)<8){
     nearSeller=true;sellBtn.style.display="block";
