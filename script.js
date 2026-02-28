@@ -25,7 +25,7 @@ let jetskiSpawned=false,nearHarbour=false;
 let jetskiPassenger=null; // id of passenger player (multiplayer)
 const jetskiMaxSpeed=0.45;
 // Pelabuhan di tepi main island
-const HARBOUR_POS=new THREE.Vector3(-20,0,15);
+const HARBOUR_POS=new THREE.Vector3(50,0,15);
 const jetskiSpawnPos=new THREE.Vector3(-20,0.1,18); // di depan pelabuhan
 
 // ═══════ TENSION BAR SYSTEM ═══════
@@ -298,7 +298,7 @@ function buildHarbour(){
   indicator.rotation.x=-Math.PI/2; indicator.position.set(0,0.22,5); g.add(indicator);
   // Invisible collision floor supaya bisa diinjak
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(17, 0.4, 8),
+    new THREE.BoxGeometry(14, 0.4, 7),
     new THREE.MeshStandardMaterial({ visible: false })
   );
   floor.position.set(0,0.2,0);
@@ -651,15 +651,6 @@ function despawnJetski(){
   jetski.visible=false;
   showMessage("🛥️ Jetski di-despawn.");
   updateHarbourBtn();
-}
-function updateHarbourBtn(){
-  const btn=document.getElementById("harbourBtn");
-  if(!btn)return;
-  // Hanya tampil saat dekat pelabuhan dan punya jetski
-  if(!jetskiOwned||!nearHarbour){btn.style.display="none";return;}
-  btn.style.display="block";
-  btn.textContent=jetskiSpawned?"🛥️ Despawn Jetski":"🛥️ Spawn Jetski";
-  btn.onclick=jetskiSpawned?despawnJetski:spawnJetski;
 }
 function updateJetski(){
   if(!onJetski)return;
