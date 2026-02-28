@@ -301,7 +301,7 @@ function buildHarbour(){
     new THREE.BoxGeometry(16, 0.5, 12),
     new THREE.MeshStandardMaterial({ visible: false })
   );
-  floor.position.set(0, 0.1, 0);
+  floor.position.set(50,0.1,15);
   g.add(floor);
   return g;
 }
