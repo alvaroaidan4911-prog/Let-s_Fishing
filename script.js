@@ -465,41 +465,33 @@ function checkOnLand(){
   if((px-500)**2+pz**2<34*34)return true;
   if((px+600)**2+(pz+500)**2<30*30)return true;
   if((px-200)**2+(pz-800)**2<25*25)return true;
-  // Area pelabuhan dianggap darat
-  if((px-50)**2+(pz-15)**2<12*12)return true;
+// Pelabuhan — radius 7 sesuai ukuran dock (14x7)
+  if((px-50)**2+(pz-15)**2<7*7)return true;
   return false;
 }
 
 // ═══════ SWIM ANIMATION (freestyle crawl) ═══════
-function updateSwimAnim(dt,moving){
-  swimCycle+=dt*(moving?2.5:1.2);
+function updateSwimAnim(dt, moving){
+  // Lebih lambat supaya tidak twitch
+  swimCycle += dt * (moving ? 1.5 : 0.6);
 
-  // Body tilts forward like real swimming
-  torso.rotation.x=THREE.MathUtils.lerp(torso.rotation.x,-0.65,0.1);
-  torso.position.y=THREE.MathUtils.lerp(torso.position.y,2.2,0.1);
+  torso.rotation.x = THREE.MathUtils.lerp(torso.rotation.x, -0.5, 0.07);
+  torso.position.y  = THREE.MathUtils.lerp(torso.position.y, 2.5, 0.07);
+  torso.rotation.z  = Math.sin(swimCycle * 0.5) * 0.1;
 
-  // Head breathes every stroke cycle — turns to side
-  const headBreath=Math.sin(swimCycle*0.5);
-  head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,-0.25,0.1);
-  head.rotation.z=THREE.MathUtils.lerp(head.rotation.z,headBreath>0.7?0.4:0,0.15);
+  head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, -0.1, 0.07);
+  head.rotation.z = 0;
 
-  // LEFT ARM — freestyle high recovery
-  const leftCycle=swimCycle;
-  armL.rotation.x=Math.sin(leftCycle)*1.4-0.2;
-  armL.rotation.z=Math.cos(leftCycle)*0.5-0.3;
+  // Lengan crawl — amplitudo dikecilkan biar tidak "terbang"
+  armL.rotation.x = Math.sin(swimCycle) * 0.9;
+  armL.rotation.z = Math.cos(swimCycle) * 0.25 - 0.2;
+  armR.rotation.x = Math.sin(swimCycle + Math.PI) * 0.9;
+  armR.rotation.z = -(Math.cos(swimCycle + Math.PI) * 0.25) + 0.2;
 
-  // RIGHT ARM — opposite phase
-  const rightCycle=swimCycle+Math.PI;
-  armR.rotation.x=Math.sin(rightCycle)*1.4-0.2;
-  armR.rotation.z=-Math.cos(rightCycle)*0.5+0.3;
-
-  // LEGS — flutter kick (small, fast)
-  legL.rotation.x=Math.sin(swimCycle*2)*0.35;
-  legR.rotation.x=Math.sin(swimCycle*2+Math.PI)*0.35;
-  legL.rotation.z=0; legR.rotation.z=0;
-
-  // Body roll (slight side-to-side like real freestyle)
-  torso.rotation.z=Math.sin(swimCycle*0.5)*0.18;
+  // Flutter kick kaki
+  legL.rotation.x = Math.sin(swimCycle * 2) * 0.2;
+  legR.rotation.x = Math.sin(swimCycle * 2 + Math.PI) * 0.2;
+  legL.rotation.z = 0; legR.rotation.z = 0;
 }
 
 function resetBodyPose(){
@@ -643,14 +635,12 @@ function spawnJetski(){
   jetski.visible=true;
   jetski.rotation.set(0,0,0);
   showMessage("🛥️ Jetski di-spawn di Pelabuhan!");
-  updateHarbourBtn();
 }
 function despawnJetski(){
   if(onJetski)dismountJetski();
   jetskiSpawned=false;
   jetski.visible=false;
   showMessage("🛥️ Jetski di-despawn.");
-  updateHarbourBtn();
 }
 function updateJetski(){
   if(!onJetski)return;
@@ -1209,8 +1199,10 @@ function updateNPCInteraction(){
   // Harbour spawn button
   const harbBtn=document.getElementById("harbourBtn");
   if(harbBtn){
-    if(nearHarbour&&jetskiOwned){
+    if(nearHarbour&&jetskiOwned&&!onJetski){
       harbBtn.style.display="block";
+      harbBtn.textContent=jetskiSpawned?"🛥️ Despawn Jetski":"🛥️ Spawn Jetski";
+      harbBtn.onclick=jetskiSpawned?despawnJetski:spawnJetski;
     } else if(!onJetski){
       harbBtn.style.display="none";
     }
@@ -1372,7 +1364,12 @@ function simulateLoading(){
   setTimeout(simulateLoading,80);
 }
 simulateLoading();
-async function forceLandscape(){try{await screen.orientation?.lock?.("landscape");}catch(e){}}
+// Dengan ini (tidak error kalau tidak support):
+function forceLandscape(){
+  if(screen.orientation && typeof screen.orientation.lock === "function"){
+    screen.orientation.lock("landscape").catch(()=>{});
+  }
+}
 
 // ═══════ MAIN LOOP ═══════
 let lastTime=0;
@@ -1409,7 +1406,6 @@ window.addEventListener("load",()=>{
 setTimeout(()=>{gameStarted=true;},1500);
 animate(0);
 forceLandscape();
-updateHarbourBtn();
 window.addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 document.addEventListener("gesturestart",e=>e.preventDefault());
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
