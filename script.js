@@ -283,15 +283,6 @@ function buildHarbour(){
       new THREE.MeshStandardMaterial({color:0xffff88,emissive:0xffff44,emissiveIntensity:1}));
     lb.position.set(i*6,2.3,3.5); g.add(lb);
   }
-  // Papan nama
-  const sc=document.createElement("canvas"); sc.width=256; sc.height=64;
-  const sx=sc.getContext("2d");
-  sx.fillStyle="rgba(0,0,0,0.8)"; sx.fillRect(0,0,256,64);
-  sx.fillStyle="#fff"; sx.font="bold 28px Arial"; sx.textAlign="center"; sx.textBaseline="middle";
-  sx.fillText("🚢 PELABUHAN",128,32);
-  const sm=new THREE.Mesh(new THREE.BoxGeometry(5,1.2,0.1),
-    new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
-  sm.position.set(0,2.5,0); g.add(sm);
   // Tombol spawn/despawn area indicator
   const indicator=new THREE.Mesh(new THREE.CircleGeometry(3,16),
     new THREE.MeshStandardMaterial({color:0x00ff88,transparent:true,opacity:0.15}));
