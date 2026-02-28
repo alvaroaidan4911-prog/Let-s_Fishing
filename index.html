@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Let's Fishing! v4</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;overflow:hidden;background:#000;touch-action:none;font-family:'Segoe UI',Arial,sans-serif;}
+canvas{display:block;}
+
+/* ── LOADING ── */
+#loadingScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0a1628,#1a3a5c);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;color:#fff;}
+#gameIcon{width:110px;height:110px;margin-bottom:16px;border-radius:20px;box-shadow:0 0 30px rgba(100,200,255,.5);}
+#loadingTitle{font-size:30px;font-weight:bold;color:#7ecfff;text-shadow:0 0 20px rgba(126,207,255,.8);margin-bottom:4px;}
+#loadingSubtitle{font-size:12px;color:#aaa;margin-bottom:22px;}
+#loadingBarContainer{width:65%;height:14px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;margin-bottom:8px;border:1px solid rgba(255,255,255,.2);}
+#loadingBar{width:0%;height:100%;background:linear-gradient(90deg,#3498db,#7ecfff);border-radius:8px;transition:width .1s;}
+#loadingText{font-size:12px;color:#aaa;}
+
+/* ── JOYSTICK ── */
+#joystick{position:absolute;bottom:35px;left:25px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.13);border:2px solid rgba(255,255,255,.28);touch-action:none;z-index:10;}
+#stick{position:absolute;width:48px;height:48px;background:rgba(255,255,255,.72);border-radius:50%;left:36px;top:36px;box-shadow:0 2px 8px rgba(0,0,0,.4);transition:left .05s,top .05s;}
+
+/* ── HUD TOP ── */
+#coinUI{position:fixed;left:12px;top:14px;color:#fff;font-size:16px;font-weight:bold;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:7px 13px;border-radius:11px;z-index:20;border:1px solid rgba(255,255,255,.1);}
+#levelUI{position:fixed;left:12px;top:56px;color:#fff;font-size:12px;font-weight:bold;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:7px 13px;border-radius:11px;z-index:20;border:1px solid rgba(255,255,255,.1);min-width:170px;}
+#xpBarContainer{width:100%;height:5px;background:rgba(255,255,255,.18);border-radius:3px;margin-top:5px;overflow:hidden;}
+#xpBar{height:100%;width:0%;background:linear-gradient(90deg,#f39c12,#f1c40f);border-radius:3px;transition:width .4s;}
+#weatherUI{position:fixed;right:12px;top:14px;color:#fff;font-size:12px;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:7px 12px;border-radius:11px;z-index:20;border:1px solid rgba(255,255,255,.1);}
+
+/* ── FISHING TENSION BAR ── */
+#tensionContainer{position:fixed;bottom:190px;left:50%;transform:translateX(-50%);width:260px;display:none;flex-direction:column;align-items:center;gap:5px;z-index:50;}
+#tensionLabel{color:#fff;font-size:13px;font-weight:bold;text-shadow:0 1px 4px rgba(0,0,0,.8);}
+#tensionTrack{width:100%;height:22px;background:rgba(0,0,0,.5);border-radius:11px;border:2px solid rgba(255,255,255,.25);overflow:hidden;position:relative;}
+#tensionBar{height:100%;width:50%;border-radius:9px;transition:background .2s;position:relative;}
+#tensionZone{position:absolute;top:0;height:100%;background:rgba(255,255,255,.22);border-radius:4px;pointer-events:none;}
+#tensionIndicator{position:absolute;top:-2px;width:8px;height:26px;background:#fff;border-radius:4px;transform:translateX(-50%);box-shadow:0 0 8px #fff;pointer-events:none;}
+#reelBtn{padding:10px 28px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:bold;cursor:pointer;box-shadow:0 4px 14px rgba(231,76,60,.5);touch-action:none;}
+#reelBtn:active{transform:scale(.95);}
+#catchPrompt{color:#2ecc71;font-size:12px;font-weight:bold;text-shadow:0 0 8px rgba(46,204,113,.8);display:none;}
+
+/* ── BITE ICON ── */
+#biteIcon{position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);font-size:56px;display:none;animation:popAnim .4s infinite alternate;z-index:50;pointer-events:none;}
+@keyframes popAnim{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(-50%,-50%) scale(1.25)}}
+
+/* ── NOTIFICATIONS ── */
+#fishNotify{position:fixed;top:88px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);color:#fff;padding:10px 20px;border-radius:13px;font-size:16px;display:none;z-index:100;border:1px solid rgba(255,255,255,.2);white-space:nowrap;}
+#eventNotify{position:fixed;top:155px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.88);color:#f1c40f;padding:9px 18px;border-radius:13px;font-size:14px;display:none;z-index:100;border:1px solid rgba(241,196,15,.3);white-space:nowrap;}
+#xpNotify{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);color:#f1c40f;font-size:28px;font-weight:bold;display:none;z-index:200;text-shadow:0 0 20px rgba(241,196,15,.9);pointer-events:none;}
+@keyframes xpFloat{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-62%) scale(1.1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-85%)}}
+
+/* ── JETSKI HUD ── */
+#jetskiUI{position:fixed;right:12px;bottom:160px;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);padding:9px 14px;border-radius:11px;z-index:20;border:1px solid rgba(231,76,60,.4);display:none;color:#fff;text-align:center;}
+#jetskiSpeed{font-size:20px;font-weight:bold;color:#e74c3c;}
+.jsLabel{font-size:10px;color:#aaa;}
+
+/* ── INVENTORY ── */
+#inventoryBtn{position:fixed;right:12px;bottom:110px;width:48px;height:48px;background:rgba(0,0,0,.7);border:2px solid rgba(255,255,255,.25);border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;}
+#inventoryUI{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:3000;display:none;flex-direction:column;overflow:hidden;}
+#invHeader{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.1);}
+#invHeader h2{margin:0;color:#7ecfff;font-size:18px;}
+#invCloseBtn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:7px 16px;border-radius:9px;cursor:pointer;font-size:13px;}
+#invTabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.1);}
+.invTab{flex:1;padding:10px;text-align:center;cursor:pointer;font-size:13px;color:#aaa;border-bottom:3px solid transparent;transition:all .2s;}
+.invTab.active{color:#7ecfff;border-bottom-color:#7ecfff;background:rgba(126,207,255,.06);}
+#invContent{flex:1;overflow-y:auto;padding:14px;}
+
+/* ROD PANEL */
+.rodRow{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;margin-bottom:8px;border:2px solid transparent;cursor:pointer;transition:all .2s;}
+.rodRow.equipped{border-color:#f1c40f;background:rgba(241,196,15,.08);}
+.rodRow:hover{background:rgba(255,255,255,.1);}
+.rodIcon{font-size:32px;width:44px;text-align:center;}
+.rodInfo{flex:1;}
+.rodInfo h4{margin:0 0 3px;color:#fff;font-size:14px;}
+.rodInfo p{margin:0;font-size:11px;color:#aaa;}
+.rodInfo .rodStats{font-size:11px;color:#7ecfff;margin-top:3px;}
+.rodEquipBtn{padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;}
+.rodEquipBtn.eq{background:rgba(241,196,15,.25);color:#f1c40f;}
+.rodEquipBtn.neq{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;}
+
+/* BAIT PANEL */
+.baitGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.baitCard{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;}
+.baitCard.selected{border-color:#2ecc71;background:rgba(46,204,113,.1);}
+.baitCard:hover{background:rgba(255,255,255,.1);}
+.baitCard .baitIcon{font-size:36px;margin-bottom:6px;}
+.baitCard h4{margin:0 0 3px;font-size:13px;color:#fff;}
+.baitCard p{margin:0;font-size:10px;color:#aaa;}
+.baitCard .baitCount{display:inline-block;background:rgba(0,0,0,.4);border-radius:6px;padding:2px 8px;font-size:11px;color:#7ecfff;margin-top:5px;}
+
+/* FISH BAG */
+.fishBagGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}
+.fishCard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center;position:relative;transition:all .2s;}
+.fishCard.holding{border-color:#f1c40f;background:rgba(241,196,15,.1);}
+.fishCard .fishIcon{font-size:32px;margin-bottom:5px;}
+.fishCard h4{margin:0 0 2px;font-size:12px;color:#fff;}
+.fishCard .fishRar{font-size:10px;margin-bottom:4px;}
+.fishCard .fishPrice{font-size:11px;color:#f1c40f;}
+.holdBtn{margin-top:6px;width:100%;padding:5px;border:none;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;}
+.holdBtn.hold{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff;}
+.holdBtn.unhold{background:rgba(255,255,255,.1);color:#fff;}
+
+/* BUY ROD SHOP in Inventory */
+.buyRodBtn{padding:6px 12px;background:linear-gradient(135deg,#8e44ad,#9b59b6);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px;}
+.buyRodBtn.owned{background:rgba(39,174,96,.3);color:#2ecc71;cursor:default;}
+#invSellAllBtn{width:100%;padding:12px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:10px;}
+
+/* ── HELD FISH HUD ── */
+#heldFishHUD{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 14px;color:#fff;font-size:13px;z-index:20;display:none;white-space:nowrap;}
+
+/* ── WORLD BUTTONS ── */
+.worldBtn{position:absolute;padding:10px 16px;color:#fff;border-radius:11px;display:none;z-index:999;border:none;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.4);}
+#sellBtn{background:linear-gradient(135deg,#27ae60,#2ecc71);}
+#openRodShopBtn{background:linear-gradient(135deg,#8e44ad,#9b59b6);}
+#openJetskiShopBtn{background:linear-gradient(135deg,#e67e22,#f39c12);}
+#mountJetskiBtn{position:absolute;padding:10px 18px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border-radius:11px;display:none;z-index:999;border:none;cursor:pointer;font-size:13px;font-weight:bold;}
+#interactHint{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);color:rgba(255,255,255,.8);font-size:11px;padding:5px 12px;border-radius:8px;z-index:15;pointer-events:none;display:none;white-space:nowrap;}
+
+/* ── MENU ── */
+#openMenuBtn{position:absolute;top:14px;right:14px;padding:9px 14px;background:rgba(0,0,0,.62);color:#fff;border-radius:10px;z-index:1000;border:1px solid rgba(255,255,255,.18);cursor:pointer;font-size:13px;}
+#menuUI{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;gap:10px;background:rgba(0,0,0,.96);padding:28px;border-radius:16px;z-index:4000;min-width:210px;border:1px solid rgba(255,255,255,.1);}
+#menuUI h2{color:#fff;text-align:center;margin:0 0 10px;font-size:20px;}
+#menuUI button{padding:11px;background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:10px;cursor:pointer;font-size:14px;}
+#menuUI #resumeBtn{background:linear-gradient(135deg,#27ae60,#2ecc71);border:none;}
+#menuUI #quitBtn{background:linear-gradient(135deg,#c0392b,#e74c3c);border:none;}
+#customUI{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.96);padding:24px;border-radius:16px;color:#fff;z-index:5000;min-width:250px;border:1px solid rgba(255,255,255,.1);}
+#customUI h3{margin:0 0 14px;text-align:center;}
+#customUI label{font-size:12px;color:#aaa;display:block;margin-bottom:4px;}
+#customUI input[type=color]{width:100%;height:38px;border:none;border-radius:8px;cursor:pointer;margin-bottom:13px;}
+#customUI button{width:100%;padding:10px;border:none;border-radius:8px;cursor:pointer;font-size:13px;margin-bottom:7px;}
+#saveCustom{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;}
+#closeCustomBtn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)!important;}
+
+/* ── JETSKI SHOP UI ── */
+#jetskiShopUI{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(88vw,500px);max-height:85vh;background:rgba(5,15,30,.97);padding:22px;border-radius:18px;display:none;flex-direction:column;gap:14px;overflow-y:auto;z-index:1200;color:#fff;border:1px solid rgba(100,180,255,.2);}
+#jetskiShopUI h2{text-align:center;margin:0 0 4px;font-size:20px;color:#7ecfff;}
+.jsShopCard{background:rgba(255,255,255,.05);border:1px solid rgba(231,76,60,.3);border-radius:14px;padding:16px;text-align:center;}
+.jsShopCard .bigIcon{font-size:64px;margin-bottom:8px;}
+.jsShopCard h3{margin:0 0 6px;color:#e74c3c;}
+.jsShopCard p{margin:0 0 8px;font-size:12px;color:#aaa;}
+.jsShopCard button{padding:10px 24px;background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:bold;}
+
+/* ── HOTBAR ── */
+#hotbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:10;}
+.slot{width:58px;height:58px;background:rgba(0,0,0,.5);border:3px solid rgba(255,255,255,.38);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;cursor:pointer;}
+.slot.active{border-color:#f1c40f;background:rgba(241,196,15,.18);}
+
+/* ── SCROLL BARS ── */
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:rgba(255,255,255,.05);} ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <img id="gameIcon" src="icons/icon-512.png" alt="">
+  <div id="loadingTitle">🎣 Let's Fishing!</div>
+  <div id="loadingSubtitle">v4.0 — Tension Bar · Bait · Full Inventory</div>
+  <div id="loadingBarContainer"><div id="loadingBar"></div></div>
+  <p id="loadingText">Loading... 0%</p>
+</div>
+
+<!-- HUD -->
+<div id="coinUI">💰 0</div>
+<div id="levelUI">
+  ⭐ Lv.<span id="levelNum">1</span> <span id="levelTitle">Beginner</span>
+  <div id="xpBarContainer"><div id="xpBar"></div></div>
+  <div id="xpText" style="font-size:10px;color:#aaa;margin-top:2px;">0/100 XP</div>
+</div>
+<div id="weatherUI">☀️ Sunny</div>
+<div id="jetskiUI"><div class="jsLabel">🛥️ SPEED</div><div id="jetskiSpeed">0 km/h</div><div class="jsLabel">[E] Dismount</div></div>
+<div id="heldFishHUD">🐟 Holding: —</div>
+
+<!-- TENSION BAR (fishing) -->
+<div id="tensionContainer">
+  <div id="tensionLabel">🎣 Keep in the ZONE!</div>
+  <div id="tensionTrack">
+    <div id="tensionBar"></div>
+    <div id="tensionZone"></div>
+    <div id="tensionIndicator"></div>
+  </div>
+  <button id="reelBtn">🎣 REEL IN</button>
+  <div id="catchPrompt">✅ Release to CATCH!</div>
+</div>
+
+<div id="biteIcon">❗</div>
+<div id="fishNotify"></div>
+<div id="eventNotify"></div>
+<div id="xpNotify">+XP!</div>
+<div id="interactHint"></div>
+
+<!-- CONTROLS -->
+<button id="openMenuBtn">☰</button>
+<div id="joystick"><div id="stick"></div></div>
+<div id="hotbar"><div class="slot active" id="slot1">🎣</div></div>
+
+<!-- INVENTORY -->
+<div id="inventoryBtn" onclick="toggleInventory()">🎒</div>
+
+<!-- WORLD BUTTONS -->
+<button id="sellBtn" class="worldBtn">🐟 Sell Fish</button>
+<button id="openRodShopBtn" class="worldBtn">🛒 Rods</button>
+<button id="openJetskiShopBtn" class="worldBtn">🛥️ Jetski</button>
+<button id="mountJetskiBtn">🛥️ Mount [E]</button>
+
+<!-- ═══════ INVENTORY UI ═══════ -->
+<div id="inventoryUI">
+  <div id="invHeader">
+    <h2>🎒 Inventory</h2>
+    <button id="invCloseBtn" onclick="toggleInventory()">✕ Close</button>
+  </div>
+  <div id="invTabs">
+    <div class="invTab active" onclick="switchTab('rods')">🎣 Rods</div>
+    <div class="invTab" onclick="switchTab('bait')">🪱 Bait</div>
+    <div class="invTab" onclick="switchTab('fish')">🐟 Fish Bag</div>
+  </div>
+  <div id="invContent"></div>
+</div>
+
+<!-- JETSKI SHOP -->
+<div id="jetskiShopUI">
+  <h2>🛥️ Jetski Shop</h2>
+  <div class="jsShopCard">
+    <div class="bigIcon">🛥️</div>
+    <h3>Red Jetski</h3>
+    <p>High-speed watercraft to explore distant islands.<br>Max speed 35 km/h · Controls: Joystick / WASD · [E] mount/dismount</p>
+    <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:10px;font-size:11px;color:#aaa;margin-bottom:12px;text-align:left;line-height:1.8;">
+      🏝️ <b style="color:#fff">Islands reachable by Jetski:</b><br>
+      🟢 <b style="color:#2ecc71">Mystic Isle</b> — ~500m North-East<br>
+      🔴 <b style="color:#e74c3c">Volcano Isle</b> — ~700m South-West<br>
+      🔵 <b style="color:#00bcd4">Crystal Isle</b> — ~900m South
+    </div>
+    <button id="buyJetskiBtn" onclick="buyJetski()">Buy 💰1500</button>
+  </div>
+  <button onclick="closeJetskiShop()" style="padding:11px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:10px;cursor:pointer;font-size:13px;">✕ Close</button>
+</div>
+
+<!-- MENU -->
+<div id="menuUI">
+  <h2>🎣 Menu</h2>
+  <button id="resumeBtn">▶ Resume</button>
+  <button id="settingsBtn">🎨 Customize</button>
+  <button id="saveBtn">💾 Save</button>
+  <button id="quitBtn">🚪 Quit</button>
+</div>
+<div id="customUI">
+  <h3>🎨 Customize</h3>
+  <label>Shirt Color:</label>
+  <input type="color" id="shirtColor" value="#2ecc71">
+  <button id="saveCustom">💾 Save</button>
+  <button id="closeCustomBtn">✕ Close</button>
+</div>
+
+<style>
+#harbourBtn{
+  position:fixed;left:50%;bottom:230px;transform:translateX(-50%);
+  background:linear-gradient(135deg,#e74c3c,#c0392b);
+  color:#fff;border:none;border-radius:12px;
+  padding:10px 22px;font-size:14px;font-weight:bold;
+  cursor:pointer;z-index:20;display:none;
+  box-shadow:0 4px 14px rgba(231,76,60,0.5);
+}
+#giftNotif{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:linear-gradient(135deg,#f39c12,#e67e22);
+  color:#fff;border-radius:18px;padding:20px 30px;
+  font-size:16px;font-weight:bold;text-align:center;
+  z-index:99998;display:none;
+  box-shadow:0 8px 30px rgba(243,156,18,0.6);
+  animation:giftPop 0.4s ease-out;
+}
+@keyframes giftPop{from{opacity:0;transform:translate(-50%,-50%) scale(0.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+</style>
+<div id="harbourBtn" onclick="jetskiSpawned?despawnJetski():spawnJetski()">🛥️ Spawn Jetski</div>
+<div id="giftNotif"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="script.js" defer></script>
+<script src="multiplayer.js" defer></script>
+</body>
+</html>
