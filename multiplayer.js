@@ -303,7 +303,7 @@ let currentOwnerTab = "players";
 function switchOwnerTab(tab) {
   currentOwnerTab = tab;
   // Update tab styles
-  const tabs = document.querySelectorAll("#ownerPanel [data-tab]");
+8  const tabs = document.querySelectorAll("#ownerPanel [data-tab]");
   tabs.forEach(t => {
     const active = t.dataset.tab === tab;
     t.style.color = active ? "#f39c12" : "#888";
@@ -521,10 +521,6 @@ function renderWorldTab(el) {
     </div>
   `;
 }
-
-// Stop key propagation for world tab inputs (called from renderWorldTab via onclick context)
-// Input fields handle their own events via inline handlers
-  el.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>e.stopPropagation()));
 
 function ownerTeleportBtnStyle() {
   return `padding:7px 12px;background:rgba(255,255,255,0.07);
