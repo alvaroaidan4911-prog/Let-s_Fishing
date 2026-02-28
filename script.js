@@ -1169,9 +1169,13 @@ function updateNPCInteraction(){
   baitShopCounter.getWorldPosition(baitPos);
   jetskiShopCounter.getWorldPosition(jsPos);
 
-  const distJs=player.position.distanceTo(jetskiSpawnPos);
+  // Hitung world position player (support saat parent ke jetski)
+  const playerWorldPos = new THREE.Vector3();
+  player.getWorldPosition(playerWorldPos);
 
-  const sellBtn=document.getElementById("sellBtn");
+  const distJs = playerWorldPos.distanceTo(jetskiSpawnPos);
+
+  const sellBtn = document.getElementById("sellBtn");
   const rodBtn=document.getElementById("openRodShopBtn");
   const baitBtn=document.getElementById("openJetskiShopBtn"); // reusing this button for bait
   const mountBtn=document.getElementById("mountJetskiBtn");
@@ -1198,9 +1202,6 @@ function updateNPCInteraction(){
   } else baitBtn.style.display="none";
 
   // Mount — hanya muncul saat dekat jetski yang sudah di-spawn
-  // Hitung world position player (jika parent ke jetski)
-  const playerWorldPos=new THREE.Vector3();
-  player.getWorldPosition(playerWorldPos);
   const distToJetski=playerWorldPos.distanceTo(jetski.position);
   nearJetski=jetskiSpawned&&distToJetski<5;
   nearHarbour=playerWorldPos.distanceTo(HARBOUR_POS)<8;
