@@ -13,15 +13,14 @@
 // ============================================================
 
 window.FIREBASE_CONFIG = {
-  apiKey:            "ISI_DISINI",
-  authDomain:        "ISI_DISINI.firebaseapp.com",
-  databaseURL:       "https://ISI_DISINI-default-rtdb.firebaseio.com",
-  projectId:         "ISI_DISINI",
-  storageBucket:     "ISI_DISINI.appspot.com",
-  messagingSenderId: "ISI_DISINI",
-  appId:             "ISI_DISINI"
+  apiKey:            "AIzaSyCuZXPtSt8UykNylQTL3vOZhHJJJGlNmxY",
+  authDomain:        "lets-fishing-ed271.firebaseapp.com",
+  databaseURL:       "https://lets-fishing-ed271-default-rtdb.firebaseio.com",
+  projectId:         "lets-fishing-ed271",
+  storageBucket:     "lets-fishing-ed271.firebasestorage.app",
+  messagingSenderId: "458916675317",
+  appId:             "1:458916675317:web:e913889e2b872c58054fbc"
 };
-
 // ============================================================
 // JANGAN UBAH DI BAWAH INI
 // ============================================================
