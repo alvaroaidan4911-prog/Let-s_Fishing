@@ -498,8 +498,12 @@ window.showBroadcastNotif = function(ownerName, message) {
 
 // ── HOOK LOADING COMPLETE ──
 window.addEventListener("load", () => {
-  // Tunggu game fully init, lalu tampilkan loading selesai dan auto-start
-  setTimeout(showMainMenuAfterLoad, 2200);
+if(loadProgress >= 100){
+  document.getElementById("loadingScreen").style.display = "none";
+  gameStarted = true;
+  if(typeof loadGameProgress === "function") loadGameProgress();
+  return;
+}
 });
 </script>
 </body>
