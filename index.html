@@ -498,13 +498,8 @@ window.showBroadcastNotif = function(ownerName, message) {
 
 // ── HOOK LOADING COMPLETE ──
 window.addEventListener("load", () => {
-if(loadProgress >= 100){
-  document.getElementById("loadingScreen").style.display = "none";
-  gameStarted = true;
-  if(typeof loadGameProgress === "function") loadGameProgress();
-  return;
-}
-});
+// Tunggu game fully init, lalu tampilkan main menu
+  setTimeout(showMainMenuAfterLoad, 2200);
 </script>
 </body>
 </html>
