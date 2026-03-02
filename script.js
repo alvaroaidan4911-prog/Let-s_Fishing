@@ -1,5 +1,6 @@
 // ============================================================
 // LET'S FISHING v4.1 — Fixed swim anim, harbour floor, landscape
+// MAIN MENU REMOVED — Auto-start after loading
 // ============================================================
 
 // ═══════ CORE STATE ═══════
@@ -343,7 +344,8 @@ const shield=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,1.2),new THREE.MeshSt
 shield.position.set(0.5,0.7,0); jetski.add(shield);
 const seat=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.3,1),new THREE.MeshStandardMaterial({color:0x222}));
 seat.position.set(-0.3,0.55,0); jetski.add(seat);
-const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.MeshStandardMaterial({color:0x888}));
+const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.Mesh
+standardMaterial({color:0x888}));
 hbar.rotation.x=Math.PI/2; hbar.position.set(0.6,0.9,0); jetski.add(hbar);
 const passengerSeat=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.3,1),new THREE.MeshStandardMaterial({color:0x333}));
 passengerSeat.position.set(-1.4,0.55,0); jetski.add(passengerSeat);
@@ -1179,22 +1181,18 @@ document.getElementById("openMenuBtn").addEventListener("click",()=>{const m=doc
 document.getElementById("resumeBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;});
 document.getElementById("settingsBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";document.getElementById("customUI").style.display="block";});
 document.getElementById("saveBtn").addEventListener("click",saveProgress);
+
+// ════════════════════════════════════════════════════════
+// MODIFIED: Quit button now reloads page instead of going to main menu
+// ════════════════════════════════════════════════════════
 document.getElementById("quitBtn").addEventListener("click",()=>{
-  // Kembali ke main menu tanpa reload halaman
-  document.getElementById("menuUI").style.display="none";
-  gamePaused=false;
-  gameStarted=false;
-  // Reset fishing state
-  if(isFishing||tensionActive)stopFishingAll();
-  // Dismount jetski kalau naik
-  if(onJetski)dismountJetski();
-  // Sembunyikan semua UI game
-  ["jetskiUI","heldFishHUD","biteIcon","tensionContainer","fishNotify","eventNotify","interactHint",
-   "sellBtn","mountJetskiBtn","openRodShopBtn","openJetskiShopBtn","harbourBtn","inventoryUI","jetskiShopUI","customUI"
-  ].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
-  // Tampilkan main menu
-  if(typeof showMainMenu==="function") showMainMenu();
+  if(confirm("Keluar dari game? Progress akan disimpan.")){
+    saveProgress();
+    // Reload halaman untuk restart (tidak ada main menu lagi)
+    location.reload();
+  }
 });
+
 document.getElementById("sellBtn").addEventListener("click",()=>{if(nearSeller)sellFish();});
 document.getElementById("mountJetskiBtn").addEventListener("click",()=>{if(onJetski)dismountJetski();else if(nearJetski)mountJetski();});
 document.getElementById("openRodShopBtn").addEventListener("click",()=>{toggleInventory();if(inventoryOpen)switchTab("rods");});
@@ -1214,7 +1212,7 @@ window.addEventListener("pointerdown",e=>{
   if(fishBiting)return;
   if(freezeInput||gamePaused)return;
   // Block saat menu apapun terbuka
-  const openUIs=["menuUI","inventoryUI","jetskiShopUI","mainMenu","spMenu","mpMenu","settingsMenu","createRoomModal"];
+  const openUIs=["menuUI","inventoryUI","jetskiShopUI","settingsMenu"];
   if(openUIs.some(id=>{
     const el=document.getElementById(id);
     return el&&(el.style.display==="flex"||el.classList.contains("show"));
@@ -1269,13 +1267,15 @@ function unequipRod(){
   armR.rotation.set(0,0,0);armL.rotation.set(0,0,0);
 }
 
-// ═══════ LOADING ═══════
+// ════════════════════════════════════════════════════════
+// MODIFIED: Auto-start game after loading (no main menu)
+// ════════════════════════════════════════════════════════
 let loadProgress=0;
 function simulateLoading(){
   if(loadProgress>=100){
     document.getElementById("loadingScreen").style.display="none";
-    // Tampilkan main menu setelah loading selesai
-    if(typeof showMainMenuAfterLoad==="function") showMainMenuAfterLoad();
+    // LANGSUNG START GAME - tanpa main menu
+    startGameDirect();
     return;
   }
   loadProgress+=Math.random()*5;if(loadProgress>100)loadProgress=100;
@@ -1283,7 +1283,24 @@ function simulateLoading(){
   document.getElementById("loadingText").textContent="Loading... "+Math.floor(loadProgress)+"%";
   setTimeout(simulateLoading,80);
 }
-simulateLoading();
+
+// ════════════════════════════════════════════════════════
+// NEW: Direct start function (replaces main menu)
+// ════════════════════════════════════════════════════════
+function startGameDirect(){
+  // Load progress lalu langsung mulai
+  loadGameProgress();
+  gameStarted = true;
+  
+  // Setup default jika belum ada save
+  if (!inventory.equipped) {
+    equipRod("FishingRod");
+  }
+  
+  showMessage("🎣 Selamat datang! Tekan [Esc] untuk menu");
+}
+
+// Hapus setTimeout auto-start lama yang tidak diperlukan lagi
 
 // ═══════ MAIN LOOP ═══════
 let lastTime=0;
@@ -1291,7 +1308,7 @@ function animate(time){
   requestAnimationFrame(animate);
   if(gamePaused)return;
   const dt=Math.min((time-lastTime)/1000,.1);lastTime=time;
-  // Hanya jalankan gameplay logic saat gameStarted=true (sudah lewati main menu)
+  // Hanya jalankan gameplay logic saat gameStarted=true
   if(gameStarted){
     if(onJetski)updateJetski();else movePlayer(dt);
     updateCastAnimation();
@@ -1313,17 +1330,12 @@ function animate(time){
 
 // ═══════ INIT ═══════
 window.addEventListener("load",()=>{
-  // loadGameProgress dipanggil dari main menu (startGame())
+  // loadGameProgress dipanggil dari startGameDirect()
   const ss=localStorage.getItem("playerShirt");if(ss)setShirt(ss);
   updateLevelUI();
-  preloadAllFishTextures();
-  if(!inventory.equipped){backHolder.add(rod);rod.position.set(0,0,0);rod.rotation.set(0,Math.PI,0.5);}
+  // Tidak perlu preload textures di sini, biarkan berjalan normal
+  // Auto-start akan terjadi setelah loading selesai
 });
-setTimeout(()=>{
-  // gameStarted diset oleh main menu (startGame())
-  // Kalau tidak ada main menu (akses langsung), auto-start setelah 1.5s
-  if(typeof showMainMenuAfterLoad!=="function") gameStarted=true;
-},1500);
 animate(0);
 
 // FIX landscape: hanya lock kalau support, jangan paksa
