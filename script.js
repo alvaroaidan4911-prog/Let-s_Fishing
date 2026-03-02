@@ -718,87 +718,6 @@ function updateFishingWait(){
   }
   if(fishBiting&&!tensionActive)armR.rotation.z=Math.sin(Date.now()*0.02)*0.2;
 }
-// ═══════ TENSION BAR FISHING (Fisch-style) ═══════
-
-// Speed per rarity
-const RARITY_SPEED = {
-  "Junk":      0.15,
-  "Common":    0.22,
-  "Uncommon":  0.35,
-  "Rare":      0.52,
-  "Epic":      0.72,
-  "Legendary": 1.0,
-};
-
-function startTension(fish){
-  fishBiting=true;tensionActive=true;
-  tensionVal=50;tensionProgress=0;tensionReeling=false;
-  tensionDifficulty=fish.diff||1;
-
-  // Speed berdasarkan rarity
-  const baseSpeed = RARITY_SPEED[fish.rarity] || 0.4;
-  tensionFishSpeed = baseSpeed;
-
-  tensionDir=Math.random()<0.5?1:-1;
-  tensionTimeout=20; // waktu lebih lama
-  freezePlayer=true;
-
-  // Zone lebih lebar untuk rarity rendah
-  const zoneWidths = {
-    "Junk":50, "Common":45, "Uncommon":38, "Rare":30, "Epic":22, "Legendary":15
-  };
-  const zoneWidth = zoneWidths[fish.rarity] || 30;
-  zoneMin=50-zoneWidth/2;
-  zoneMax=50+zoneWidth/2;
-
-  pendingFish=fish;
-
-  document.getElementById("biteIcon").style.display="block";
-  biteSound.play().catch(()=>{});
-  setTimeout(()=>{
-    document.getElementById("biteIcon").style.display="none";
-    document.getElementById("tensionContainer").style.display="flex";
-    // Update label sesuai rarity
-    const rarityEmoji = {
-      "Junk":"👟","Common":"🐟","Uncommon":"🐠","Rare":"🐡","Epic":"🦈","Legendary":"🌟"
-    };
-    document.getElementById("tensionLabel").textContent=
-      (rarityEmoji[fish.rarity]||"🐟")+" "+fish.rarity+" — Tahan untuk menarik!";
-    updateTensionUI();
-  },500);
-}
-
-function updateTensionSystem(dt){
-  if(!tensionActive)return;
-  tensionTimeout-=dt;
-  if(tensionTimeout<=0){loseFish();return;}
-
-  // Ikan bergerak sesuai rarity speed
-  // Saat player TAHAN (reel): ikan melawan, bergerak random lebih agresif
-  // Saat player LEPAS: ikan bergerak lebih lambat/santai
-  const fishAgression = tensionReeling ? 1.4 : 0.6;
-
-  tensionFishSpeed += ((Math.random()-0.5)*0.06)*tensionDifficulty*fishAgression;
-  const maxSpd = RARITY_SPEED[pendingFish?.rarity||"Common"] * 1.5;
-  tensionFishSpeed = THREE.MathUtils.clamp(tensionFishSpeed, -maxSpd, maxSpd);
-
-  // Random ganti arah, lebih sering untuk rarity tinggi
-  const dirChangeChance = {
-    "Junk":0.005,"Common":0.008,"Uncommon":0.013,
-    "Rare":0.02,"Epic":0.03,"Legendary":0.045
-  };
-  if(Math.random() < (dirChangeChance[pendingFish?.rarity||"Common"]||0.015))
-    tensionDir*=-1;
-
-  tensionVal += tensionFishSpeed * tensionDir * dt * 60;
-  tensionVal = THREE.MathUtils.clamp(tensionVal,0,100);
-  if(tensionVal<=0||tensionVal>=100) tensionDir*=-1;
-
-  const inZone = tensionVal>=zoneMin && tensionVal<=zoneMax;
-
-  // Fisch mechanic:
-  // TAHAN + dalam zone = progress naik cepat
-  // TAHAN + luar zone = progress turun pelan
 // ═══════ TENSION BAR — Fisch Style ═══════
 const RARITY_FISH_SPEED = {
   "Junk":      0.18,
@@ -943,7 +862,7 @@ function updateTensionUI(){
 
   prompt.style.display = inZone?"block":"none";
   if(inZone) prompt.textContent = "✅ Bagus! Pertahankan!";
-    }
+}
 function catchFish(){
   tensionActive=false;fishBiting=false;isFishing=false;
   document.getElementById("tensionContainer").style.display="none";
