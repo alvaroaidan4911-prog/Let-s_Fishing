@@ -1273,10 +1273,13 @@ function unequipRod(){
 let loadProgress=0;
 function simulateLoading(){
   if(loadProgress>=100){
-    document.getElementById("loadingScreen").style.display="none";
-    // Tampilkan main menu setelah loading selesai
-    if(typeof showMainMenuAfterLoad==="function") showMainMenuAfterLoad();
-    return;
+  document.getElementById("loadingScreen").style.display="none";
+
+  // langsung mulai game
+  if(typeof startGame==="function")
+      startGame();
+
+  return;
   }
   loadProgress+=Math.random()*5;if(loadProgress>100)loadProgress=100;
   document.getElementById("loadingBar").style.width=loadProgress+"%";
