@@ -1287,6 +1287,7 @@ function startGameDirect(){
   showMessage("🎣 Selamat datang! Tekan [Esc] untuk menu");
 }
 
+simulateLoading();
 // ═══════ MAIN LOOP ═══════
 let lastTime=0;
 function animate(time){
