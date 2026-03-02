@@ -799,60 +799,151 @@ function updateTensionSystem(dt){
   // Fisch mechanic:
   // TAHAN + dalam zone = progress naik cepat
   // TAHAN + luar zone = progress turun pelan
-  // LEPAS + dalam zone = progress naik pelan (istirahat sebentar ok)
-  // LEPAS + luar zone = progress turun cepat
-  if(tensionReeling && inZone)       tensionProgress += dt*22;
-  else if(tensionReeling && !inZone) tensionProgress -= dt*8;
-  else if(!tensionReeling && inZone) tensionProgress += dt*4;
-  else                                tensionProgress -= dt*14;
+// ═══════ TENSION BAR — Fisch Style ═══════
+const RARITY_FISH_SPEED = {
+  "Junk":      0.18,
+  "Common":    0.25,
+  "Uncommon":  0.38,
+  "Rare":      0.55,
+  "Epic":      0.75,
+  "Legendary": 1.0,
+};
 
-  tensionProgress = THREE.MathUtils.clamp(tensionProgress,0,100);
-  if(tensionProgress>=100){catchFish();return;}
+function startTension(fish){
+  fishBiting=true; tensionActive=true;
+  tensionVal=50;        // posisi IKAN (bergerak sendiri)
+  zoneMin=42; zoneMax=58; // posisi ZONE (digerakkan player), lebar 16
+  tensionProgress=0; tensionReeling=false;
+  tensionDifficulty=fish.diff||1;
+  tensionFishSpeed=0;
+  tensionDir=Math.random()<0.5?1:-1;
+  tensionTimeout=20;
+  freezePlayer=true;
+  pendingFish=fish;
+
+  document.getElementById("biteIcon").style.display="block";
+  biteSound.play().catch(()=>{});
+  setTimeout(()=>{
+    document.getElementById("biteIcon").style.display="none";
+    document.getElementById("tensionContainer").style.display="flex";
+    updateTensionUI();
+  },500);
+}
+
+function updateTensionSystem(dt){
+  if(!tensionActive)return;
+
+  tensionTimeout-=dt;
+  if(tensionTimeout<=0){loseFish();return;}
+
+  // ── GERAKKAN ZONE (hijau) berdasarkan input player ──
+  // Tekan = zone ke kanan, lepas = zone ke kiri
+  const zoneSpeed = 35; // kecepatan zone per detik
+  const zoneWidth = zoneMax - zoneMin; // jaga lebar zone tetap sama
+
+  if(tensionReeling){
+    zoneMin += zoneSpeed * dt;
+    zoneMax += zoneSpeed * dt;
+  } else {
+    zoneMin -= zoneSpeed * dt;
+    zoneMax -= zoneSpeed * dt;
+  }
+
+  // Clamp zone agar tidak keluar bar
+  if(zoneMin < 0){ zoneMin=0; zoneMax=zoneWidth; }
+  if(zoneMax > 100){ zoneMax=100; zoneMin=100-zoneWidth; }
+
+  // ── GERAKKAN IKAN (indikator) secara acak ──
+  const fishSpd = RARITY_FISH_SPEED[pendingFish?.rarity||"Common"] || 0.3;
+
+  // Ikan bergerak dengan akselerasi acak
+  tensionFishSpeed += (Math.random()-0.5) * 0.12 * tensionDifficulty;
+  tensionFishSpeed = THREE.MathUtils.clamp(
+    tensionFishSpeed,
+    -fishSpd * 1.2,
+     fishSpd * 1.2
+  );
+
+  // Random ganti arah
+  const flipChance = {
+    "Junk":0.008,"Common":0.012,"Uncommon":0.018,
+    "Rare":0.025,"Epic":0.035,"Legendary":0.05
+  };
+  if(Math.random() < (flipChance[pendingFish?.rarity||"Common"]||0.02))
+    tensionDir *= -1;
+
+  tensionVal += tensionFishSpeed * tensionDir * dt * 60;
+  tensionVal = THREE.MathUtils.clamp(tensionVal, 0, 100);
+  if(tensionVal<=0||tensionVal>=100) tensionDir*=-1;
+
+  // ── CEK IKAN DALAM ZONE ──
+  const inZone = tensionVal >= zoneMin && tensionVal <= zoneMax;
+
+  // Progress: naik jika ikan dalam zone, turun jika tidak
+  if(inZone)  tensionProgress += dt * 18;
+  else        tensionProgress -= dt * 12;
+
+  tensionProgress = THREE.MathUtils.clamp(tensionProgress, 0, 100);
+  if(tensionProgress >= 100){ catchFish(); return; }
 
   updateTensionUI();
 
-  if(tensionReeling) armR.rotation.x=Math.sin(Date.now()*0.03)*0.3-0.8;
-  else armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-0.6,0.1);
+  // Animasi tangan
+  if(tensionReeling) armR.rotation.x = Math.sin(Date.now()*0.03)*0.3-0.8;
+  else armR.rotation.x = THREE.MathUtils.lerp(armR.rotation.x,-0.6,0.1);
 }
 
 function updateTensionUI(){
-  const bar=document.getElementById("tensionBar");
-  const zone=document.getElementById("tensionZone");
-  const ind=document.getElementById("tensionIndicator");
-  const prompt=document.getElementById("catchPrompt");
-  const label=document.getElementById("tensionLabel");
+  const bar   = document.getElementById("tensionBar");
+  const zone  = document.getElementById("tensionZone");
+  const ind   = document.getElementById("tensionIndicator");
+  const prompt= document.getElementById("catchPrompt");
+  const label = document.getElementById("tensionLabel");
 
-  bar.style.width=tensionProgress+"%";
-  const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
-
-  // Warna progress bar
-  bar.style.background=tensionProgress>70
+  // Progress bar di atas
+  bar.style.width = tensionProgress+"%";
+  bar.style.background = tensionProgress>70
     ?"linear-gradient(90deg,#27ae60,#2ecc71)"
     :tensionProgress>35
     ?"linear-gradient(90deg,#f39c12,#f1c40f)"
     :"linear-gradient(90deg,#e74c3c,#c0392b)";
 
-  zone.style.left=zoneMin+"%";
-  zone.style.width=(zoneMax-zoneMin)+"%";
-  zone.style.background=inZone?"rgba(46,204,113,0.4)":"rgba(231,76,60,0.2)";
+  // Zone hijau (digerakkan player)
+  const inZone = tensionVal >= zoneMin && tensionVal <= zoneMax;
+  zone.style.left  = zoneMin+"%";
+  zone.style.width = (zoneMax-zoneMin)+"%";
+  zone.style.background = inZone
+    ?"rgba(46,204,113,0.5)"
+    :"rgba(46,204,113,0.25)";
+  zone.style.border = "2px solid "+(inZone?"#2ecc71":"rgba(46,204,113,0.4)");
+  zone.style.borderRadius = "4px";
+  zone.style.transition = "none"; // no lag
 
-  ind.style.left=tensionVal+"%";
-  ind.style.background=inZone?"#2ecc71":"#e74c3c";
-  ind.style.boxShadow=inZone?"0 0 12px #2ecc71":"0 0 8px #e74c3c";
+  // Indikator ikan
+  ind.style.left = tensionVal+"%";
+  ind.style.background = inZone?"#fff":"#e74c3c";
+  ind.style.boxShadow  = inZone?"0 0 10px #2ecc71":"0 0 8px #e74c3c";
 
   // Label instruksi
-  if(tensionReeling && inZone)
-    label.textContent="✅ BAGUS! Terus tahan!";
-  else if(tensionReeling && !inZone)
-    label.textContent="⚠️ Lepas dulu! Ikan keluar zona!";
-  else if(!tensionReeling && inZone)
-    label.textContent="🎣 Tahan untuk menarik!";
-  else
-    label.textContent="❌ Ikan kabur! Tahan saat di zona hijau!";
+  const rEmoji = {
+    "Junk":"👟","Common":"🐟","Uncommon":"🐠",
+    "Rare":"🐡","Epic":"🦈","Legendary":"🌟"
+  };
+  const rarity = pendingFish?.rarity||"Common";
+  if(inZone){
+    label.textContent = (rEmoji[rarity]||"🐟")+" Ikan dalam zona! Pertahankan!";
+    label.style.color = "#2ecc71";
+  } else {
+    const fishLeft = tensionVal < zoneMin;
+    label.textContent = fishLeft
+      ?"⬅️ Lepas tombol! Kejar ikan!"
+      :"➡️ Tahan tombol! Kejar ikan!";
+    label.style.color = "#e74c3c";
+  }
 
-  prompt.style.display=inZone&&tensionReeling?"block":"none";
-  if(inZone&&tensionReeling) prompt.textContent="🎣 Terus tahan!";
-}
+  prompt.style.display = inZone?"block":"none";
+  if(inZone) prompt.textContent = "✅ Bagus! Pertahankan!";
+    }
 function catchFish(){
   tensionActive=false;fishBiting=false;isFishing=false;
   document.getElementById("tensionContainer").style.display="none";
