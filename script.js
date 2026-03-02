@@ -344,7 +344,7 @@ const shield=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,1.2),new THREE.MeshSt
 shield.position.set(0.5,0.7,0); jetski.add(shield);
 const seat=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.3,1),new THREE.MeshStandardMaterial({color:0x222}));
 seat.position.set(-0.3,0.55,0); jetski.add(seat);
-const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.MeshstandardMaterial({color:0x888}));
+const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.MeshStandardMaterial({color:0x888}));
 hbar.rotation.x=Math.PI/2; hbar.position.set(0.6,0.9,0); jetski.add(hbar);
 const passengerSeat=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.3,1),new THREE.MeshStandardMaterial({color:0x333}));
 passengerSeat.position.set(-1.4,0.55,0); jetski.add(passengerSeat);
