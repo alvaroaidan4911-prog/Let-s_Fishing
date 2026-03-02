@@ -1679,65 +1679,12 @@ function addOwnerCrownToNameTag(nameCanvas) {
     return;
   }
 
-  // IS_CONFIGURED = true → tunggu main menu trigger
-  // initFromMenu dipanggil oleh startGame() di index.html saat user pilih Multiplayer
-  window.MP.initFromMenu = function() {
-    const action = localStorage.getItem("pendingRoomAction");
-    const pendingId = localStorage.getItem("pendingRoomId");
-    const pendingName = localStorage.getItem("pendingRoomName");
-
+// Auto-connect langsung tanpa main menu
+  showNameScreen(() => {
     waitForScene(() => {
-      if (action === "create" && pendingName) {
-        // Buat room baru dengan nama custom
-        const newRoomId = "room_" + pendingName.toLowerCase().replace(/\s+/g,"_") + "_" + Date.now().toString(36);
-        roomId = newRoomId;
-        setStatusBadge("🔄 Membuat room...", "#f39c12");
-        loadFirebaseSDK(() => {
-          try {
-            if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
-            db = firebase.database();
-            // Daftarkan room di Firebase
-            db.ref(`rooms/${roomId}`).set({
-              name: pendingName,
-              createdBy: localStorage.getItem("playerName") || "Owner",
-              createdAt: Date.now(),
-              weather: "Sunny"
-            }, () => {
-              localStorage.removeItem("pendingRoomAction");
-              localStorage.removeItem("pendingRoomName");
-              connect();
-            });
-          } catch(e) { addSystemMsg("❌ Error: " + e.message); }
-        });
-      } else if (action === "join" && pendingId) {
-        // Join room yang sudah ada
-        roomId = pendingId;
-        setStatusBadge("🔄 Bergabung...", "#f39c12");
-        loadFirebaseSDK(() => {
-          localStorage.removeItem("pendingRoomAction");
-          localStorage.removeItem("pendingRoomId");
-          connect();
-        });
-      } else {
-        // Fallback: join room default
-        setStatusBadge("🔄 Menghubungkan...", "#f39c12");
-        loadFirebaseSDK(connect);
-      }
+      setStatusBadge("🔄 Menghubungkan...", "#f39c12");
+      loadFirebaseSDK(connect);
     });
-  };
-
-  // Expose db ke window untuk room list di main menu
-  window.addEventListener("load", () => {
-    setTimeout(() => {
-      if (IS_CONFIGURED) {
-        try {
-          if (typeof firebase !== "undefined" && !firebase.apps.length) {
-            firebase.initializeApp(window.FIREBASE_CONFIG);
-            window.db = firebase.database();
-          }
-        } catch(e) {}
-      }
-    }, 1500);
   });
 
   // ── Expose semua fungsi owner ke global window ──
