@@ -718,58 +718,140 @@ function updateFishingWait(){
   }
   if(fishBiting&&!tensionActive)armR.rotation.z=Math.sin(Date.now()*0.02)*0.2;
 }
+// ═══════ TENSION BAR FISHING (Fisch-style) ═══════
+
+// Speed per rarity
+const RARITY_SPEED = {
+  "Junk":      0.15,
+  "Common":    0.22,
+  "Uncommon":  0.35,
+  "Rare":      0.52,
+  "Epic":      0.72,
+  "Legendary": 1.0,
+};
+
 function startTension(fish){
   fishBiting=true;tensionActive=true;
   tensionVal=50;tensionProgress=0;tensionReeling=false;
   tensionDifficulty=fish.diff||1;
-  tensionFishSpeed=0.4*tensionDifficulty;
+
+  // Speed berdasarkan rarity
+  const baseSpeed = RARITY_SPEED[fish.rarity] || 0.4;
+  tensionFishSpeed = baseSpeed;
+
   tensionDir=Math.random()<0.5?1:-1;
-  tensionTimeout=15;freezePlayer=true;
-  const zoneWidth=Math.max(12,30-tensionDifficulty*5);
-  zoneMin=50-zoneWidth/2; zoneMax=50+zoneWidth/2;
+  tensionTimeout=20; // waktu lebih lama
+  freezePlayer=true;
+
+  // Zone lebih lebar untuk rarity rendah
+  const zoneWidths = {
+    "Junk":50, "Common":45, "Uncommon":38, "Rare":30, "Epic":22, "Legendary":15
+  };
+  const zoneWidth = zoneWidths[fish.rarity] || 30;
+  zoneMin=50-zoneWidth/2;
+  zoneMax=50+zoneWidth/2;
+
+  pendingFish=fish;
+
   document.getElementById("biteIcon").style.display="block";
   biteSound.play().catch(()=>{});
   setTimeout(()=>{
     document.getElementById("biteIcon").style.display="none";
     document.getElementById("tensionContainer").style.display="flex";
+    // Update label sesuai rarity
+    const rarityEmoji = {
+      "Junk":"👟","Common":"🐟","Uncommon":"🐠","Rare":"🐡","Epic":"🦈","Legendary":"🌟"
+    };
+    document.getElementById("tensionLabel").textContent=
+      (rarityEmoji[fish.rarity]||"🐟")+" "+fish.rarity+" — Tahan untuk menarik!";
     updateTensionUI();
   },500);
 }
+
 function updateTensionSystem(dt){
   if(!tensionActive)return;
   tensionTimeout-=dt;
   if(tensionTimeout<=0){loseFish();return;}
-  tensionFishSpeed+=((Math.random()-.5)*0.08)*tensionDifficulty;
-  tensionFishSpeed=THREE.MathUtils.clamp(tensionFishSpeed,-1.2*tensionDifficulty,1.2*tensionDifficulty);
-  if(Math.random()<0.02)tensionDir*=-1;
-  tensionVal+=tensionFishSpeed*tensionDir*dt*60;
-  tensionVal=THREE.MathUtils.clamp(tensionVal,0,100);
-  if(tensionVal<=0||tensionVal>=100)tensionDir*=-1;
-  const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
-  if(tensionReeling&&inZone)tensionProgress+=dt*18/tensionDifficulty;
-  else if(tensionReeling&&!inZone)tensionProgress-=dt*12;
-  else if(!tensionReeling&&inZone)tensionProgress-=dt*6;
-  tensionProgress=THREE.MathUtils.clamp(tensionProgress,0,100);
+
+  // Ikan bergerak sesuai rarity speed
+  // Saat player TAHAN (reel): ikan melawan, bergerak random lebih agresif
+  // Saat player LEPAS: ikan bergerak lebih lambat/santai
+  const fishAgression = tensionReeling ? 1.4 : 0.6;
+
+  tensionFishSpeed += ((Math.random()-0.5)*0.06)*tensionDifficulty*fishAgression;
+  const maxSpd = RARITY_SPEED[pendingFish?.rarity||"Common"] * 1.5;
+  tensionFishSpeed = THREE.MathUtils.clamp(tensionFishSpeed, -maxSpd, maxSpd);
+
+  // Random ganti arah, lebih sering untuk rarity tinggi
+  const dirChangeChance = {
+    "Junk":0.005,"Common":0.008,"Uncommon":0.013,
+    "Rare":0.02,"Epic":0.03,"Legendary":0.045
+  };
+  if(Math.random() < (dirChangeChance[pendingFish?.rarity||"Common"]||0.015))
+    tensionDir*=-1;
+
+  tensionVal += tensionFishSpeed * tensionDir * dt * 60;
+  tensionVal = THREE.MathUtils.clamp(tensionVal,0,100);
+  if(tensionVal<=0||tensionVal>=100) tensionDir*=-1;
+
+  const inZone = tensionVal>=zoneMin && tensionVal<=zoneMax;
+
+  // Fisch mechanic:
+  // TAHAN + dalam zone = progress naik cepat
+  // TAHAN + luar zone = progress turun pelan
+  // LEPAS + dalam zone = progress naik pelan (istirahat sebentar ok)
+  // LEPAS + luar zone = progress turun cepat
+  if(tensionReeling && inZone)       tensionProgress += dt*22;
+  else if(tensionReeling && !inZone) tensionProgress -= dt*8;
+  else if(!tensionReeling && inZone) tensionProgress += dt*4;
+  else                                tensionProgress -= dt*14;
+
+  tensionProgress = THREE.MathUtils.clamp(tensionProgress,0,100);
   if(tensionProgress>=100){catchFish();return;}
+
   updateTensionUI();
-  if(tensionReeling)armR.rotation.x=Math.sin(Date.now()*0.03)*0.3-0.8;
+
+  if(tensionReeling) armR.rotation.x=Math.sin(Date.now()*0.03)*0.3-0.8;
   else armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-0.6,0.1);
 }
+
 function updateTensionUI(){
   const bar=document.getElementById("tensionBar");
   const zone=document.getElementById("tensionZone");
   const ind=document.getElementById("tensionIndicator");
   const prompt=document.getElementById("catchPrompt");
+  const label=document.getElementById("tensionLabel");
+
   bar.style.width=tensionProgress+"%";
   const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
-  bar.style.background=tensionProgress>70?"linear-gradient(90deg,#27ae60,#2ecc71)":tensionProgress>30?"linear-gradient(90deg,#f39c12,#f1c40f)":"linear-gradient(90deg,#e74c3c,#c0392b)";
-  zone.style.left=zoneMin+"%"; zone.style.width=(zoneMax-zoneMin)+"%";
-  zone.style.background=inZone?"rgba(46,204,113,0.35)":"rgba(231,76,60,0.25)";
+
+  // Warna progress bar
+  bar.style.background=tensionProgress>70
+    ?"linear-gradient(90deg,#27ae60,#2ecc71)"
+    :tensionProgress>35
+    ?"linear-gradient(90deg,#f39c12,#f1c40f)"
+    :"linear-gradient(90deg,#e74c3c,#c0392b)";
+
+  zone.style.left=zoneMin+"%";
+  zone.style.width=(zoneMax-zoneMin)+"%";
+  zone.style.background=inZone?"rgba(46,204,113,0.4)":"rgba(231,76,60,0.2)";
+
   ind.style.left=tensionVal+"%";
   ind.style.background=inZone?"#2ecc71":"#e74c3c";
-  ind.style.boxShadow=inZone?"0 0 10px #2ecc71":"0 0 8px #e74c3c";
-  prompt.style.display=inZone?"block":"none";
-  document.getElementById("tensionLabel").textContent=inZone?"✅ IN ZONE — REEL IN!":"⚠️ Get fish in the zone!";
+  ind.style.boxShadow=inZone?"0 0 12px #2ecc71":"0 0 8px #e74c3c";
+
+  // Label instruksi
+  if(tensionReeling && inZone)
+    label.textContent="✅ BAGUS! Terus tahan!";
+  else if(tensionReeling && !inZone)
+    label.textContent="⚠️ Lepas dulu! Ikan keluar zona!";
+  else if(!tensionReeling && inZone)
+    label.textContent="🎣 Tahan untuk menarik!";
+  else
+    label.textContent="❌ Ikan kabur! Tahan saat di zona hijau!";
+
+  prompt.style.display=inZone&&tensionReeling?"block":"none";
+  if(inZone&&tensionReeling) prompt.textContent="🎣 Terus tahan!";
 }
 function catchFish(){
   tensionActive=false;fishBiting=false;isFishing=false;
@@ -811,11 +893,22 @@ function updateFishingLine(){
   fishingLine.geometry.setFromPoints([s,hook.position.clone()]);
 }
 
-document.getElementById("reelBtn").addEventListener("pointerdown",e=>{e.stopPropagation();tensionReeling=true;});
-document.getElementById("reelBtn").addEventListener("pointerup",()=>tensionReeling=false);
-document.getElementById("reelBtn").addEventListener("touchstart",e=>{e.stopPropagation();tensionReeling=true;},{passive:true});
-document.getElementById("reelBtn").addEventListener("touchend",()=>tensionReeling=false);
-
+document.getElementById("reelBtn").addEventListener("pointerdown",e=>{
+  e.stopPropagation();tensionReeling=true;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#27ae60,#2ecc71)";
+});
+document.getElementById("reelBtn").addEventListener("pointerup",()=>{
+  tensionReeling=false;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#e74c3c,#c0392b)";
+});
+document.getElementById("reelBtn").addEventListener("touchstart",e=>{
+  e.stopPropagation();tensionReeling=true;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#27ae60,#2ecc71)";
+},{passive:true});
+document.getElementById("reelBtn").addEventListener("touchend",()=>{
+  tensionReeling=false;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#e74c3c,#c0392b)";
+});
 // ═══════ FISH RANDOMIZER ═══════
 function getRandomFish(){
   const rd=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
