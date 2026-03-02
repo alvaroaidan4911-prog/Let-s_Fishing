@@ -1130,7 +1130,7 @@ function updateNPCInteraction(){
   else if(nearJetski&&!onJetski)hint.textContent="🛥️ Tekan [E] naik jetski";
   else if(playerWorldPos.distanceTo(fishPos)<8)hint.textContent="🐟 Sell Shop — tekan Sell";
   else if(playerWorldPos.distanceTo(rodPos)<8)hint.textContent="🎣 Rod Shop [E]";
-  else if(playerWorldPos.distanceTo(baitPos)<8)hint.textContent="🪱 Bait / Jetski Shop";
+  else if(playerWorldPos.distanceTo(baitPos)<8)hint.textContent="🪱 Baits Shop";
   else{hint.textContent="";hint.style.display="none";return;}
   hint.style.display="block";
 }
