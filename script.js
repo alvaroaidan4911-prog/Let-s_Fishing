@@ -1,0 +1,2029 @@
+// LET'S FISHING v5.0 — Big Islands, Island Fish, Minimap
+// ============================================================
+
+// ═══ CORE STATE ═══
+let isFishing=false,hookInWater=false,fishBiting=false;
+let castAnimation=0,castingNow=false,castReleased=false,castingPose=false;
+let gameStarted=false,fishingTimer=0,biteTime=0;
+let freezePlayer=false,freezeInput=false,pulling=false;
+let nearSeller=false,gamePaused=false;
+
+// ═══ SWIM ═══
+let isSwimming=false,swimAnim=0,swimCycle=0;
+
+// ═══ JETSKI ═══
+let onJetski=false,jetskiSpeed=0,nearJetski=false,jetskiOwned=false;
+let jetskiSpawned=false,nearHarbour=false;
+const jetskiMaxSpeed=0.45;
+// Harbour positions: one per island (at sand edge)
+const HARBOUR_DEFS=[
+  {id:"main",    x:0,    z:85,   spawnX:0,    spawnZ:95,   label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:700,  z:57,   spawnX:700,  spawnZ:68,   label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-800, z:-538, spawnX:-800, spawnZ:-528, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:300,  z:1054, spawnX:300,  spawnZ:1065, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-400, z:1250, spawnX:-400, spawnZ:1260, label:"🌌 Dermaga Aurora"},
+];
+const HARBOUR_POS=new THREE.Vector3(0,0,85);
+const jetskiSpawnPos=new THREE.Vector3(0,0.1,95);
+let currentHarbourId="main";
+
+// ═══ TENSION ═══
+let tensionActive=false,tensionVal=50,zoneMin=42,zoneMax=58;
+let tensionFishSpeed=0,tensionDir=1,tensionReeling=false;
+let tensionProgress=0,tensionDifficulty=1,tensionTimeout=0,pendingFish=null;
+
+// ═══ INVENTORY ═══
+const activeTab={current:'rods'};
+let heldFishIndex=-1;
+
+// ═══ LEVEL/XP ═══
+let playerLevel=1,playerXP=0;
+const xpThresholds=[0,100,250,450,700,1000,1400,1900,2500,3200,4000];
+const levelTitles=["Beginner","Novice","Apprentice","Fisher","Expert","Master","Grand Master","Legend","Mythic","Champion","GOAT"];
+
+// ═══ WEATHER ═══
+const weatherTypes=[
+  {name:"Sunny",   icon:"☀️", speedMult:1,   luckMult:1,   skyColor:0x87ceeb,fogColor:0x87ceeb},
+  {name:"Windy",   icon:"🌬️",speedMult:1.8, luckMult:1,   skyColor:0x9db8cc,fogColor:0xaac0cc},
+  {name:"Cloudy",  icon:"☁️", speedMult:1,   luckMult:1.4, skyColor:0x7a8a96,fogColor:0x8a9aa6},
+  {name:"Storming",icon:"⛈️",speedMult:1.5, luckMult:1.6, skyColor:0x3a4a56,fogColor:0x4a5a66},
+  {name:"Foggy",   icon:"🌫️",speedMult:0.9, luckMult:1.2, skyColor:0xcccccc,fogColor:0xbbbbbb},
+];
+let currentWeather=weatherTypes[0];
+let weatherTimer=0,weatherChangeCooldown=300;
+
+// ═══ ISLAND TRACKING ═══
+let currentIsland="main";
+
+// ═══ FISH DATABASE PER ISLAND ═══
+// ═══ FISH DATABASE — 15 IKAN PER PULAU, SEMUA RARITY ═══
+const fishDB={
+  main:[
+    // Junk (1)
+    {name:"Kaleng Berkarat", rarity:"Junk",     price:1,   xp:1,   color:"#888888",emoji:"🥫",diff:0.2,island:"Main Island"},
+    // Common (4)
+    {name:"Ikan Kecil",      rarity:"Common",   price:10,  xp:5,   color:"#b0c4de",emoji:"🐟",diff:0.4,island:"Main Island"},
+    {name:"Ikan Bandeng",    rarity:"Common",   price:12,  xp:6,   color:"#c8d8e8",emoji:"🐡",diff:0.5,island:"Main Island"},
+    {name:"Ikan Nila",       rarity:"Common",   price:14,  xp:7,   color:"#7ec8e3",emoji:"🐟",diff:0.5,island:"Main Island"},
+    {name:"Ikan Mujair",     rarity:"Common",   price:11,  xp:5,   color:"#a8c8a8",emoji:"🐠",diff:0.4,island:"Main Island"},
+    // Uncommon (4)
+    {name:"Ikan Tuna",       rarity:"Uncommon", price:25,  xp:12,  color:"#5dade2",emoji:"🐠",diff:0.8,island:"Main Island"},
+    {name:"Ikan Lele",       rarity:"Uncommon", price:20,  xp:10,  color:"#8B7355",emoji:"🐟",diff:0.7,island:"Main Island"},
+    {name:"Ikan Gurame",     rarity:"Uncommon", price:30,  xp:14,  color:"#ffd700",emoji:"🐠",diff:0.9,island:"Main Island"},
+    {name:"Ikan Bawal",      rarity:"Uncommon", price:28,  xp:13,  color:"#ccbbaa",emoji:"🐡",diff:0.8,island:"Main Island"},
+    // Rare (3)
+    {name:"Ikan Salmon",     rarity:"Rare",     price:60,  xp:25,  color:"#ff7f50",emoji:"🐡",diff:1.2,island:"Main Island"},
+    {name:"Ikan Koi",        rarity:"Rare",     price:75,  xp:30,  color:"#FF6B35",emoji:"🐠",diff:1.3,island:"Main Island"},
+    {name:"Ikan Mas",        rarity:"Rare",     price:80,  xp:32,  color:"#FFD700",emoji:"🐡",diff:1.1,island:"Main Island"},
+    // Epic (2)
+    {name:"Kerang Mutiara",  rarity:"Epic",     price:180, xp:70,  color:"#f0e6ff",emoji:"🦪",diff:1.7,island:"Main Island"},
+    {name:"Ikan Arwana",     rarity:"Epic",     price:220, xp:85,  color:"#C0A020",emoji:"🐟",diff:1.8,island:"Main Island"},
+    // Legendary (1)
+    {name:"Raja Laut",       rarity:"Legendary",price:500, xp:200, color:"#ffd700",emoji:"👑",diff:2.5,island:"Main Island"},
+  ],
+  mystic:[
+    // Junk (1)
+    {name:"Tongkat Sihir",   rarity:"Junk",     price:2,   xp:1,   color:"#cc88ff",emoji:"🪄",diff:0.3,island:"Mystic Isle"},
+    // Common (4)
+    {name:"Ikan Cahaya",     rarity:"Common",   price:18,  xp:8,   color:"#aaffee",emoji:"✨",diff:0.6,island:"Mystic Isle"},
+    {name:"Ikan Hantu",      rarity:"Common",   price:15,  xp:7,   color:"#dddddd",emoji:"👻",diff:0.5,island:"Mystic Isle"},
+    {name:"Ikan Biru Langit",rarity:"Common",   price:17,  xp:8,   color:"#88aaff",emoji:"💫",diff:0.6,island:"Mystic Isle"},
+    {name:"Ikan Kunang",     rarity:"Common",   price:16,  xp:7,   color:"#ffff88",emoji:"🌟",diff:0.5,island:"Mystic Isle"},
+    // Uncommon (4)
+    {name:"Moonfish",        rarity:"Uncommon", price:45,  xp:18,  color:"#c8aaff",emoji:"🌙",diff:0.9,island:"Mystic Isle"},
+    {name:"Starfish",        rarity:"Uncommon", price:40,  xp:16,  color:"#ffaaff",emoji:"⭐",diff:0.9,island:"Mystic Isle"},
+    {name:"Ikan Bayangan",   rarity:"Uncommon", price:42,  xp:17,  color:"#9988cc",emoji:"🌫️",diff:1.0,island:"Mystic Isle"},
+    {name:"Ikan Ilusi",      rarity:"Uncommon", price:38,  xp:15,  color:"#ffccee",emoji:"🎭",diff:0.9,island:"Mystic Isle"},
+    // Rare (3)
+    {name:"Ikan Peri",       rarity:"Rare",     price:100, xp:40,  color:"#ff88cc",emoji:"🧚",diff:1.4,island:"Mystic Isle"},
+    {name:"Rainbow Fish",    rarity:"Rare",     price:95,  xp:38,  color:"#ff69b4",emoji:"🌈",diff:1.3,island:"Mystic Isle"},
+    {name:"Ikan Kristal Biru",rarity:"Rare",    price:110, xp:42,  color:"#44ddff",emoji:"💠",diff:1.4,island:"Mystic Isle"},
+    // Epic (2)
+    {name:"Aurora Fish",     rarity:"Epic",     price:220, xp:85,  color:"#00ffcc",emoji:"🌌",diff:1.9,island:"Mystic Isle"},
+    {name:"Mystic Koi",      rarity:"Epic",     price:280, xp:100, color:"#8800ff",emoji:"🔮",diff:2.0,island:"Mystic Isle"},
+    // Legendary (1)
+    {name:"Spirit Fish",     rarity:"Legendary",price:900, xp:350, color:"#ffffff",emoji:"👁️",diff:3.0,island:"Mystic Isle"},
+  ],
+  volcano:[
+    // Junk (1)
+    {name:"Batu Gosong",     rarity:"Junk",     price:1,   xp:1,   color:"#555555",emoji:"🪨",diff:0.2,island:"Volcano Isle"},
+    // Common (4)
+    {name:"Ikan Bara",       rarity:"Common",   price:20,  xp:9,   color:"#ff6600",emoji:"🔥",diff:0.7,island:"Volcano Isle"},
+    {name:"Ikan Abu",        rarity:"Common",   price:15,  xp:7,   color:"#999999",emoji:"💨",diff:0.6,island:"Volcano Isle"},
+    {name:"Ikan Merah",      rarity:"Common",   price:18,  xp:8,   color:"#ff4444",emoji:"🐟",diff:0.7,island:"Volcano Isle"},
+    {name:"Ikan Tembaga",    rarity:"Common",   price:22,  xp:9,   color:"#b87333",emoji:"🐠",diff:0.7,island:"Volcano Isle"},
+    // Uncommon (4)
+    {name:"Lavafish",        rarity:"Uncommon", price:50,  xp:20,  color:"#ff4400",emoji:"🌋",diff:1.0,island:"Volcano Isle"},
+    {name:"Ikan Besi",       rarity:"Uncommon", price:35,  xp:15,  color:"#888888",emoji:"⚙️",diff:0.9,island:"Volcano Isle"},
+    {name:"Ikan Belerang",   rarity:"Uncommon", price:45,  xp:18,  color:"#ccaa00",emoji:"☁️",diff:1.0,island:"Volcano Isle"},
+    {name:"Ikan Kerak",      rarity:"Uncommon", price:40,  xp:16,  color:"#8B4513",emoji:"🏔️",diff:0.9,island:"Volcano Isle"},
+    // Rare (3)
+    {name:"Ikan Magma",      rarity:"Rare",     price:95,  xp:38,  color:"#ff2200",emoji:"💥",diff:1.5,island:"Volcano Isle"},
+    {name:"Ikan Obsidian",   rarity:"Rare",     price:110, xp:42,  color:"#333333",emoji:"🖤",diff:1.6,island:"Volcano Isle"},
+    {name:"Salamander Api",  rarity:"Rare",     price:105, xp:40,  color:"#ff6600",emoji:"🦎",diff:1.5,island:"Volcano Isle"},
+    // Epic (2)
+    {name:"Ikan Hiu",        rarity:"Epic",     price:150, xp:60,  color:"#708090",emoji:"🦈",diff:2.0,island:"Volcano Isle"},
+    {name:"Phoenix Fish",    rarity:"Epic",     price:250, xp:95,  color:"#ff8800",emoji:"🦅",diff:2.1,island:"Volcano Isle"},
+    // Legendary (1)
+    {name:"Dragon Fish",     rarity:"Legendary",price:1200,xp:450, color:"#ff0000",emoji:"🐉",diff:3.5,island:"Volcano Isle"},
+  ],
+  crystal:[
+    // Junk (1)
+    {name:"Bongkahan Es",    rarity:"Junk",     price:1,   xp:1,   color:"#ddeeff",emoji:"🧊",diff:0.3,island:"Crystal Isle"},
+    // Common (4)
+    {name:"Ikan Salju",      rarity:"Common",   price:22,  xp:10,  color:"#e8f8ff",emoji:"❄️",diff:0.6,island:"Crystal Isle"},
+    {name:"Ikan Putih",      rarity:"Common",   price:18,  xp:8,   color:"#f0f0f0",emoji:"🤍",diff:0.5,island:"Crystal Isle"},
+    {name:"Ikan Beku",       rarity:"Common",   price:20,  xp:9,   color:"#cceeFF",emoji:"🐟",diff:0.6,island:"Crystal Isle"},
+    {name:"Ikan Kabut",      rarity:"Common",   price:19,  xp:8,   color:"#ddddee",emoji:"🌨️",diff:0.5,island:"Crystal Isle"},
+    // Uncommon (4)
+    {name:"Ikan Es",         rarity:"Uncommon", price:55,  xp:22,  color:"#aaddff",emoji:"💧",diff:0.9,island:"Crystal Isle"},
+    {name:"Ikan Pari",       rarity:"Uncommon", price:50,  xp:20,  color:"#9b59b6",emoji:"🦑",diff:0.9,island:"Crystal Isle"},
+    {name:"Ikan Permafrost",  rarity:"Uncommon", price:52,  xp:21,  color:"#bbccff",emoji:"🌀",diff:1.0,island:"Crystal Isle"},
+    {name:"Ikan Glasier",    rarity:"Uncommon", price:48,  xp:19,  color:"#99ddff",emoji:"🏔️",diff:0.9,island:"Crystal Isle"},
+    // Rare (3)
+    {name:"Ikan Kristal",    rarity:"Rare",     price:120, xp:45,  color:"#88ffff",emoji:"💠",diff:1.4,island:"Crystal Isle"},
+    {name:"Ikan Berlian",    rarity:"Rare",     price:130, xp:50,  color:"#ccffff",emoji:"💎",diff:1.5,island:"Crystal Isle"},
+    {name:"Ikan Safir",      rarity:"Rare",     price:125, xp:47,  color:"#0066ff",emoji:"🔷",diff:1.4,island:"Crystal Isle"},
+    // Epic (2)
+    {name:"Ikan Zamrud",     rarity:"Epic",     price:300, xp:110, color:"#00ff88",emoji:"🟢",diff:2.1,island:"Crystal Isle"},
+    {name:"Ice Serpent",     rarity:"Epic",     price:320, xp:120, color:"#aaffff",emoji:"🐍",diff:2.2,island:"Crystal Isle"},
+    // Legendary (1)
+    {name:"Frost Dragon",    rarity:"Legendary",price:1500,xp:500, color:"#eeffff",emoji:"🐲",diff:4.0,island:"Crystal Isle"},
+  ],
+  aurora:[
+    // Junk (1)
+    {name:"Sampah Antariksa", rarity:"Junk",    price:2,   xp:1,   color:"#555577",emoji:"🛸",diff:0.3,island:"Aurora Isle"},
+    // Common (4)
+    {name:"Ikan Fajar",      rarity:"Common",   price:25,  xp:11,  color:"#ffcc88",emoji:"🌅",diff:0.7,island:"Aurora Isle"},
+    {name:"Ikan Senja",      rarity:"Common",   price:28,  xp:12,  color:"#ff88aa",emoji:"🌇",diff:0.7,island:"Aurora Isle"},
+    {name:"Ikan Bintang",    rarity:"Common",   price:26,  xp:11,  color:"#ffffaa",emoji:"⭐",diff:0.7,island:"Aurora Isle"},
+    {name:"Ikan Langit",     rarity:"Common",   price:24,  xp:10,  color:"#aaccff",emoji:"🌠",diff:0.6,island:"Aurora Isle"},
+    // Uncommon (4)
+    {name:"Aurora Eel",      rarity:"Uncommon", price:70,  xp:28,  color:"#88ffaa",emoji:"🌌",diff:1.1,island:"Aurora Isle"},
+    {name:"Ikan Nebula",     rarity:"Uncommon", price:65,  xp:26,  color:"#aa44ff",emoji:"💫",diff:1.0,island:"Aurora Isle"},
+    {name:"Ikan Quasar",     rarity:"Uncommon", price:72,  xp:29,  color:"#ff44aa",emoji:"🌀",diff:1.1,island:"Aurora Isle"},
+    {name:"Ikan Pulsar",     rarity:"Uncommon", price:68,  xp:27,  color:"#44ffff",emoji:"📡",diff:1.0,island:"Aurora Isle"},
+    // Rare (3)
+    {name:"Ikan Galaksi",    rarity:"Rare",     price:150, xp:58,  color:"#4400ff",emoji:"🔵",diff:1.7,island:"Aurora Isle"},
+    {name:"Treasure Chest",  rarity:"Rare",     price:140, xp:55,  color:"#DAA520",emoji:"📦",diff:1.6,island:"Aurora Isle"},
+    {name:"Ikan Meteor",     rarity:"Rare",     price:160, xp:60,  color:"#ff8844",emoji:"☄️",diff:1.7,island:"Aurora Isle"},
+    // Epic (2)
+    {name:"Ikan Komet",      rarity:"Epic",     price:380, xp:140, color:"#ffff00",emoji:"🌟",diff:2.2,island:"Aurora Isle"},
+    {name:"Mythic Koi",      rarity:"Epic",     price:420, xp:155, color:"#ff00ff",emoji:"🔮",diff:2.3,island:"Aurora Isle"},
+    // Legendary (1)
+    {name:"Cosmic Whale",    rarity:"Legendary",price:3000,xp:1000,color:"#0044ff",emoji:"🐋",diff:5.0,island:"Aurora Isle"},
+  ],
+};
+const fishTypes=Object.values(fishDB).flat();
+
+// ═══ FISH INDEX SYSTEM ═══
+let unlockedFish=new Set(JSON.parse(localStorage.getItem("unlockedFish_v5")||"[]"));
+let fishIndexOpen=false;
+let fishIndexTab="main";
+
+function unlockFishEntry(fishName){
+  if(!unlockedFish.has(fishName)){
+    unlockedFish.add(fishName);
+    try{localStorage.setItem("unlockedFish_v5",JSON.stringify([...unlockedFish]));}catch(e){}
+  }
+}
+
+// Build Fish Index UI
+(function buildFishIndex(){
+  // Button
+  const btn=document.createElement("button");
+  btn.id="fishIndexBtn";
+  btn.textContent="📖";
+  btn.title="Fish Index";
+  Object.assign(btn.style,{
+    position:"fixed",right:"12px",top:"270px",
+    width:"40px",height:"40px",borderRadius:"50%",
+    background:"linear-gradient(135deg,#1a6fa8,#0d4f7a)",
+    border:"2px solid rgba(100,200,255,0.5)",
+    color:"#fff",fontSize:"18px",cursor:"pointer",
+    zIndex:"25",boxShadow:"0 4px 12px rgba(0,0,0,0.4)",
+    transition:"transform 0.1s"
+  });
+  btn.onmouseenter=()=>btn.style.transform="scale(1.1)";
+  btn.onmouseleave=()=>btn.style.transform="scale(1)";
+  btn.onclick=toggleFishIndex;
+  document.body.appendChild(btn);
+
+  // Panel
+  const panel=document.createElement("div");
+  panel.id="fishIndexPanel";
+  Object.assign(panel.style,{
+    position:"fixed",top:"50%",left:"50%",
+    transform:"translate(-50%,-50%)",
+    width:"min(680px,96vw)",height:"min(520px,88vh)",
+    background:"linear-gradient(160deg,#0a1a2e,#0d2540)",
+    border:"2px solid rgba(100,200,255,0.35)",
+    borderRadius:"18px",zIndex:"999",
+    display:"none",flexDirection:"column",
+    overflow:"hidden",
+    boxShadow:"0 8px 40px rgba(0,0,0,0.7)",
+    fontFamily:"Arial, sans-serif"
+  });
+
+  // Header
+  panel.innerHTML=`
+  <div style="padding:14px 18px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div>
+      <div style="color:#fff;font-size:18px;font-weight:bold">📖 Fish Index</div>
+      <div id="fishIndexProgress" style="color:#7ecfff;font-size:11px;margin-top:2px"></div>
+    </div>
+    <button onclick="toggleFishIndex()" style="background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;padding:4px 8px">✕</button>
+  </div>
+
+  <div id="fishIndexTabs" style="display:flex;gap:6px;padding:10px 18px 0;flex-shrink:0;overflow-x:auto"></div>
+
+  <div id="fishIndexContent" style="flex:1;overflow-y:auto;padding:12px 18px 18px;
+    scrollbar-width:thin;scrollbar-color:#1a6fa8 #0a1a2e"></div>
+  `;
+  document.body.appendChild(panel);
+})();
+
+function toggleFishIndex(){
+  fishIndexOpen=!fishIndexOpen;
+  const panel=document.getElementById("fishIndexPanel");
+  panel.style.display=fishIndexOpen?"flex":"none";
+  if(fishIndexOpen){freezeInput=true;renderFishIndex(fishIndexTab);}
+  else freezeInput=false;
+}
+
+function renderFishIndexTabs(){
+  const tabs=document.getElementById("fishIndexTabs");if(!tabs)return;
+  const islandInfo=[
+    {key:"main",   label:"🏝️ Main",    color:"#27ae60"},
+    {key:"mystic", label:"🔮 Mystic",  color:"#9b59b6"},
+    {key:"volcano",label:"🌋 Volcano", color:"#e74c3c"},
+    {key:"crystal",label:"💎 Crystal", color:"#00bcd4"},
+    {key:"aurora", label:"🌌 Aurora",  color:"#4455bb"},
+    {key:"all",    label:"📋 All",     color:"#f39c12"},
+  ];
+  tabs.innerHTML=islandInfo.map(t=>{
+    const pool=t.key==="all"?fishTypes:(fishDB[t.key]||[]);
+    const unlocked=pool.filter(f=>unlockedFish.has(f.name)).length;
+    const active=fishIndexTab===t.key;
+    return `<button onclick="renderFishIndex('${t.key}')" style="
+      padding:6px 14px;border-radius:20px;border:2px solid ${t.color};
+      background:${active?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.05)"};
+      color:${active?"#fff":"#aaa"};font-size:11px;cursor:pointer;white-space:nowrap;
+      font-weight:${active?"bold":"normal"};transition:all 0.15s">
+      ${t.label} <span style="color:${t.color};font-size:10px">(${unlocked}/${pool.length})</span>
+    </button>`;
+  }).join("");
+}
+
+function renderFishIndex(tabKey){
+  fishIndexTab=tabKey;
+  renderFishIndexTabs();
+  const content=document.getElementById("fishIndexContent");if(!content)return;
+
+  const rarityOrder=["Junk","Common","Uncommon","Rare","Epic","Legendary"];
+  const rarityColors={Junk:"#888888",Common:"#cccccc",Uncommon:"#2ecc71",Rare:"#3498db",Epic:"#9b59b6",Legendary:"#f39c12"};
+  const rarityBg={Junk:"rgba(80,80,80,0.3)",Common:"rgba(100,100,100,0.25)",Uncommon:"rgba(46,204,113,0.15)",Rare:"rgba(52,152,219,0.18)",Epic:"rgba(155,89,182,0.2)",Legendary:"rgba(243,156,18,0.22)"};
+  const rarityGlow={Junk:"none",Common:"none",Uncommon:"none",Rare:"none",Epic:"0 0 8px rgba(155,89,182,0.4)",Legendary:"0 0 14px rgba(243,156,18,0.6)"};
+
+  const islandInfo={
+    main:{label:"🏝️ Main Island",color:"#27ae60"},
+    mystic:{label:"🔮 Mystic Isle",color:"#9b59b6"},
+    volcano:{label:"🌋 Volcano Isle",color:"#e74c3c"},
+    crystal:{label:"💎 Crystal Isle",color:"#00bcd4"},
+    aurora:{label:"🌌 Aurora Isle",color:"#4455bb"},
+  };
+
+  // Total progress
+  const allFish=fishTypes;
+  const totalUnlocked=allFish.filter(f=>unlockedFish.has(f.name)).length;
+  const prog=document.getElementById("fishIndexProgress");
+  if(prog)prog.textContent=`${totalUnlocked} / ${allFish.length} ditemukan (${Math.round(totalUnlocked/allFish.length*100)}%)`;
+
+  // Get fish to display
+  let islandsToShow=[];
+  if(tabKey==="all"){
+    islandsToShow=Object.keys(fishDB);
+  } else {
+    islandsToShow=[tabKey];
+  }
+
+  let html="";
+
+  islandsToShow.forEach(islKey=>{
+    const pool=fishDB[islKey]||[];
+    const info=islandInfo[islKey]||{label:islKey,color:"#fff"};
+    const islUnlocked=pool.filter(f=>unlockedFish.has(f.name)).length;
+
+    if(tabKey==="all"){
+      html+=`<div style="margin-bottom:6px;padding:6px 10px;background:rgba(0,0,0,0.3);border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:${info.color};font-weight:bold;font-size:13px">${info.label}</span>
+        <span style="color:#aaa;font-size:11px">${islUnlocked}/${pool.length} ikan</span>
+      </div>`;
+    }
+
+    // Group by rarity
+    rarityOrder.forEach(rarity=>{
+      const group=pool.filter(f=>f.rarity===rarity);
+      if(group.length===0)return;
+      const groupUnlocked=group.filter(f=>unlockedFish.has(f.name)).length;
+
+      html+=`<div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="height:1px;flex:1;background:${rarityColors[rarity]};opacity:0.3"></div>
+          <span style="color:${rarityColors[rarity]};font-size:11px;font-weight:bold;white-space:nowrap">${rarity.toUpperCase()} (${groupUnlocked}/${group.length})</span>
+          <div style="height:1px;flex:1;background:${rarityColors[rarity]};opacity:0.3"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:6px">`;
+
+      group.forEach(f=>{
+        const found=unlockedFish.has(f.name);
+        html+=`<div style="
+          background:${found?rarityBg[rarity]:"rgba(20,20,30,0.6)"};
+          border:1px solid ${found?rarityColors[rarity]+"55":"rgba(255,255,255,0.06)"};
+          border-radius:10px;padding:8px 10px;
+          box-shadow:${found?rarityGlow[rarity]:"none"};
+          transition:all 0.2s;position:relative;
+          opacity:${found?1:0.55}">
+          <div style="font-size:22px;margin-bottom:3px">${found?f.emoji:"❓"}</div>
+          <div style="color:${found?"#fff":"#666"};font-size:11px;font-weight:bold;margin-bottom:2px">${found?f.name:"???"}</div>
+          ${found?`
+            <div style="color:${rarityColors[rarity]};font-size:9px;margin-bottom:2px">${f.rarity}</div>
+            <div style="color:#f1c40f;font-size:10px">💰 ${f.price}</div>
+            <div style="color:#88ccff;font-size:9px">⚡ ${f.xp} XP</div>
+          `:
+          `<div style="color:#555;font-size:9px">Belum ditemukan</div>`}
+          ${rarity==="Legendary"&&found?`<div style="position:absolute;top:4px;right:4px;font-size:10px">✨</div>`:""}
+        </div>`;
+      });
+
+      html+=`</div></div>`;
+    });
+
+    if(tabKey==="all")html+=`<div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0 16px"></div>`;
+  });
+
+  content.innerHTML=html;
+}
+
+
+// ═══ BAIT ═══
+const baitTypes=[
+  {id:"none",  name:"No Bait",   icon:"❌",desc:"Default, no bonus.",     luckBonus:0,  speedBonus:0,  rareBonus:0,  price:0,   infinite:true},
+  {id:"worm",  name:"Earthworm", icon:"🪱",desc:"+15% bite speed.",       luckBonus:0,  speedBonus:0.3,rareBonus:0,  price:5,   infinite:false},
+  {id:"shrimp",name:"Shrimp",    icon:"🦐",desc:"+20% luck.",             luckBonus:0.3,speedBonus:0.2,rareBonus:0,  price:12,  infinite:false},
+  {id:"squid", name:"Squid",     icon:"🦑",desc:"+Epic chance.",          luckBonus:0.5,speedBonus:0,  rareBonus:0.1,price:25,  infinite:false},
+  {id:"gold",  name:"Gold Lure", icon:"✨",desc:"+Legendary!",            luckBonus:1,  speedBonus:0.3,rareBonus:0.3,price:80,  infinite:false},
+  {id:"magic", name:"Magic Bait",icon:"🔮",desc:"MAX luck+speed.",        luckBonus:2,  speedBonus:0.5,rareBonus:0.5,price:200, infinite:false},
+];
+
+// ═══ RODS ═══
+const rodDatabase={
+  FishingRod:{name:"Wood Rod",  icon:"🪵",price:0,    luckMult:1,  speedMult:1,  color:0x8b5a2b,desc:"Starter rod."},
+  LuckRod:   {name:"Luck Rod",  icon:"🍀",price:150,  luckMult:2.5,speedMult:1,  color:0xaaaaaa,desc:"More rare fish."},
+  MediumRod: {name:"Medium Rod",icon:"⚡",price:500,  luckMult:3,  speedMult:2,  color:0xffd700,desc:"Faster & luckier."},
+  GoldenRod: {name:"Golden Rod",icon:"✨",price:2000, luckMult:5,  speedMult:2,  color:0xFFD700,desc:"Max luck rod."},
+};
+
+// ═══ INVENTORY DATA ═══
+const inventory={
+  equipped:"FishingRod",rods:["FishingRod"],
+  bait:{none:999,worm:0,shrimp:0,squid:0,gold:0,magic:0},
+  equippedBait:"none",fish:[],fishLog:[],
+};
+let coins=0;
+
+// ═══ AUDIO ═══
+function safeAudio(src){
+  try{const a=new Audio(src);a.volume=0.7;return a;}
+  catch(e){return{play:()=>Promise.resolve(),pause:()=>{},loop:false,volume:1,currentTime:0};}
+}
+const castSound=safeAudio("sounds/cast.mp3");
+const biteSound=safeAudio("sounds/bite.mp3");
+const catchSound=safeAudio("sounds/catch.mp3");
+const bgMusic=safeAudio("sounds/background_music.mp3");
+bgMusic.loop=true;bgMusic.volume=0.35;bgMusic.play().catch(()=>{});
+
+// ═══ SCENE ═══
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
+scene.fog=new THREE.FogExp2(0x87ceeb,0.002);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,3000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+document.body.appendChild(renderer.domElement);
+const sun=new THREE.DirectionalLight(0xffffff,1.2);
+sun.position.set(80,120,60);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-400;sun.shadow.camera.right=400;
+sun.shadow.camera.top=400;sun.shadow.camera.bottom=-400;
+sun.shadow.camera.far=2000;sun.shadow.bias=-0.0005;
+scene.add(sun);
+const ambient=new THREE.AmbientLight(0xffd0a0,0.45);scene.add(ambient);
+
+// ═══ DAY/NIGHT SYSTEM ═══
+// Full cycle = 24 real minutes (1440 real seconds)
+// 0.0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk, 1.0=midnight
+let dayTime=0.5; // start at noon
+const DAY_CYCLE_SECONDS=1440; // 24 min real time
+let isNight=false;
+
+const moonLight=new THREE.DirectionalLight(0x334466,0.0);
+moonLight.position.set(-10,20,-5);scene.add(moonLight);
+
+// Stars mesh (only visible at night)
+const starGeo=new THREE.BufferGeometry();
+const starVerts=[];
+for(let i=0;i<2500;i++){
+  const theta=Math.random()*Math.PI*2;
+  const phi=Math.acos(2*Math.random()-1);
+  const r=900+Math.random()*200;
+  starVerts.push(Math.sin(phi)*Math.cos(theta)*r,Math.cos(phi)*r,Math.sin(phi)*Math.sin(theta)*r);
+}
+starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starVerts,3));
+const starMesh=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.2,sizeAttenuation:true,transparent:true,opacity:0}));
+scene.add(starMesh);
+
+// Moon sphere
+const moonMesh=new THREE.Mesh(
+  new THREE.SphereGeometry(18,16,16),
+  new THREE.MeshStandardMaterial({color:0xddddcc,emissive:0xbbbbaa,emissiveIntensity:0.6})
+);
+moonMesh.visible=false;scene.add(moonMesh);
+
+// Sun sphere (visual)
+const sunMesh=new THREE.Mesh(
+  new THREE.SphereGeometry(22,16,16),
+  new THREE.MeshStandardMaterial({color:0xffee88,emissive:0xffcc44,emissiveIntensity:1.2})
+);
+scene.add(sunMesh);
+
+// Day/Night clock UI
+const dnUI=document.createElement("div");dnUI.id="dayNightUI";
+Object.assign(dnUI.style,{
+  position:"fixed",top:"8px",left:"50%",transform:"translateX(-50%)",
+  background:"rgba(0,0,0,0.65)",border:"1px solid rgba(255,255,255,0.15)",
+  borderRadius:"20px",padding:"4px 16px",color:"#fff",fontSize:"13px",
+  zIndex:"25",display:"flex",alignItems:"center",gap:"8px",
+  backdropFilter:"blur(6px)",pointerEvents:"none"
+});
+dnUI.innerHTML='<span id="dnIcon">☀️</span><span id="dnTime">12:00</span><div style="width:90px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden"><div id="dnBar" style="height:100%;background:linear-gradient(90deg,#ffd700,#ff8800);border-radius:3px;width:50%"></div></div>';
+document.body.appendChild(dnUI);
+
+function updateDayNight(dt){
+  dayTime=(dayTime+dt/DAY_CYCLE_SECONDS)%1;
+  const t=dayTime;
+  // Sun angle: 0=midnight bottom, 0.5=noon top
+  const sunAngle=(t-0.25)*Math.PI*2;
+  const sunR=800;
+  sun.position.set(Math.cos(sunAngle)*sunR,Math.sin(sunAngle)*sunR,200);
+  sunMesh.position.copy(sun.position).multiplyScalar(0.9);
+  moonMesh.position.set(-sun.position.x*0.9,-sun.position.y*0.9,sun.position.z);
+
+  // Sky & lighting interpolation
+  let skyC,fogC,sunInt,ambInt,moonInt,starOp;
+  if(t<0.2){
+    // Night → dawn (0.0–0.2)
+    const p=t/0.2;
+    skyC=new THREE.Color(0x050510).lerp(new THREE.Color(0xff6633),p*p);
+    fogC=new THREE.Color(0x020208).lerp(new THREE.Color(0xcc4422),p*p);
+    sunInt=p*0.6;ambInt=0.05+p*0.3;moonInt=1-p;starOp=1-p;
+  } else if(t<0.3){
+    // Dawn (0.2–0.3)
+    const p=(t-0.2)/0.1;
+    skyC=new THREE.Color(0xff6633).lerp(new THREE.Color(0x87ceeb),p);
+    fogC=new THREE.Color(0xcc4422).lerp(new THREE.Color(0x87ceeb),p);
+    sunInt=0.6+p*0.6;ambInt=0.35+p*0.2;moonInt=0;starOp=0;
+  } else if(t<0.7){
+    // Day (0.3–0.7)
+    const p=(t-0.3)/0.4;
+    const noon=(p<0.5?p:1-p)*2;
+    skyC=new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x4db3ff),noon*0.3);
+    fogC=skyC.clone();
+    sunInt=1.2+noon*0.4;ambInt=0.55+noon*0.1;moonInt=0;starOp=0;
+  } else if(t<0.8){
+    // Dusk (0.7–0.8)
+    const p=(t-0.7)/0.1;
+    skyC=new THREE.Color(0x87ceeb).lerp(new THREE.Color(0xff4400),p);
+    fogC=new THREE.Color(0x87ceeb).lerp(new THREE.Color(0xcc3300),p);
+    sunInt=1.2-p*0.9;ambInt=0.55-p*0.45;moonInt=p*0.4;starOp=p*0.5;
+  } else {
+    // Night (0.8–1.0)
+    const p=(t-0.8)/0.2;
+    skyC=new THREE.Color(0xff4400).lerp(new THREE.Color(0x050510),p);
+    fogC=new THREE.Color(0xcc3300).lerp(new THREE.Color(0x020208),p);
+    sunInt=0.3-p*0.3;ambInt=0.1-p*0.05;moonInt=0.4+p*0.6;starOp=0.5+p*0.5;
+  }
+
+  // Apply to scene
+  if(!currentWeather||currentWeather.name==="Sunny"||currentWeather.name==="Windy"){
+    scene.background=skyC;scene.fog.color=fogC;
+  }
+  sun.intensity=sunInt*(currentWeather.name==="Storming"?0.35:1);
+  ambient.intensity=Math.max(0.05,ambInt);
+  moonLight.intensity=moonInt;
+  starMesh.material.opacity=starOp;
+
+  // Sun/moon visibility
+  sunMesh.visible=sunInt>0.05;
+  moonMesh.visible=moonInt>0.05;
+
+  // Night lamps
+  const newIsNight=t>0.75||t<0.25;
+  if(newIsNight!==isNight){
+    isNight=newIsNight;
+    islandLamps.forEach(l=>{
+      l.bulb.material.emissiveIntensity=isNight?3.5:0;
+      l.bulb.material.opacity=isNight?1:0.9;
+    });
+  }
+
+  // Clock UI
+  const hours=Math.floor(t*24);
+  const mins=Math.floor((t*24-hours)*60);
+  const icon=t>0.25&&t<0.75?"☀️":t>0.2&&t<0.8?"🌅":"🌙";
+  const dnIcon=document.getElementById("dnIcon");
+  const dnTime=document.getElementById("dnTime");
+  const dnBar=document.getElementById("dnBar");
+  if(dnIcon)dnIcon.textContent=icon;
+  if(dnTime)dnTime.textContent=String(hours).padStart(2,"0")+":"+String(mins).padStart(2,"0");
+  if(dnBar){
+    const dayPct=t>0.25&&t<0.75?((t-0.25)/0.5)*100:0;
+    dnBar.style.width=dayPct+"%";
+    dnBar.style.background=t>0.25&&t<0.75?"linear-gradient(90deg,#ffd700,#ff8800)":"linear-gradient(90deg,#334466,#668899)";
+  }
+}
+
+const loader=new THREE.TextureLoader();
+const sandTex=loader.load("images/sand.jpg");
+const grassTex=loader.load("images/grass.jpg");
+const waterTex=loader.load("images/water.jpg");
+const floorTex=loader.load("images/floor.jpg");
+const wallTex=loader.load("images/wall.jpg");
+const roofTex=loader.load("images/roof.jpg");
+const tableTex=loader.load("images/table.jpg");
+waterTex.wrapS=waterTex.wrapT=THREE.RepeatWrapping;waterTex.repeat.set(30,30);
+
+// ═══ WATER ═══
+const water=new THREE.Mesh(
+  new THREE.PlaneGeometry(4000,4000,100,100),
+  new THREE.MeshStandardMaterial({map:waterTex,transparent:true,opacity:0.82,roughness:0.06,metalness:0.5,color:0xaaccee})
+);
+water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
+
+// ═══ ISLAND DEFS ═══
+const islandDefs=[
+  {id:"main",   x:0,    z:0,    sandR:90, grassR:78, label:"🏝️ Main Island",  fishKey:"main"},
+  {id:"mystic", x:700,  z:0,    sandR:65, grassR:55, label:"🔮 Mystic Isle",   fishKey:"mystic"},
+  {id:"volcano",x:-800, z:-600, sandR:70, grassR:60, label:"🌋 Volcano Isle",  fishKey:"volcano"},
+  {id:"crystal",x:300,  z:1000, sandR:62, grassR:52, label:"💎 Crystal Isle",  fishKey:"crystal"},
+  {id:"aurora", x:-400, z:1200, sandR:58, grassR:48, label:"🌌 Aurora Isle",   fishKey:"aurora"},
+];
+
+// ═══ FLOATING ORBS ═══
+const floatingOrbs=[];
+
+// ═══ ISLAND BUILDER — ENHANCED ═══
+const islandLamps=[];  // for day/night toggling
+
+function addTree(g,tx,tz,h,trunkColor,leafColor){
+  const trunk=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28,0.52,h,8),
+    new THREE.MeshStandardMaterial({color:trunkColor||0x8B6914})
+  );
+  trunk.position.set(tx,h/2,tz);
+  g.add(trunk);
+  const l1=new THREE.Mesh(
+    new THREE.ConeGeometry(3.2+Math.random()*1.8,3.2,8),
+    new THREE.MeshStandardMaterial({color:leafColor||0x1a7a1a})
+  );
+  l1.position.set(tx,h+1.8,tz);g.add(l1);
+  const l2=new THREE.Mesh(
+    new THREE.ConeGeometry(2+Math.random()*0.8,2.2,8),
+    new THREE.MeshStandardMaterial({color:leafColor||0x1a7a1a})
+  );
+  l2.position.set(tx,h+4,tz);g.add(l2);
+}
+
+function addFlower(g,tx,tz,color){
+  const stem=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06,0.06,0.7,6),
+    new THREE.MeshStandardMaterial({color:0x228b22})
+  );
+  stem.position.set(tx,0.35,tz);g.add(stem);
+  const petal=new THREE.Mesh(
+    new THREE.SphereGeometry(0.22,8,8),
+    new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:0.08})
+  );
+  petal.scale.y=0.5;petal.position.set(tx,0.8,tz);g.add(petal);
+}
+
+function addBench(g,tx,tz,ry){
+  const seat=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.18,0.9),new THREE.MeshStandardMaterial({color:0x8B6914}));
+  seat.position.set(tx,0.65,tz);seat.rotation.y=ry;g.add(seat);
+  const back=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.7,0.12),new THREE.MeshStandardMaterial({color:0x8B6914}));
+  back.position.set(tx,1.0,tz);back.rotation.y=ry;
+  back.position.x+=Math.sin(ry)*0.4;back.position.z+=Math.cos(ry)*0.4;g.add(back);
+  [-0.9,0.9].forEach(dx=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.65,0.9),new THREE.MeshStandardMaterial({color:0x5C4A1E}));
+    leg.position.set(tx+Math.cos(ry)*dx,0.33,tz-Math.sin(ry)*dx);leg.rotation.y=ry;g.add(leg);
+  });
+}
+
+function addLamp(g,tx,tz,wx,wz,lampColor){
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,3.5,8),new THREE.MeshStandardMaterial({color:0x555555}));
+  pole.position.set(tx,1.75,tz);g.add(pole);
+  const head=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.22,0.55,8),new THREE.MeshStandardMaterial({color:0x444444}));
+  head.position.set(tx,3.65,tz);g.add(head);
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,8),new THREE.MeshStandardMaterial({
+    color:lampColor||0xffeeaa, emissive:lampColor||0xffcc44, emissiveIntensity:0,
+    transparent:true,opacity:0.9
+  }));
+  bulb.position.set(tx,3.55,tz);g.add(bulb);
+  // Register for day/night
+  islandLamps.push({bulb, wx:wx+tx, wz:wz+tz, color:lampColor||0xffcc44});
+}
+
+function addPathStone(g,tx,tz){
+  const s=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4+Math.random()*0.25,0.45,0.12,7),
+    new THREE.MeshStandardMaterial({color:0xaaaaaa,roughness:0.9})
+  );
+  s.position.set(tx,0.06,tz);s.rotation.y=Math.random()*Math.PI;g.add(s);
+}
+
+function buildIsland(def,options){
+  const {x,z,sandR,grassR,label}=def;
+  const opt=options||{};
+  const g=new THREE.Group();
+  // Island sits so grass surface = world Y=0
+  g.position.set(x,-2.5,z);
+  scene.add(g);
+
+  // Sand base — thick cylinder
+  g.add(new THREE.Mesh(
+    new THREE.CylinderGeometry(sandR,sandR+8,5,64),
+    new THREE.MeshStandardMaterial({map:sandTex,roughness:1})
+  ));
+  // Grass flat layer (Y=2.5 relative = Y=0 world)
+  // Grass: use texture for main island, tint for others
+  const grassMat = opt.useGrassTex
+    ? new THREE.MeshStandardMaterial({map:grassTex,color:opt.grassColor||0xffffff,roughness:0.95})
+    : new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.9});
+  const gr=new THREE.Mesh(new THREE.CylinderGeometry(grassR,grassR+5,0.55,48),grassMat);
+  gr.position.y=2.5;g.add(gr);
+
+  // Shoreline fringe — darker sand ring between grass and water edge
+  const shore=new THREE.Mesh(
+    new THREE.CylinderGeometry(grassR+5,sandR+4,0.3,48),
+    new THREE.MeshStandardMaterial({color:0xdec97a,roughness:1})
+  );
+  shore.position.y=2.2;g.add(shore);
+
+  // Trees — only on outer half so center stays clear
+  const treeCount=opt.trees||8;
+  for(let i=0;i<treeCount;i++){
+    const angle=(i/treeCount)*Math.PI*2+(Math.random()-0.5)*0.5;
+    const dist=grassR*0.38+Math.random()*grassR*0.52;
+    const h=4.5+Math.random()*4.5;
+    addTree(g,Math.cos(angle)*dist,Math.sin(angle)*dist,h,opt.trunkColor,opt.leafColor);
+  }
+
+  // Rocks scattered
+  const rockCount=opt.rocks||5;
+  for(let i=0;i<rockCount;i++){
+    const a=Math.random()*Math.PI*2;
+    const d=grassR*0.15+Math.random()*grassR*0.58;
+    const rock=new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.55+Math.random()*1.2,0),
+      new THREE.MeshStandardMaterial({color:opt.rockColor||0x888888,roughness:1})
+    );
+    rock.position.set(Math.cos(a)*d,0.3,Math.sin(a)*d);
+    rock.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
+    g.add(rock);
+  }
+
+  // Flowers scattered on grass
+  const flowerColors=[0xff6680,0xffdd44,0xff88cc,0x88ffcc,0xcc88ff,0xffffff];
+  const flowerCount=opt.flowers||18;
+  for(let i=0;i<flowerCount;i++){
+    const a=Math.random()*Math.PI*2;
+    const d=Math.random()*grassR*0.72;
+    addFlower(g,Math.cos(a)*d,Math.sin(a)*d,flowerColors[Math.floor(Math.random()*flowerColors.length)]);
+  }
+
+  // Path stones from center toward shore (2 directions)
+  if(opt.paths!==false){
+    for(let p=0;p<2;p++){
+      const pAngle=p*Math.PI+(opt.pathAngle||0);
+      for(let s=0;s<8;s++){
+        const pd=5+s*4.5;
+        const jx=(Math.random()-0.5)*1.2,jz=(Math.random()-0.5)*1.2;
+        addPathStone(g,Math.cos(pAngle)*pd+jx,Math.sin(pAngle)*pd+jz);
+      }
+    }
+  }
+
+  // Benches (4 around center)
+  if(opt.benches!==false){
+    for(let i=0;i<4;i++){
+      const ba=i*(Math.PI/2)+(opt.benchAngle||0.4);
+      const bd=grassR*0.28;
+      addBench(g,Math.cos(ba)*bd,Math.sin(ba)*bd,ba+Math.PI/2);
+    }
+  }
+
+  // Lamps (placed around center, registered for night glow)
+  if(opt.lamps!==false){
+    const lampCount=opt.lampCount||4;
+    for(let i=0;i<lampCount;i++){
+      const la=(i/lampCount)*Math.PI*2;
+      const ld=grassR*0.42;
+      addLamp(g,Math.cos(la)*ld,Math.sin(la)*ld,x,z,opt.lampColor);
+    }
+  }
+
+  // Island name sign (post + board)
+  const postL=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,4,8),new THREE.MeshStandardMaterial({color:0x8B6914}));
+  postL.position.set(-3.5,2,sandR*0.7);g.add(postL);
+  const postR=postL.clone();postR.position.x=3.5;g.add(postR);
+  const board=new THREE.Mesh(new THREE.BoxGeometry(8,1.5,0.22),new THREE.MeshStandardMaterial({color:0x5C4A1E}));
+  board.position.set(0,4.2,sandR*0.7);g.add(board);
+  const sc=document.createElement("canvas");sc.width=512;sc.height=96;
+  const sx=sc.getContext("2d");
+  sx.fillStyle=opt.signBg||"#3e2200";sx.fillRect(0,0,512,96);
+  sx.strokeStyle=opt.labelColor||"#ffdd88";sx.lineWidth=5;sx.strokeRect(6,6,500,84);
+  sx.fillStyle=opt.labelColor||"#ffdd88";
+  sx.font="bold 48px Arial";sx.textAlign="center";sx.textBaseline="middle";
+  sx.fillText(label,256,50);
+  const signMesh=new THREE.Mesh(new THREE.BoxGeometry(7.8,1.4,0.12),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
+  signMesh.position.set(0,4.2,sandR*0.71);g.add(signMesh);
+
+  // Special: Lava (Volcano Isle)
+  if(opt.lava){
+    // Volcano mountain cone
+    const volcone=new THREE.Mesh(
+      new THREE.ConeGeometry(grassR*0.45,grassR*0.85,16),
+      new THREE.MeshStandardMaterial({color:0x3a3a3a,roughness:1})
+    );
+    volcone.position.y=grassR*0.425;g.add(volcone);
+    // Lava cap
+    const lavaCap=new THREE.Mesh(
+      new THREE.CylinderGeometry(4.5,7,3,16),
+      new THREE.MeshStandardMaterial({color:0xff4500,emissive:0xff3300,emissiveIntensity:1.2})
+    );
+    lavaCap.position.y=grassR*0.86;g.add(lavaCap);
+    // Lava rivers down the cone
+    for(let i=0;i<5;i++){
+      const la=i*(Math.PI*2/5)+Math.random()*0.5;
+      const river=new THREE.Mesh(
+        new THREE.BoxGeometry(0.9,grassR*0.6,0.4),
+        new THREE.MeshStandardMaterial({color:0xff5500,emissive:0xff3300,emissiveIntensity:0.8,transparent:true,opacity:0.85})
+      );
+      const rd=grassR*0.22;
+      river.position.set(Math.cos(la)*rd,grassR*0.5,Math.sin(la)*rd);
+      river.rotation.set(0.28,la,0.18);g.add(river);
+    }
+    // Lava pools at base
+    for(let i=0;i<6;i++){
+      const lp=new THREE.Mesh(
+        new THREE.CylinderGeometry(1.2+Math.random()*2.2,1.4,0.35,12),
+        new THREE.MeshStandardMaterial({color:0xff4500,emissive:0xff2200,emissiveIntensity:1})
+      );
+      const la=Math.random()*Math.PI*2,ld=Math.random()*grassR*0.35;
+      lp.position.set(Math.cos(la)*ld,0.22,Math.sin(la)*ld);g.add(lp);
+    }
+    // Smoke pillars (dark spheres stacked)
+    for(let i=0;i<3;i++){
+      const sm=new THREE.Mesh(
+        new THREE.SphereGeometry(1.8+i*1.2,8,8),
+        new THREE.MeshStandardMaterial({color:0x222222,transparent:true,opacity:0.38-i*0.08})
+      );
+      sm.position.set((Math.random()-0.5)*3,grassR*0.9+i*5,(Math.random()-0.5)*3);g.add(sm);
+    }
+  }
+
+  // Special: Ice Crystals (Crystal Isle)
+  if(opt.crystals){
+    const cc=opt.crystalColor||0x00ffff;
+    for(let i=0;i<16;i++){
+      const h2=2.5+Math.random()*5;
+      const cry=new THREE.Mesh(
+        new THREE.ConeGeometry(0.22+Math.random()*0.38,h2,6),
+        new THREE.MeshStandardMaterial({color:cc,transparent:true,opacity:0.78,emissive:cc,emissiveIntensity:0.35,roughness:0,metalness:0.5})
+      );
+      const ca=Math.random()*Math.PI*2,cd=Math.random()*grassR*0.62;
+      cry.position.set(Math.cos(ca)*cd,h2/2,Math.sin(ca)*cd);
+      cry.rotation.set((Math.random()-0.5)*0.4,Math.random()*Math.PI,(Math.random()-0.5)*0.2);
+      g.add(cry);
+    }
+    // Ice ground patches
+    for(let i=0;i<8;i++){
+      const ip=new THREE.Mesh(
+        new THREE.CylinderGeometry(2+Math.random()*3,2.5,0.18,10),
+        new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:0.55,roughness:0,metalness:0.4})
+      );
+      const ia=Math.random()*Math.PI*2,id=Math.random()*grassR*0.6;
+      ip.position.set(Math.cos(ia)*id,0.1,Math.sin(ia)*id);g.add(ip);
+    }
+    // Snow mound in center
+    const mound=new THREE.Mesh(
+      new THREE.SphereGeometry(grassR*0.22,16,10),
+      new THREE.MeshStandardMaterial({color:0xeef8ff,roughness:1})
+    );
+    mound.scale.y=0.38;mound.position.y=0.5;g.add(mound);
+  }
+
+  // Special: Mystic (crystals already called externally, add glowing runes on ground)
+  if(opt.mystic){
+    for(let i=0;i<6;i++){
+      const ra=(i/6)*Math.PI*2;
+      const rune=new THREE.Mesh(
+        new THREE.CylinderGeometry(1.2,1.2,0.12,6),
+        new THREE.MeshStandardMaterial({color:0x9b59b6,emissive:0x9b59b6,emissiveIntensity:0.9,transparent:true,opacity:0.7})
+      );
+      rune.position.set(Math.cos(ra)*grassR*0.3,0.08,Math.sin(ra)*grassR*0.3);g.add(rune);
+    }
+    // Runic circle
+    const ring=new THREE.Mesh(
+      new THREE.TorusGeometry(grassR*0.28,0.28,8,48),
+      new THREE.MeshStandardMaterial({color:0xcc88ff,emissive:0xaa44ff,emissiveIntensity:0.8})
+    );
+    ring.rotation.x=Math.PI/2;ring.position.y=0.15;g.add(ring);
+  }
+
+  // Special: Aurora orbs (floating in world space, stored for animation)
+  if(opt.aurora){
+    for(let i=0;i<8;i++){
+      const orbColors=[0x88ffff,0xaaffcc,0xccaaff,0xffaacc];
+      const oc=orbColors[i%orbColors.length];
+      const orb=new THREE.Mesh(
+        new THREE.SphereGeometry(0.32+Math.random()*0.38,8,8),
+        new THREE.MeshStandardMaterial({color:oc,emissive:oc,emissiveIntensity:1.2,transparent:true,opacity:0.75})
+      );
+      const oa=Math.random()*Math.PI*2,od=Math.random()*grassR*0.5;
+      orb.position.set(x+Math.cos(oa)*od,4.5+Math.random()*7,z+Math.sin(oa)*od);
+      orb.userData.floatOffset=Math.random()*Math.PI*2;
+      scene.add(orb);
+      floatingOrbs.push({mesh:orb,baseY:orb.position.y});
+    }
+    // Aurora curtain pillars
+    for(let i=0;i<5;i++){
+      const curtain=new THREE.Mesh(
+        new THREE.BoxGeometry(0.4,12,3.5),
+        new THREE.MeshStandardMaterial({color:0x44ffaa,emissive:0x22ff88,emissiveIntensity:0.5,transparent:true,opacity:0.18})
+      );
+      const ca=(i/5)*Math.PI*2;
+      curtain.position.set(x+Math.cos(ca)*grassR*0.38,6+Math.random()*6,z+Math.sin(ca)*grassR*0.38);
+      curtain.rotation.y=ca;scene.add(curtain);
+    }
+  }
+  return g;
+}
+
+// Build all islands
+buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,lamps:true,lampCount:5,labelColor:"#ffdd88"});
+buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
+
+// ═══ SHOP BUILDER ═══
+function makeShop(px,pz,label){
+  const g=new THREE.Group();g.position.set(px,0,pz);g.scale.set(1.6,1.6,1.6);scene.add(g);
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(10,0.6,6),new THREE.MeshStandardMaterial({map:floorTex}));
+  fl.position.y=0.3;g.add(fl);
+  const wm=new THREE.MeshStandardMaterial({map:wallTex});
+  const bw=new THREE.Mesh(new THREE.BoxGeometry(10,7,0.4),wm);bw.position.set(0,1.5,-3);g.add(bw);
+  const sL=new THREE.Mesh(new THREE.BoxGeometry(0.4,7,6),wm);sL.position.set(-4.8,1.5,0);g.add(sL);
+  const sR=sL.clone();sR.position.x=4.8;g.add(sR);
+  const rm=new THREE.MeshStandardMaterial({map:roofTex});
+  const rf=new THREE.Mesh(new THREE.BoxGeometry(12,0.2,8),rm);rf.position.y=5;g.add(rf);
+  const rt=new THREE.Mesh(new THREE.ConeGeometry(5.5,2,4),rm);rt.rotation.y=Math.PI/4;rt.position.y=6;g.add(rt);
+  const ctr=new THREE.Mesh(new THREE.BoxGeometry(9.2,1.5,1),new THREE.MeshStandardMaterial({map:tableTex}));
+  ctr.position.set(0,0.75,2.5);g.add(ctr);
+  const sc=document.createElement("canvas");sc.width=512;sc.height=256;
+  const sx=sc.getContext("2d");
+  sx.fillStyle="#5d4037";sx.fillRect(0,0,512,256);
+  sx.strokeStyle="#3e2723";sx.lineWidth=10;sx.strokeRect(0,0,512,256);
+  sx.fillStyle="#fff";sx.font="bold 52px Arial";sx.textAlign="center";sx.textBaseline="middle";
+  sx.fillText(label,256,128);
+  const sg=new THREE.Mesh(new THREE.BoxGeometry(4,1,0.3),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
+  sg.position.set(0,8.2,2.9);g.add(sg);
+  return{counter:ctr};
+}
+const {counter}=makeShop(0,-25,"🐟 SELL FISH");
+const {counter:rodShopCounter}=makeShop(30,-25,"🎣 ROD SHOP");
+const {counter:baitShopCounter}=makeShop(-30,-25,"🪱 BAIT SHOP");
+const {counter:jetskiShopCounter}=makeShop(60,-25,"🛥️ JETSKI");
+
+// ═══ HARBOUR ═══
+function buildHarbour(hdef){
+  const g=new THREE.Group();g.position.set(hdef.x,0,hdef.z);scene.add(g);
+  // Main dock platform
+  const dock=new THREE.Mesh(new THREE.BoxGeometry(22,0.55,12),new THREE.MeshStandardMaterial({color:0x8B6914,roughness:0.9,map:floorTex}));
+  dock.position.y=0.28;g.add(dock);
+  // Dock planks detail
+  for(let i=-4;i<=4;i++){
+    const plank=new THREE.Mesh(new THREE.BoxGeometry(22,0.08,0.7),new THREE.MeshStandardMaterial({color:0x7a5c14,roughness:1}));
+    plank.position.set(0,0.56,i*1.1);g.add(plank);
+  }
+  // Poles
+  for(let i=-1;i<=1;i++){
+    const pm=new THREE.MeshStandardMaterial({color:0x5C4A1E,roughness:0.9});
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.25,5,8),pm);
+    pole.position.set(i*7,-2,5.5);g.add(pole);
+    const p2=pole.clone();p2.position.z=-5.5;g.add(p2);
+    // Crossbrace
+    const brace=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.14,11),pm);
+    brace.position.set(i*7,1.5,0);g.add(brace);
+  }
+  // Bollards
+  for(let bx=-8;bx<=8;bx+=4){
+    const bol=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.35,1.1,8),new THREE.MeshStandardMaterial({color:0x444444,roughness:0.8}));
+    bol.position.set(bx,0.85,5.5);g.add(bol);
+    const bolt=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),new THREE.MeshStandardMaterial({color:0x333333}));
+    bolt.position.set(bx,1.4,5.5);g.add(bolt);
+  }
+  // Railings
+  const railM=new THREE.MeshStandardMaterial({color:0x5C4A1E});
+  const topRail=new THREE.Mesh(new THREE.BoxGeometry(22,0.12,0.12),railM);
+  topRail.position.set(0,1.8,6);g.add(topRail);
+  const tr2=topRail.clone();tr2.position.z=-6;g.add(tr2);
+  for(let rx=-9;rx<=9;rx+=3){
+    const vp=new THREE.Mesh(new THREE.BoxGeometry(0.1,1.8,0.1),railM);
+    vp.position.set(rx,0.9,6);g.add(vp);
+    const vp2=vp.clone();vp2.position.z=-6;g.add(vp2);
+  }
+  // Harbour lights (stored for night)
+  for(let lx=-8;lx<=8;lx+=8){
+    const lpost=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.11,4,8),new THREE.MeshStandardMaterial({color:0x666666}));
+    lpost.position.set(lx,2,-5.8);g.add(lpost);
+    const lbulb=new THREE.Mesh(new THREE.SphereGeometry(0.28,8,8),new THREE.MeshStandardMaterial({
+      color:0xffeeaa,emissive:0xffcc44,emissiveIntensity:0,transparent:true,opacity:0.9
+    }));
+    lbulb.position.set(lx,4.1,-5.8);g.add(lbulb);
+    islandLamps.push({bulb:lbulb,wx:hdef.x+lx,wz:hdef.z-5.8,color:0xffcc44});
+  }
+  // Sign
+  const sc=document.createElement("canvas");sc.width=384;sc.height=80;
+  const sx=sc.getContext("2d");
+  sx.fillStyle="#2c1a0a";sx.fillRect(0,0,384,80);
+  sx.strokeStyle="#ffdd88";sx.lineWidth=4;sx.strokeRect(4,4,376,72);
+  sx.fillStyle="#ffdd88";sx.font="bold 34px Arial";sx.textAlign="center";sx.textBaseline="middle";
+  sx.fillText(hdef.label,192,42);
+  const sm=new THREE.Mesh(new THREE.BoxGeometry(9,2,0.15),new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(sc)}));
+  sm.position.set(0,5.8,0);g.add(sm);
+  // Indicator ring
+  const ind=new THREE.Mesh(new THREE.TorusGeometry(5,0.22,8,32),new THREE.MeshStandardMaterial({color:0x00ff88,emissive:0x00ff88,emissiveIntensity:0.6}));
+  ind.rotation.x=Math.PI/2;ind.position.set(0,0.4,0);g.add(ind);
+  return g;
+}
+// Build all harbours
+HARBOUR_DEFS.forEach(hdef=>buildHarbour(hdef));
+
+// ═══ NPC ═══
+function makeNPC(color,px,pz){
+  const g=new THREE.Group();const root=new THREE.Object3D();g.add(root);
+  const t=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshStandardMaterial({color}));
+  t.position.y=3;root.add(t);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(0.75,16,16),new THREE.MeshStandardMaterial({color:0xffd6b3}));
+  h.position.y=1.9;t.add(h);
+  const fc=document.createElement("canvas");fc.width=128;fc.height=128;
+  const fx=fc.getContext("2d");
+  fx.fillStyle="#000";fx.beginPath();fx.arc(38,55,8,0,Math.PI*2);fx.arc(90,55,8,0,Math.PI*2);fx.fill();
+  fx.beginPath();fx.arc(64,80,22,0,Math.PI);fx.lineWidth=5;fx.stroke();
+  const fm=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(fc),transparent:true}));
+  fm.position.z=0.73;h.add(fm);
+  const aL=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0xffd6b3}));
+  aL.position.set(-1.5,0,0);t.add(aL);
+  const aR=aL.clone();aR.position.x=1.5;t.add(aR);
+  const lL=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0x2c3e50}));
+  lL.position.set(-0.5,-2,0);t.add(lL);
+  const lR=lL.clone();lR.position.x=0.5;t.add(lR);
+  g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
+  return{group:g,root};
+}
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-22);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,30,-22);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-30,-22);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,60,-22);
+
+// ═══ PLAYER ═══
+const player=new THREE.Group();scene.add(player);
+const playerRoot=new THREE.Object3D();player.add(playerRoot);
+const torso=new THREE.Mesh(new THREE.BoxGeometry(2,2,1),new THREE.MeshStandardMaterial({color:0x2ecc71}));
+torso.position.y=3;torso.castShadow=true;playerRoot.add(torso);
+const backHolder=new THREE.Object3D();backHolder.position.set(0,0.5,-0.7);torso.add(backHolder);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.75,32,32),new THREE.MeshStandardMaterial({color:0xffd6b3,roughness:0.6}));
+head.scale.y=1.05;head.position.y=1.9;head.castShadow=true;torso.add(head);
+const faceC=document.createElement("canvas");faceC.width=256;faceC.height=256;
+const fctx=faceC.getContext("2d");
+fctx.fillStyle="#000";fctx.beginPath();fctx.arc(80,110,12,0,Math.PI*2);fctx.arc(176,110,12,0,Math.PI*2);fctx.fill();
+fctx.beginPath();fctx.arc(128,160,40,0,Math.PI);fctx.lineWidth=6;fctx.stroke();
+const face=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(faceC),transparent:true}));
+face.position.z=0.73;head.add(face);
+const armL=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0xffd6b3}));
+armL.position.set(-1.5,0,0);torso.add(armL);
+const armR=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0xffd6b3}));
+armR.position.set(1.5,0,0);torso.add(armR);
+const handGrip=new THREE.Object3D();handGrip.position.set(0,-1,0.75);armR.add(handGrip);
+const rodPivot=new THREE.Object3D();handGrip.add(rodPivot);
+const legL=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0x333333}));
+legL.position.set(-0.5,-2,0);torso.add(legL);
+const legR=legL.clone();legR.position.x=0.5;torso.add(legR);
+player.scale.set(0.8,0.8,0.8);player.position.set(0,0,-12);
+
+// HELD FISH
+const heldFishMesh=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,6),new THREE.MeshStandardMaterial({color:0x5dade2,emissive:0x112244,emissiveIntensity:0.3}));
+heldFishMesh.scale.z=1.8;
+const leftHandAnchor=new THREE.Object3D();leftHandAnchor.position.set(0,-1.1,0);
+armL.add(leftHandAnchor);leftHandAnchor.add(heldFishMesh);heldFishMesh.visible=false;
+
+// ROD MESH
+const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.06,2),new THREE.MeshStandardMaterial({color:0x8b5a2b}));
+const rodTip=new THREE.Object3D();rodTip.position.set(0,1,0);rod.add(rodTip);
+backHolder.add(rod);rod.position.set(0,0,0);rod.rotation.set(0,Math.PI,0.5);
+
+// HOOK & LINE
+const hook=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,10),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x4444ff,emissiveIntensity:0.3}));
+hook.visible=false;scene.add(hook);
+const fishingLine=new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),
+  new THREE.LineBasicMaterial({color:0xffffff,opacity:0.7,transparent:true})
+);
+scene.add(fishingLine);
+
+// JETSKI
+const jetski=new THREE.Group();
+const hull=new THREE.Mesh(new THREE.BoxGeometry(3,0.8,1.4),new THREE.MeshStandardMaterial({color:0xe74c3c,metalness:0.4,roughness:0.3}));
+jetski.add(hull);
+const nose=new THREE.Mesh(new THREE.ConeGeometry(0.5,1.2,8),new THREE.MeshStandardMaterial({color:0xc0392b}));
+nose.rotation.z=-Math.PI/2;nose.position.set(2,0.1,0);jetski.add(nose);
+const shield=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,1.2),new THREE.MeshStandardMaterial({color:0x00aaff,transparent:true,opacity:0.5}));
+shield.position.set(0.5,0.7,0);jetski.add(shield);
+const jseat=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.3,1),new THREE.MeshStandardMaterial({color:0x222222}));
+jseat.position.set(-0.3,0.55,0);jetski.add(jseat);
+const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.MeshStandardMaterial({color:0x888888}));
+hbar.rotation.x=Math.PI/2;hbar.position.set(0.6,0.9,0);jetski.add(hbar);
+jetski.position.copy(jetskiSpawnPos);jetski.visible=false;scene.add(jetski);
+
+// WAKE PARTICLES
+const wakeParticles=[];
+for(let i=0;i<25;i++){
+  const p=new THREE.Mesh(new THREE.SphereGeometry(0.18,6,6),new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:0.6}));
+  p.visible=false;scene.add(p);wakeParticles.push({mesh:p,life:0,active:false});
+}
+
+// BUBBLES
+const bubbles=[];
+for(let i=0;i<20;i++){
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.07,6,6),new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:0.5}));
+  b.visible=false;scene.add(b);
+  bubbles.push({mesh:b,life:0,active:false,vel:new THREE.Vector3()});
+}
+
+// UNDERWATER OVERLAY
+const uwDiv=document.createElement("div");
+Object.assign(uwDiv.style,{position:"fixed",inset:"0",background:"rgba(0,80,160,0.22)",pointerEvents:"none",zIndex:"5",display:"none",backdropFilter:"blur(1px)"});
+document.body.appendChild(uwDiv);
+
+// ═══ MINIMAP ═══
+(function(){
+  const wrap=document.createElement("div");
+  wrap.id="minimap";
+  Object.assign(wrap.style,{
+    position:"fixed",right:"12px",top:"108px",width:"130px",height:"130px",
+    background:"rgba(0,10,30,0.85)",border:"2px solid rgba(100,200,255,0.4)",
+    borderRadius:"50%",overflow:"hidden",zIndex:"20",pointerEvents:"none",
+    boxShadow:"0 0 18px rgba(0,100,255,0.35)"
+  });
+  const cv=document.createElement("canvas");cv.id="minimapCanvas";cv.width=130;cv.height=130;
+  wrap.appendChild(cv);
+  const dot=document.createElement("div");dot.id="minimapDot";
+  Object.assign(dot.style,{
+    position:"absolute",width:"9px",height:"9px",background:"#2ecc71",borderRadius:"50%",
+    border:"1.5px solid #fff",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
+    zIndex:"2",boxShadow:"0 0 7px #2ecc71"
+  });
+  wrap.appendChild(dot);
+  document.body.appendChild(wrap);
+  const lbl=document.createElement("div");lbl.id="minimapLabel";
+  Object.assign(lbl.style,{
+    position:"fixed",right:"12px",top:"246px",color:"#7ecfff",fontSize:"10px",
+    textAlign:"center",width:"130px",background:"rgba(0,0,0,0.62)",borderRadius:"6px",
+    padding:"2px 4px",zIndex:"20",pointerEvents:"none"
+  });
+  document.body.appendChild(lbl);
+})();
+
+function updateMinimap(){
+  const cv=document.getElementById("minimapCanvas");if(!cv)return;
+  const ctx=cv.getContext("2d"),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const px=player.position.x,pz=player.position.z,SC=750;
+  const col={main:"#27ae60",mystic:"#9b59b6",volcano:"#e74c3c",crystal:"#00bcd4",aurora:"#4455bb"};
+  islandDefs.forEach(isl=>{
+    const sx=(isl.x-px)/SC*W+W/2;
+    const sy=(isl.z-pz)/SC*H+H/2;
+    const sr=Math.max(isl.sandR/SC*W,5);
+    ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);
+    ctx.fillStyle=col[isl.id]||"#27ae60";ctx.globalAlpha=0.75;ctx.fill();ctx.globalAlpha=1;
+  });
+  const lbl=document.getElementById("minimapLabel");
+  const idef=islandDefs.find(i=>i.id===currentIsland);
+  if(lbl&&idef)lbl.textContent="📍 "+idef.label.replace(/[^\x00-\x7F]/g,"").trim();
+}
+
+// ═══ FISH PANEL (removed — info ada di Fish Index [B]) ═══
+function updateIslandFishPanel(){}
+
+// ═══ CAMERA ═══
+let camYaw=0,camPitch=0.3,camTouchId=null,lastX=0,lastY=0;
+renderer.domElement.addEventListener("touchstart",e=>{
+  const t=e.changedTouches[0];
+  if(t.clientX>window.innerWidth/2){camTouchId=t.identifier;lastX=t.clientX;lastY=t.clientY;}
+},{passive:true});
+renderer.domElement.addEventListener("touchmove",e=>{
+  const t=[...e.touches].find(t=>t.identifier===camTouchId);if(!t)return;
+  camYaw-=(t.clientX-lastX)*0.007;camPitch-=(t.clientY-lastY)*0.007;
+  camPitch=THREE.MathUtils.clamp(camPitch,0.05,1.4);
+  lastX=t.clientX;lastY=t.clientY;
+},{passive:true});
+renderer.domElement.addEventListener("touchend",e=>{
+  if([...e.changedTouches].find(t=>t.identifier===camTouchId))camTouchId=null;
+},{passive:true});
+
+// ═══ JOYSTICK ═══
+const joy=document.getElementById("joystick"),stick=document.getElementById("stick");
+let joyX=0,joyY=0,joyTouchId=null;
+joy.addEventListener("touchstart",e=>{
+  e.preventDefault();const t=e.changedTouches[0];
+  if(t.clientX<window.innerWidth/2)joyTouchId=t.identifier;
+},{passive:false});
+joy.addEventListener("touchmove",e=>{
+  e.preventDefault();
+  const t=[...e.touches].find(t=>t.identifier===joyTouchId);if(!t)return;
+  const r=joy.getBoundingClientRect(),x=t.clientX-r.left-60,y=t.clientY-r.top-60;
+  const d=Math.min(40,Math.hypot(x,y)),a=Math.atan2(y,x);
+  joyX=Math.cos(a)*(d/40);joyY=Math.sin(a)*(d/40);
+  stick.style.left=(35+joyX*30)+"px";stick.style.top=(35+joyY*30)+"px";
+},{passive:false});
+joy.addEventListener("touchend",e=>{
+  if([...e.changedTouches].find(t=>t.identifier===joyTouchId)){
+    joyTouchId=null;joyX=0;joyY=0;stick.style.left="35px";stick.style.top="35px";
+  }
+},{passive:true});
+const keys={};
+window.addEventListener("keydown",e=>{if(e.key)keys[e.key.toLowerCase()]=true;});
+window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
+let walkAnim=0;
+
+// ═══ ISLAND CHECK ═══
+function getPlayerIsland(){
+  const px=player.position.x,pz=player.position.z;
+  for(const isl of islandDefs){
+    if((px-isl.x)**2+(pz-isl.z)**2<isl.sandR*isl.sandR)return isl.id;
+  }
+  return null;
+}
+function checkOnLand(){
+  const px=player.position.x,pz=player.position.z;
+  for(const isl of islandDefs){
+    if((px-isl.x)**2+(pz-isl.z)**2<isl.sandR*isl.sandR)return true;
+  }
+  for(const hd of HARBOUR_DEFS){
+    if((px-hd.x)**2+(pz-hd.z)**2<196)return true;
+  }
+  return false;
+}
+// Collision boxes [cx,cz,hw,hd] — shops on main island
+const collisionBoxes=[
+  {cx:0,   cz:-25, hw:9, hd:5.5},
+  {cx:30,  cz:-25, hw:9, hd:5.5},
+  {cx:-30, cz:-25, hw:9, hd:5.5},
+  {cx:60,  cz:-25, hw:9, hd:5.5},
+];
+function resolveCollisions(){
+  if(onJetski)return;
+  const pr=1.4;
+  for(const b of collisionBoxes){
+    const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
+    const ox=b.hw+pr-Math.abs(dx), oz=b.hd+pr-Math.abs(dz);
+    if(ox>0&&oz>0){
+      if(ox<oz)player.position.x+=ox*(dx<0?-1:1);
+      else player.position.z+=oz*(dz<0?-1:1);
+    }
+  }
+}
+function canFishFromHere(){
+  const px=player.position.x,pz=player.position.z;
+  for(const isl of islandDefs){
+    const d=Math.sqrt((px-isl.x)**2+(pz-isl.z)**2);
+    if(d>isl.grassR*0.88&&d<isl.sandR+12)return true;
+  }
+  if(!checkOnLand())return true;
+  return false;
+}
+
+// ═══ SWIM ANIMATION ═══
+function updateSwimAnim(dt,moving){
+  swimCycle+=dt*(moving?1.8:0.8);
+  torso.rotation.x=THREE.MathUtils.lerp(torso.rotation.x,-0.55,0.08);
+  torso.position.y=THREE.MathUtils.lerp(torso.position.y,2.4,0.08);
+  torso.rotation.z=Math.sin(swimCycle*0.5)*0.12;
+  head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,-0.15,0.08);
+  head.rotation.z=0;
+  armL.rotation.x=Math.sin(swimCycle)*1.0;
+  armL.rotation.z=Math.cos(swimCycle)*0.3-0.2;
+  armR.rotation.x=Math.sin(swimCycle+Math.PI)*1.0;
+  armR.rotation.z=-(Math.cos(swimCycle+Math.PI)*0.3)+0.2;
+  legL.rotation.x=Math.sin(swimCycle*2)*0.25;
+  legR.rotation.x=Math.sin(swimCycle*2+Math.PI)*0.25;
+  legL.rotation.z=0;legR.rotation.z=0;
+}
+function resetBodyPose(){
+  torso.rotation.x=THREE.MathUtils.lerp(torso.rotation.x,0,0.12);
+  torso.rotation.z=THREE.MathUtils.lerp(torso.rotation.z,0,0.12);
+  torso.position.y=THREE.MathUtils.lerp(torso.position.y,3,0.12);
+  head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,0,0.12);
+  head.rotation.z=THREE.MathUtils.lerp(head.rotation.z,0,0.12);
+}
+
+// ═══ PLAYER MOVEMENT ═══
+function movePlayer(dt){
+  if(onJetski)return;
+  let mX=joyX,mY=joyY;
+  if(keys["w"]||keys["arrowup"])mY=-1;
+  if(keys["s"]||keys["arrowdown"])mY=1;
+  if(keys["a"]||keys["arrowleft"])mX=-1;
+  if(keys["d"]||keys["arrowright"])mX=1;
+  const fwd=new THREE.Vector3();camera.getWorldDirection(fwd);fwd.y=0;fwd.normalize();
+  const rgt=new THREE.Vector3();rgt.crossVectors(fwd,camera.up).normalize();
+  const dir=new THREE.Vector3();dir.addScaledVector(fwd,-mY);dir.addScaledVector(rgt,mX);
+  if(dir.lengthSq()>0.0001){
+    const ta=Math.atan2(dir.x,dir.z);
+    let diff=ta-player.rotation.y;diff=Math.atan2(Math.sin(diff),Math.cos(diff));
+    player.rotation.y+=diff*0.12;
+  }
+  const spd=isSwimming?0.07:0.13;
+  if(!freezePlayer)player.position.addScaledVector(dir,spd);
+  if(isSwimming)player.position.y=THREE.MathUtils.lerp(player.position.y,-1.8,0.1);
+  else player.position.y=THREE.MathUtils.lerp(player.position.y,0,0.15);
+  const moving=dir.lengthSq()>0.001&&!freezeInput&&!isFishing;
+  if(isSwimming){
+    uwDiv.style.display="block";
+    updateSwimAnim(dt,moving);
+    if(moving&&Math.random()<0.08){
+      for(const b of bubbles){
+        if(!b.active){
+          b.active=true;b.life=1;b.mesh.visible=true;
+          b.mesh.position.copy(player.position);b.mesh.position.y+=0.5;
+          b.vel.set((Math.random()-.5)*0.06,0.04+Math.random()*0.04,(Math.random()-.5)*0.06);
+          break;
+        }
+      }
+    }
+  } else {
+    uwDiv.style.display="none";
+    resetBodyPose();
+    if(moving)walkAnim+=0.18;
+    const sw=Math.sin(walkAnim);
+    if(moving&&!castingPose&&!isFishing){
+      legL.rotation.x=sw*0.8;legR.rotation.x=-sw*0.8;
+      armL.rotation.x=-sw*0.5;armL.rotation.z=0;armR.rotation.z=-0.2;
+      if(!isFishing)armR.rotation.x=sw*0.5;
+      torso.position.y=3+Math.abs(sw)*0.08;
+    } else if(!isSwimming&&!isFishing&&!castingPose){
+      legL.rotation.x=THREE.MathUtils.lerp(legL.rotation.x,0,0.15);
+      legR.rotation.x=THREE.MathUtils.lerp(legR.rotation.x,0,0.15);
+      armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,0,0.15);
+      armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,0,0.15);
+      walkAnim*=0.9;
+    }
+  }
+  const onLand=checkOnLand();
+  if(!onLand&&!isSwimming){isSwimming=true;showMessage("🌊 Swimming!");}
+  if(onLand&&isSwimming){isSwimming=false;swimCycle=0;}
+  resolveCollisions();
+  // Track island change
+  const newIsland=getPlayerIsland()||"main";
+  if(newIsland!==currentIsland){
+    currentIsland=newIsland;
+    const idef=islandDefs.find(i=>i.id===currentIsland);
+    if(idef){
+      const pool=fishDB[idef.fishKey]||[];
+      const legs=pool.filter(f=>f.rarity==="Legendary");
+      const preview=legs.length>0?legs.map(f=>f.emoji).join(" "):pool.slice(0,4).map(f=>f.emoji).join(" ");
+      showEventNotification("🏝️ Arrived at "+idef.label+"! Fish here: "+preview);
+    }
+  }
+}
+
+function updateCamera(){
+  const worldPos=new THREE.Vector3();player.getWorldPosition(worldPos);
+  const tgt=worldPos.clone();tgt.y+=3.3;
+  const dist=onJetski?12:9;
+  const des=new THREE.Vector3(tgt.x-Math.sin(camYaw)*dist,tgt.y+camPitch*4.5,tgt.z-Math.cos(camYaw)*dist);
+  camera.position.lerp(des,0.18);camera.lookAt(tgt);
+}
+
+function animateWater(time){
+  const pos=water.geometry.attributes.position;
+  for(let i=0;i<pos.count;i+=4)pos.setZ(i,Math.sin(i*0.3+time*0.0015)*0.18);
+  pos.needsUpdate=true;
+}
+
+function updateFloatingOrbs(time){
+  floatingOrbs.forEach(o=>{
+    o.mesh.position.y=o.baseY+Math.sin(time*0.001+(o.mesh.userData.floatOffset||0))*0.85;
+  });
+}
+
+// ═══ JETSKI ═══
+function mountJetski(){
+  if(!jetskiOwned){showMessage("🛥️ Beli Jetski dari Jetski Shop!");return;}
+  if(!jetskiSpawned){showMessage("🛥️ Spawn jetski dulu di Pelabuhan!");return;}
+  onJetski=true;isSwimming=false;uwDiv.style.display="none";
+  scene.remove(player);jetski.add(player);
+  player.position.set(-0.3,0.75,0);player.rotation.set(0,0,0);
+  torso.rotation.x=0.05;legL.rotation.x=1.4;legR.rotation.x=1.4;
+  legL.rotation.z=0.15;legR.rotation.z=-0.15;
+  armL.rotation.x=-0.5;armR.rotation.x=-0.5;armL.rotation.z=0.4;armR.rotation.z=-0.4;
+  document.getElementById("jetskiUI").style.display="block";
+  if(window.MP&&window.MP.isActive())window.MP.sendEvent("mountJetski",{});
+  showMessage("🛥️ Naik! [WASD] kemudi · [E] turun");
+}
+function dismountJetski(){
+  onJetski=false;jetskiSpeed=0;
+  if(player.parent===jetski){jetski.remove(player);scene.add(player);player.position.set(jetski.position.x+3,0,jetski.position.z);player.rotation.set(0,0,0);}
+  torso.rotation.x=0;legL.rotation.x=0;legR.rotation.x=0;legL.rotation.z=0;legR.rotation.z=0;
+  armL.rotation.x=0;armR.rotation.x=0;armL.rotation.z=0;armR.rotation.z=0;
+  document.getElementById("jetskiUI").style.display="none";
+  if(window.MP&&window.MP.isActive())window.MP.sendEvent("dismountJetski",{});
+  showMessage("Turun dari jetski.");
+}
+function spawnJetski(){
+  if(!jetskiOwned){showMessage("🛥️ Beli Jetski dulu!");return;}
+  const _hd=HARBOUR_DEFS.find(h=>h.id===currentHarbourId)||HARBOUR_DEFS[0];
+  jetskiSpawned=true;jetski.position.set(_hd.spawnX,0.1,_hd.spawnZ);
+  jetski.visible=true;jetski.rotation.set(0,0,0);
+  showMessage("🛥️ Jetski di-spawn di "+_hd.label+"!");
+}
+function despawnJetski(){
+  if(onJetski)dismountJetski();jetskiSpawned=false;jetski.visible=false;showMessage("🛥️ Jetski di-despawn.");
+}
+function updateJetski(){
+  if(!onJetski)return;
+  let mX=joyX,mY=joyY;
+  if(keys["w"]||keys["arrowup"])mY=-1;if(keys["s"]||keys["arrowdown"])mY=1;
+  if(keys["a"]||keys["arrowleft"])mX=-1;if(keys["d"]||keys["arrowright"])mX=1;
+  if(Math.abs(mX)>0.1)jetski.rotation.y-=mX*0.04;
+  if(mY<-0.1)jetskiSpeed=Math.min(jetskiSpeed+0.012,jetskiMaxSpeed);
+  else if(mY>0.1)jetskiSpeed=Math.max(jetskiSpeed-0.01,-jetskiMaxSpeed*0.3);
+  else jetskiSpeed*=0.92;
+  jetski.position.x+=Math.sin(jetski.rotation.y)*jetskiSpeed;
+  jetski.position.z+=Math.cos(jetski.rotation.y)*jetskiSpeed;
+  jetski.position.y=0.1+Math.sin(Date.now()*0.002)*0.08;
+  jetski.rotation.x=jetskiSpeed*0.18;jetski.rotation.z=-mX*0.07;
+  armL.rotation.z=0.4+mX*0.15;armR.rotation.z=-0.4+mX*0.15;torso.rotation.z=mX*-0.05;
+  document.getElementById("jetskiSpeed").textContent=Math.abs(Math.round(jetskiSpeed*240))+" km/h";
+  if(Math.abs(jetskiSpeed)>0.05&&Math.random()<0.4){
+    for(const p of wakeParticles){
+      if(!p.active){
+        p.active=true;p.life=1;p.mesh.visible=true;
+        const s=(Math.random()-.5)*1.2;
+        p.mesh.position.set(jetski.position.x-Math.sin(jetski.rotation.y)*2+Math.cos(jetski.rotation.y)*s,-0.85,jetski.position.z-Math.cos(jetski.rotation.y)*2-Math.sin(jetski.rotation.y)*s);
+        break;
+      }
+    }
+  }
+}
+function updateWake(dt){
+  for(const p of wakeParticles){
+    if(!p.active)continue;
+    p.life-=dt*1.5;if(p.life<=0){p.active=false;p.mesh.visible=false;continue;}
+    p.mesh.position.y=-0.9+p.life*0.3;p.mesh.material.opacity=p.life*0.45;p.mesh.scale.setScalar(1+(1-p.life)*2);
+  }
+}
+function updateBubbles(dt){
+  for(const b of bubbles){
+    if(!b.active)continue;
+    b.life-=dt*0.9;if(b.life<=0){b.active=false;b.mesh.visible=false;continue;}
+    b.mesh.position.add(b.vel);b.mesh.material.opacity=b.life*0.5;b.mesh.scale.setScalar(b.life);
+  }
+}
+
+// ═══ FISHING ═══
+function startCastAnimation(){
+  if(castingNow||isFishing)return;
+  if(!inventory.equipped){showMessage("Equip a rod first!");return;}
+  if(isSwimming){showMessage("❌ Can't fish while swimming!");return;}
+  if(onJetski){showMessage("❌ Dismount first! [E]");return;}
+  if(!canFishFromHere()){showMessage("❌ Pergi ke tepi pantai untuk memancing!");return;}
+  castingNow=true;castAnimation=0;castReleased=false;
+}
+function updateCastAnimation(){
+  if(!castingNow)return;
+  castAnimation+=0.05;
+  if(castAnimation<0.4){castingPose=true;armR.rotation.x=-1.6;rodPivot.rotation.x=-0.6;}
+  else if(castAnimation<0.7){armR.rotation.x+=0.25;rodPivot.rotation.x+=0.25;}
+  else if(castAnimation>=0.7&&!castReleased){castReleased=true;castLineSimple();}
+  if(castAnimation>=1){castingNow=false;castingPose=false;armR.rotation.x=-0.6;rodPivot.rotation.x=0;}
+}
+function castLineSimple(){
+  if(isFishing)return;
+  hook.userData={velocity:new THREE.Vector3()};
+  isFishing=true;hookInWater=false;fishBiting=false;fishingTimer=0;
+  castSound.play().catch(()=>{});
+  const sp=new THREE.Vector3();rodTip.getWorldPosition(sp);
+  hook.position.copy(sp);hook.visible=true;
+  const fw=new THREE.Vector3(0,0,1).applyQuaternion(player.quaternion);fw.y+=0.35;
+  hook.userData.velocity=fw.multiplyScalar(0.28);
+  const rd=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
+  const bd=baitTypes.find(b=>b.id===inventory.equippedBait)||baitTypes[0];
+  const sm=(rd.speedMult||1)*currentWeather.speedMult*(1+bd.speedBonus);
+  biteTime=(Math.random()*4+2)/sm;
+}
+function updateFishingWait(){
+  if(!inventory.equipped||!hook.visible)return;
+  if(!hookInWater){
+    hook.position.add(hook.userData.velocity);hook.userData.velocity.y-=0.012;
+    if(hook.position.y<=-1){hook.position.y=-1;hookInWater=true;fishingTimer=0;}
+  }
+  if(hookInWater&&!fishBiting&&!tensionActive){
+    fishingTimer+=0.016;
+    if(fishingTimer>=biteTime){pendingFish=getRandomFish();startTension(pendingFish);}
+  }
+  if(fishBiting&&!tensionActive)armR.rotation.z=Math.sin(Date.now()*0.02)*0.2;
+}
+
+// ═══ TENSION BAR ═══
+const RARITY_FISH_SPEED={Junk:0.18,Common:0.25,Uncommon:0.38,Rare:0.55,Epic:0.75,Legendary:1.0};
+
+function startTension(fish){
+  fishBiting=true;tensionActive=true;
+  tensionVal=50;zoneMin=42;zoneMax=58;
+  tensionProgress=0;tensionReeling=false;
+  tensionDifficulty=fish.diff||1;tensionFishSpeed=0;
+  tensionDir=Math.random()<0.5?1:-1;tensionTimeout=20;freezePlayer=true;pendingFish=fish;
+  document.getElementById("biteIcon").style.display="block";
+  biteSound.play().catch(()=>{});
+  setTimeout(()=>{
+    document.getElementById("biteIcon").style.display="none";
+    document.getElementById("tensionContainer").style.display="flex";
+    updateTensionUI();
+  },500);
+}
+
+function updateTensionSystem(dt){
+  if(!tensionActive)return;
+  tensionTimeout-=dt;if(tensionTimeout<=0){loseFish();return;}
+  const zoneSpeed=35,zoneWidth=zoneMax-zoneMin;
+  if(tensionReeling){zoneMin+=zoneSpeed*dt;zoneMax+=zoneSpeed*dt;}
+  else{zoneMin-=zoneSpeed*dt;zoneMax-=zoneSpeed*dt;}
+  if(zoneMin<0){zoneMin=0;zoneMax=zoneWidth;}
+  if(zoneMax>100){zoneMax=100;zoneMin=100-zoneWidth;}
+  const fishSpd=RARITY_FISH_SPEED[pendingFish?.rarity||"Common"]||0.3;
+  tensionFishSpeed+=(Math.random()-0.5)*0.12*tensionDifficulty;
+  tensionFishSpeed=THREE.MathUtils.clamp(tensionFishSpeed,-fishSpd*1.2,fishSpd*1.2);
+  const flipChance={Junk:0.008,Common:0.012,Uncommon:0.018,Rare:0.025,Epic:0.035,Legendary:0.05};
+  if(Math.random()<(flipChance[pendingFish?.rarity||"Common"]||0.02))tensionDir*=-1;
+  tensionVal+=tensionFishSpeed*tensionDir*dt*60;
+  tensionVal=THREE.MathUtils.clamp(tensionVal,0,100);
+  if(tensionVal<=0||tensionVal>=100)tensionDir*=-1;
+  const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
+  if(inZone)tensionProgress+=dt*18;else tensionProgress-=dt*12;
+  tensionProgress=THREE.MathUtils.clamp(tensionProgress,0,100);
+  if(tensionProgress>=100){catchFish();return;}
+  updateTensionUI();
+  if(tensionReeling)armR.rotation.x=Math.sin(Date.now()*0.03)*0.3-0.8;
+  else armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-0.6,0.1);
+}
+
+function updateTensionUI(){
+  const bar=document.getElementById("tensionBar");
+  const zone=document.getElementById("tensionZone");
+  const ind=document.getElementById("tensionIndicator");
+  const prompt=document.getElementById("catchPrompt");
+  const label=document.getElementById("tensionLabel");
+  bar.style.width=tensionProgress+"%";
+  bar.style.background=tensionProgress>70?"linear-gradient(90deg,#27ae60,#2ecc71)":tensionProgress>35?"linear-gradient(90deg,#f39c12,#f1c40f)":"linear-gradient(90deg,#e74c3c,#c0392b)";
+  const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
+  zone.style.left=zoneMin+"%";zone.style.width=(zoneMax-zoneMin)+"%";
+  zone.style.background=inZone?"rgba(46,204,113,0.5)":"rgba(46,204,113,0.25)";
+  zone.style.border="2px solid "+(inZone?"#2ecc71":"rgba(46,204,113,0.4)");
+  zone.style.borderRadius="4px";zone.style.transition="none";
+  ind.style.left=tensionVal+"%";
+  ind.style.background=inZone?"#fff":"#e74c3c";
+  ind.style.boxShadow=inZone?"0 0 10px #2ecc71":"0 0 8px #e74c3c";
+  const rEmoji={Junk:"👟",Common:"🐟",Uncommon:"🐠",Rare:"🐡",Epic:"🦈",Legendary:"🌟"};
+  const rarity=pendingFish?.rarity||"Common";
+  if(inZone){
+    label.textContent=(rEmoji[rarity]||"🐟")+" Ikan dalam zona! Pertahankan!";
+    label.style.color="#2ecc71";
+  } else {
+    label.textContent=tensionVal<zoneMin?"⬅️ Lepas tombol! Kejar ikan!":"➡️ Tahan tombol! Kejar ikan!";
+    label.style.color="#e74c3c";
+  }
+  prompt.style.display=inZone?"block":"none";
+  if(inZone)prompt.textContent="✅ Bagus! Pertahankan!";
+}
+
+function catchFish(){
+  tensionActive=false;fishBiting=false;isFishing=false;
+  document.getElementById("tensionContainer").style.display="none";
+  if(!pendingFish){stopFishingAll();return;}
+  if(inventory.equippedBait!=="none"){
+    inventory.bait[inventory.equippedBait]=Math.max(0,inventory.bait[inventory.equippedBait]-1);
+    if(inventory.bait[inventory.equippedBait]===0){inventory.equippedBait="none";showMessage("🪱 Bait used up!");}
+  }
+  const cf={...pendingFish,id:Date.now()+Math.random()};
+  inventory.fish.push(cf);
+  inventory.fishLog.unshift({...cf,time:new Date().toLocaleTimeString()});
+  if(inventory.fishLog.length>50)inventory.fishLog.pop();
+  unlockFishEntry(cf.name);showFishNotification(cf);gainXP(cf.xp);
+  catchSound.play().catch(()=>{});
+  stopFishingAll();pendingFish=null;
+}
+function loseFish(){
+  tensionActive=false;fishBiting=false;
+  document.getElementById("tensionContainer").style.display="none";
+  stopFishingAll();pendingFish=null;showMessage("🐟 The fish got away!");
+}
+function stopFishingAll(){
+  isFishing=false;castingPose=false;castingNow=false;fishBiting=false;hookInWater=false;
+  freezeInput=false;freezePlayer=false;fishingTimer=0;biteTime=0;hook.visible=false;
+  hook.userData={velocity:new THREE.Vector3()};
+  document.getElementById("biteIcon").style.display="none";
+  document.getElementById("tensionContainer").style.display="none";
+  tensionActive=false;tensionReeling=false;
+  armR.rotation.set(-0.6,0,-0.2);armL.rotation.set(0,0,0);rodPivot.rotation.set(0,0,0);
+  fishingLine.visible=false;
+}
+function updateFishingLine(){
+  if(!hook.visible){fishingLine.visible=false;return;}
+  fishingLine.visible=true;
+  const s=new THREE.Vector3();rodTip.getWorldPosition(s);
+  fishingLine.geometry.setFromPoints([s,hook.position.clone()]);
+}
+
+document.getElementById("reelBtn").addEventListener("pointerdown",e=>{
+  e.stopPropagation();tensionReeling=true;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#27ae60,#2ecc71)";
+});
+document.getElementById("reelBtn").addEventListener("pointerup",()=>{
+  tensionReeling=false;document.getElementById("reelBtn").style.background="linear-gradient(135deg,#e74c3c,#c0392b)";
+});
+document.getElementById("reelBtn").addEventListener("touchstart",e=>{
+  e.stopPropagation();tensionReeling=true;
+  document.getElementById("reelBtn").style.background="linear-gradient(135deg,#27ae60,#2ecc71)";
+},{passive:true});
+document.getElementById("reelBtn").addEventListener("touchend",()=>{
+  tensionReeling=false;document.getElementById("reelBtn").style.background="linear-gradient(135deg,#e74c3c,#c0392b)";
+});
+
+// ═══ FISH RANDOMIZER — ISLAND SPECIFIC ═══
+function getRandomFish(){
+  const rd=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
+  const bd=baitTypes.find(b=>b.id===inventory.equippedBait)||baitTypes[0];
+  const luck=(rd.luckMult||1)*currentWeather.luckMult*(1+playerLevel*0.025)*(1+bd.luckBonus);
+  const rareB=bd.rareBonus||0;
+  const pool=fishDB[currentIsland]||fishDB.main;
+  const weights={Junk:0.08,Common:0.35,Uncommon:0.28,Rare:0.16,Epic:0.09,Legendary:0.04};
+  let total=pool.reduce((s,f)=>{
+    let w=(weights[f.rarity]||0.1)*(1+rareB);
+    if(f.rarity==="Legendary"||f.rarity==="Epic")w*=luck;
+    return s+w;
+  },0);
+  let r=Math.random()*total;
+  for(const f of pool){
+    let w=(weights[f.rarity]||0.1)*(1+rareB);
+    if(f.rarity==="Legendary"||f.rarity==="Epic")w*=luck;
+    r-=w;if(r<=0)return f;
+  }
+  return pool[0];
+}
+
+// ═══ INVENTORY UI ═══
+let inventoryOpen=false;
+function toggleInventory(){
+  inventoryOpen=!inventoryOpen;
+  document.getElementById("inventoryUI").style.display=inventoryOpen?"flex":"none";
+  if(inventoryOpen){freezeInput=true;renderTab(activeTab.current);}
+  else freezeInput=false;
+}
+function switchTab(tab){
+  activeTab.current=tab;
+  document.querySelectorAll(".invTab").forEach((el,i)=>{
+    const tabs=["rods","bait","fish"];el.classList.toggle("active",tabs[i]===tab);
+  });
+  renderTab(tab);
+}
+function renderTab(tab){
+  const content=document.getElementById("invContent");
+  if(tab==="rods")renderRodsTab(content);
+  else if(tab==="bait")renderBaitTab(content);
+  else renderFishTab(content);
+}
+function renderRodsTab(el){
+  const allRods=[
+    {id:"FishingRod",...rodDatabase.FishingRod},
+    {id:"LuckRod",  ...rodDatabase.LuckRod},
+    {id:"MediumRod",...rodDatabase.MediumRod},
+    {id:"GoldenRod",...rodDatabase.GoldenRod},
+  ];
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to equip.</div>`
+    +allRods.map(r=>{
+      const owned=inventory.rods.includes(r.id),eq=inventory.equipped===r.id;
+      return`<div class="rodRow${eq?" equipped":""}" onclick="${owned?`equipRod('${r.id}')`:`buyRod('${r.id}')`}">
+        <div class="rodIcon">${r.icon}</div>
+        <div class="rodInfo"><h4>${r.name}${eq?" <span style='color:#f1c40f'>✓</span>":""}</h4>
+        <p>${r.desc}</p><div class="rodStats">⚡${r.speedMult}x 🍀${r.luckMult}x${!owned?" 💰"+r.price:""}</div></div>
+        <button class="rodEquipBtn ${eq?"eq":"neq"}">${eq?"Equipped":owned?"Equip":"Buy 💰"+r.price}</button>
+      </div>`;
+    }).join("");
+}
+function renderBaitTab(el){
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to select.</div><div class="baitGrid">`
+    +baitTypes.map(b=>{
+      const count=b.infinite?"∞":inventory.bait[b.id]||0,eq=inventory.equippedBait===b.id;
+      return`<div class="baitCard${eq?" selected":""}" onclick="selectBait('${b.id}')">
+        <div class="baitIcon">${b.icon}</div><h4>${b.name}</h4><p>${b.desc}</p>
+        <div class="baitCount">×${count}</div>
+        ${b.id!=="none"&&count===0?`<button class="buyRodBtn" style="margin-top:6px" onclick="event.stopPropagation();buyBait('${b.id}')">Buy 💰${b.price}</button>`:""}
+      </div>`;
+    }).join("")+"</div>";
+}
+function renderFishTab(el){
+  if(inventory.fish.length===0){
+    el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;font-size:14px;">🐟 No fish!<br><span style="font-size:12px">Go catch some.</span></div>`;
+    return;
+  }
+  const rc={Common:"#aaa",Uncommon:"#2ecc71",Rare:"#3498db",Epic:"#9b59b6",Legendary:"#f39c12",Junk:"#666"};
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish</div><div class="fishBagGrid">`
+    +inventory.fish.map((f,i)=>`
+      <div class="fishCard${heldFishIndex===i?" holding":""}">
+        <div class="fishIcon">${f.emoji}</div><h4>${f.name}</h4>
+        <div style="color:${rc[f.rarity]||"#aaa"};font-size:10px">${f.rarity}</div>
+        <div style="font-size:9px;color:#7ecfff">${f.island||""}</div>
+        <div class="fishPrice">💰${f.price}</div>
+        <button class="holdBtn ${heldFishIndex===i?"unhold":"hold"}" onclick="toggleHoldFish(${i})">${heldFishIndex===i?"Put down":"Hold 🤚"}</button>
+      </div>`).join("")
+    +`</div><button id="invSellAllBtn" onclick="sellAllFish()">💰 Sell All (+💰${inventory.fish.reduce((s,f)=>s+f.price,0)})</button>`;
+}
+
+function equipRod(name){
+  if(!inventory.rods.includes(name)){showMessage("You don't own this rod!");return;}
+  inventory.equipped=name;inventory._lastSelected=name;
+  if(rod.parent)rod.parent.remove(rod);
+  rodPivot.add(rod);rod.position.set(0,0,0);rod.rotation.set(Math.PI/2,0,0);
+  armR.rotation.x=-0.6;armR.rotation.z=-0.2;
+  rod.material.color.setHex(rodDatabase[name]?.color||0x8b5a2b);
+  showMessage("🎣 Equipped: "+rodDatabase[name].name);
+  updateHotbarSlot();if(inventoryOpen)renderTab("rods");
+}
+function selectBait(id){
+  const bd=baitTypes.find(b=>b.id===id);if(!bd)return;
+  if(!bd.infinite&&(inventory.bait[id]||0)===0){showMessage("Buy this bait first!");return;}
+  inventory.equippedBait=id;showMessage(bd.icon+" Bait: "+bd.name);renderTab("bait");
+}
+function buyBait(id){
+  const bd=baitTypes.find(b=>b.id===id);if(!bd)return;
+  const qty=10,cost=bd.price*qty;
+  if(coins<cost){showMessage("Need 💰"+cost+" for 10x "+bd.name);return;}
+  coins-=cost;inventory.bait[id]=(inventory.bait[id]||0)+qty;
+  document.getElementById("coinUI").textContent="💰 "+coins;
+  showMessage("✅ Bought 10x "+bd.name+"!");renderTab("bait");saveProgress();
+}
+function toggleHoldFish(i){
+  if(heldFishIndex===i){
+    heldFishIndex=-1;heldFishMesh.visible=false;document.getElementById("heldFishHUD").style.display="none";
+  } else {
+    heldFishIndex=i;const f=inventory.fish[i];
+    heldFishMesh.material.color.set(f.color||"#5dade2");heldFishMesh.visible=true;
+    document.getElementById("heldFishHUD").style.display="block";
+    document.getElementById("heldFishHUD").textContent=f.emoji+" Holding: "+f.name;
+  }
+  renderTab("fish");
+}
+
+// ═══ SELL/BUY ═══
+function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
+function sellAllFish(){
+  let total=0;inventory.fish.forEach(f=>total+=f.price);
+  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishMesh.visible=false;
+  document.getElementById("coinUI").textContent="💰 "+coins;
+  document.getElementById("heldFishHUD").style.display="none";
+  showMessage("🐟 Sold all! +💰"+total);
+  if(inventoryOpen)renderTab("fish");saveProgress();
+}
+function buyRod(name){
+  if(inventory.rods.includes(name)){showMessage("Already owned!");return;}
+  const rd=rodDatabase[name];if(!rd)return;
+  if(coins<rd.price){showMessage("❌ Need 💰"+rd.price);return;}
+  coins-=rd.price;inventory.rods.push(name);
+  document.getElementById("coinUI").textContent="💰 "+coins;
+  showMessage("✅ "+rd.name+" purchased!");renderTab("rods");saveProgress();
+}
+function buyJetski(){
+  if(jetskiOwned){showMessage("Already own Jetski!");return;}
+  if(coins<1500){showMessage("❌ Need 💰1500");return;}
+  coins-=1500;jetskiOwned=true;
+  document.getElementById("coinUI").textContent="💰 "+coins;
+  showMessage("🛥️ Jetski purchased!");
+  const btn=document.getElementById("buyJetskiBtn");
+  if(btn){btn.textContent="✓ Owned";btn.disabled=true;}
+  saveProgress();
+}
+function closeJetskiShop(){document.getElementById("jetskiShopUI").style.display="none";freezeInput=false;}
+
+// ═══ NOTIFICATIONS ═══
+function showFishNotification(fish){
+  const el=document.getElementById("fishNotify");
+  el.style.display="block";el.style.color=fish.color;
+  el.textContent=fish.emoji+" "+fish.name+" ("+fish.rarity+") 🏝️"+(fish.island||"")+" +💰"+fish.price;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",3000);
+}
+function showEventNotification(text){
+  const el=document.getElementById("eventNotify");
+  el.style.display="block";el.textContent=text;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",4500);
+}
+function showMessage(text){
+  const m=document.createElement("div");m.textContent=text;
+  Object.assign(m.style,{position:"fixed",top:"20%",left:"50%",transform:"translateX(-50%)",background:"rgba(0,0,0,.85)",color:"#fff",padding:"11px 22px",borderRadius:"12px",fontFamily:"Arial",zIndex:"9999",fontSize:"14px",whiteSpace:"nowrap",boxShadow:"0 4px 16px rgba(0,0,0,.5)"});
+  document.body.appendChild(m);setTimeout(()=>m.remove(),2200);
+}
+
+// ═══ LEVEL/XP ═══
+function gainXP(amt){
+  playerXP+=amt;
+  const el=document.getElementById("xpNotify");
+  el.textContent="+"+amt+" XP!";el.style.display="block";
+  el.style.animation="none";void el.offsetWidth;el.style.animation="xpFloat 1.2s ease-out forwards";
+  setTimeout(()=>el.style.display="none",1300);
+  checkLevelUp();updateLevelUI();
+}
+function checkLevelUp(){
+  while(playerLevel<xpThresholds.length&&playerXP>=xpThresholds[playerLevel]){
+    playerLevel++;showMessage("🎉 LEVEL UP! Lv."+playerLevel+" — "+levelTitles[Math.min(playerLevel-1,levelTitles.length-1)]);
+  }
+}
+function updateLevelUI(){
+  const lv=Math.min(playerLevel,xpThresholds.length-1);
+  const nx=xpThresholds[lv]||xpThresholds[xpThresholds.length-1],pv=xpThresholds[lv-1]||0;
+  document.getElementById("levelNum").textContent=playerLevel;
+  document.getElementById("levelTitle").textContent=levelTitles[Math.min(playerLevel-1,levelTitles.length-1)];
+  document.getElementById("xpBar").style.width=Math.min(100,((playerXP-pv)/(nx-pv))*100)+"%";
+  document.getElementById("xpText").textContent=playerXP+"/"+nx+" XP";
+}
+
+// ═══ WEATHER ═══
+function setWeather(w){
+  currentWeather=w;
+  // Sky override only during daytime (day/night handles night sky)
+  if(dayTime>0.25&&dayTime<0.75){
+    scene.background=new THREE.Color(w.skyColor);scene.fog.color=new THREE.Color(w.fogColor);
+  }
+  document.getElementById("weatherUI").textContent=w.icon+" "+w.name;
+  showEventNotification(w.icon+" "+w.name+" | Speed:"+w.speedMult+"x Luck:"+w.luckMult+"x");
+  if(window.MP&&window.MP.isActive()&&localStorage.getItem("playerName")==="Varz444")window.MP.syncWeather(w.name);
+}
+function updateWeather(dt){
+  weatherTimer+=dt;
+  if(weatherTimer>=weatherChangeCooldown){
+    weatherTimer=0;weatherChangeCooldown=200+Math.random()*200;
+    const nx=weatherTypes[Math.floor(Math.random()*weatherTypes.length)];
+    if(nx.name!==currentWeather.name)setWeather(nx);
+  }
+}
+
+// ═══ NPC INTERACTION ═══
+function updateNPCInteraction(){
+  const fishPos=new THREE.Vector3(),rodPos=new THREE.Vector3(),baitPos=new THREE.Vector3(),jsPos=new THREE.Vector3();
+  counter.getWorldPosition(fishPos);rodShopCounter.getWorldPosition(rodPos);
+  baitShopCounter.getWorldPosition(baitPos);jetskiShopCounter.getWorldPosition(jsPos);
+  const pwp=new THREE.Vector3();player.getWorldPosition(pwp);
+  const sellBtn=document.getElementById("sellBtn"),rodBtn=document.getElementById("openRodShopBtn");
+  const baitBtn=document.getElementById("openJetskiShopBtn"),mountBtn=document.getElementById("mountJetskiBtn");
+  const harbBtn=document.getElementById("harbourBtn");
+  if(pwp.distanceTo(fishPos)<12){
+    nearSeller=true;sellBtn.style.display="block";
+    const v=fishPos.clone().project(camera);
+    sellBtn.style.left=((v.x+1)/2*window.innerWidth-sellBtn.offsetWidth/2)+"px";
+    sellBtn.style.top=((-v.y+1)/2*window.innerHeight-55)+"px";
+  } else{nearSeller=false;sellBtn.style.display="none";}
+  if(pwp.distanceTo(rodPos)<12){
+    rodBtn.style.display="block";
+    const v=rodPos.clone().project(camera);
+    rodBtn.style.left=((v.x*.5+.5)*window.innerWidth)+"px";
+    rodBtn.style.top=((-v.y*.5+.5)*window.innerHeight)+"px";
+  } else rodBtn.style.display="none";
+  if(pwp.distanceTo(baitPos)<12||pwp.distanceTo(jsPos)<12)baitBtn.style.display="block";
+  else baitBtn.style.display="none";
+  const distToJetski=pwp.distanceTo(jetski.position);
+  nearJetski=jetskiSpawned&&distToJetski<7;
+  // Find nearest harbour
+  nearHarbour=false;
+  let _nearestHD=null,_nearestHDist=99999;
+  HARBOUR_DEFS.forEach(hd=>{
+    const hPos=new THREE.Vector3(hd.x,0,hd.z);
+    const _d=pwp.distanceTo(hPos);
+    if(_d<22&&_d<_nearestHDist){_nearestHDist=_d;nearHarbour=true;currentHarbourId=hd.id;_nearestHD=hd;}
+  });
+  if(harbBtn){
+    if(nearHarbour&&jetskiOwned&&!onJetski){
+      harbBtn.style.display="block";
+      harbBtn.textContent=jetskiSpawned?"🛥️ Despawn Jetski":"🛥️ Spawn Jetski";
+      harbBtn.onclick=jetskiSpawned?despawnJetski:spawnJetski;
+    } else if(!onJetski)harbBtn.style.display="none";
+  }
+  if(nearJetski&&!onJetski&&jetskiOwned){
+    mountBtn.style.display="block";
+    const p=jetski.position.clone();p.y+=2;p.project(camera);
+    mountBtn.style.left=((p.x*.5+.5)*window.innerWidth-mountBtn.offsetWidth/2)+"px";
+    mountBtn.style.top=((-p.y*.5+.5)*window.innerHeight)+"px";mountBtn.textContent="🛥️ Naik [E]";
+  } else if(onJetski){
+    mountBtn.textContent="🛥️ Turun [E]";mountBtn.style.display="block";
+    mountBtn.style.left="50%";mountBtn.style.top="auto";mountBtn.style.bottom="180px";mountBtn.style.transform="translateX(-50%)";
+  } else mountBtn.style.display="none";
+  const hint=document.getElementById("interactHint");
+  if(nearHarbour&&jetskiOwned&&!onJetski)hint.textContent=jetskiSpawned?"🛥️ [E] Despawn Jetski":"🛥️ [E] Spawn Jetski";
+  else if(nearJetski&&!onJetski)hint.textContent="🛥️ Tekan [E] naik jetski";
+  else if(pwp.distanceTo(fishPos)<12)hint.textContent="🐟 Sell Shop — tekan Sell";
+  else if(pwp.distanceTo(rodPos)<12)hint.textContent="🎣 Rod Shop [E]";
+  else if(pwp.distanceTo(baitPos)<12)hint.textContent="🪱 Baits Shop";
+  else{hint.textContent="";hint.style.display="none";return;}
+  hint.style.display="block";
+}
+
+// ═══ NPC ANIMATION ═══
+function animateNPCs(time){
+  npcRoot.rotation.y=Math.sin(time*.002)*.1;
+  rodNpcRoot.rotation.y=Math.sin(time*.0022+1)*.1;
+  baitNpcRoot.rotation.y=Math.sin(time*.0018+2)*.1;
+  jsNpcRoot.rotation.y=Math.sin(time*.002+3)*.1;
+  const pp=new THREE.Vector3();player.getWorldPosition(pp);
+  npcGroup.lookAt(pp.x,npcGroup.position.y,pp.z);
+  rodNpcGroup.lookAt(pp.x,rodNpcGroup.position.y,pp.z);
+  baitNpcGroup.lookAt(pp.x,baitNpcGroup.position.y,pp.z);
+  jsNpcGroup.lookAt(pp.x,jsNpcGroup.position.y,pp.z);
+}
+
+// ═══ SAVE/LOAD ═══
+function saveProgress(){
+  const d={coins,playerXP,playerLevel,fishLog:inventory.fishLog,rods:inventory.rods,equipped:inventory.equipped,bait:inventory.bait,equippedBait:inventory.equippedBait,fish:inventory.fish,jetskiOwned,weather:currentWeather.name};
+  try{localStorage.setItem("fishingSave_v5",JSON.stringify(d));localStorage.setItem("unlockedFish_v5",JSON.stringify([...unlockedFish]));showMessage("💾 Saved!");}catch(e){}
+}
+function loadGameProgress(){
+  try{
+    const d=JSON.parse(localStorage.getItem("fishingSave_v5")||localStorage.getItem("fishingSave_v4"));
+    if(!d)return;
+    coins=d.coins||0;playerXP=d.playerXP||0;playerLevel=d.playerLevel||1;
+    inventory.fishLog=d.fishLog||[];inventory.rods=d.rods||["FishingRod"];
+    inventory.equipped=d.equipped||"FishingRod";
+    inventory.bait=d.bait||{none:999,worm:0,shrimp:0,squid:0,gold:0,magic:0};
+    inventory.equippedBait=d.equippedBait||"none";inventory.fish=d.fish||[];
+    jetskiOwned=d.jetskiOwned||false;
+    if(d.fishLog)d.fishLog.forEach(function(f){if(f&&f.name)unlockedFish.add(f.name);});
+    try{localStorage.setItem("unlockedFish_v5",JSON.stringify([...unlockedFish]));}catch(e){}
+    if(d.weather){const w=weatherTypes.find(x=>x.name===d.weather);if(w)setWeather(w);}
+    document.getElementById("coinUI").textContent="💰 "+coins;
+    updateLevelUI();if(inventory.equipped)equipRod(inventory.equipped);
+    if(jetskiOwned){const btn=document.getElementById("buyJetskiBtn");if(btn){btn.textContent="✓ Owned";btn.disabled=true;}}
+  }catch(e){}
+}
+function setShirt(c){torso.material.color.set(c);}
+
+// ═══ UI EVENTS ═══
+document.getElementById("shirtColor").addEventListener("input",e=>setShirt(e.target.value));
+document.getElementById("saveCustom").addEventListener("click",()=>{localStorage.setItem("playerShirt",document.getElementById("shirtColor").value);saveProgress();document.getElementById("customUI").style.display="none";});
+document.getElementById("closeCustomBtn").addEventListener("click",()=>document.getElementById("customUI").style.display="none");
+document.getElementById("openMenuBtn").addEventListener("click",()=>{const m=document.getElementById("menuUI");m.style.display=m.style.display==="flex"?"none":"flex";gamePaused=m.style.display==="flex";});
+document.getElementById("resumeBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;});
+document.getElementById("settingsBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";document.getElementById("customUI").style.display="block";});
+document.getElementById("saveBtn").addEventListener("click",saveProgress);
+document.getElementById("quitBtn").addEventListener("click",()=>{if(confirm("Keluar dari game? Progress akan disimpan.")){saveProgress();location.reload();}});
+document.getElementById("sellBtn").addEventListener("click",()=>{if(nearSeller)sellFish();});
+document.getElementById("mountJetskiBtn").addEventListener("click",()=>{if(onJetski)dismountJetski();else if(nearJetski)mountJetski();});
+document.getElementById("openRodShopBtn").addEventListener("click",()=>{toggleInventory();if(inventoryOpen)switchTab("rods");});
+document.getElementById("openJetskiShopBtn").addEventListener("click",()=>{
+  const bp=new THREE.Vector3();baitShopCounter.getWorldPosition(bp);
+  const pp=new THREE.Vector3();player.getWorldPosition(pp);
+  if(pp.distanceTo(bp)<12){toggleInventory();if(inventoryOpen)switchTab("bait");}
+  else{document.getElementById("jetskiShopUI").style.display="flex";freezeInput=true;}
+});
+
+// ═══ INPUT ═══
+window.addEventListener("pointerdown",e=>{
+  if(e.target.id==="reelBtn")return;
+  pulling=true;if(!gameStarted)return;if(tensionActive)return;if(fishBiting)return;
+  if(freezeInput||gamePaused)return;
+  const openUIs=["menuUI","inventoryUI","jetskiShopUI","settingsMenu"];
+  if(openUIs.some(id=>{const el=document.getElementById(id);return el&&(el.style.display==="flex"||el.classList.contains("show"));}))return;
+  if(inventory.equipped)startCastAnimation();
+});
+window.addEventListener("pointerup",()=>pulling=false);
+window.addEventListener("keydown",e=>{
+  if(!gameStarted)return;if(!e.key)return;
+  const k=e.key.toLowerCase();
+  if(k==="escape"){const m=document.getElementById("menuUI");m.style.display=m.style.display==="flex"?"none":"flex";gamePaused=m.style.display==="flex";}
+  if(k===" "||k==="f"){if(tensionActive){tensionReeling=true;return;}if(inventory.equipped&&!onJetski)startCastAnimation();}
+  if(k==="e"){
+    if(onJetski){dismountJetski();return;}
+    if(nearHarbour&&jetskiOwned){jetskiSpawned?despawnJetski():spawnJetski();return;}
+    if(nearJetski&&jetskiSpawned){mountJetski();return;}
+  }
+  if(k==="i")toggleInventory();
+  if(k==="b")toggleFishIndex();
+
+  if(k==="1")equipRod("FishingRod");if(k==="2")equipRod("LuckRod");
+  if(k==="3")equipRod("MediumRod");if(k==="4")equipRod("GoldenRod");
+});
+window.addEventListener("keyup",e=>{if(e.key===" ")tensionReeling=false;});
+
+document.getElementById("slot1").addEventListener("click",()=>{
+  const slot=document.getElementById("slot1");
+  if(inventory.equipped){unequipRod();slot.classList.remove("active");slot.textContent="🎣";}
+  else{const n=inventory._lastSelected||"FishingRod";equipRod(inventory.rods.includes(n)?n:"FishingRod");slot.classList.add("active");}
+});
+function updateHotbarSlot(){
+  const slot=document.getElementById("slot1");if(!slot)return;
+  const rd=rodDatabase[inventory.equipped];
+  if(rd){slot.textContent=rd.icon;slot.title=rd.name;slot.classList.add("active");}
+  else{slot.textContent="🎣";slot.title="Rod";slot.classList.remove("active");}
+}
+function unequipRod(){
+  stopFishingAll();inventory.equipped=null;
+  if(rod.parent)rod.parent.remove(rod);
+  backHolder.add(rod);rod.position.set(0,0,0);rod.rotation.set(0,Math.PI,0.5);
+  rod.material.color.setHex(0x8b5a2b);armR.rotation.set(0,0,0);armL.rotation.set(0,0,0);
+}
+
+// ═══ LOADING ═══
+let loadProgress=0;
+function simulateLoading(){
+  if(loadProgress>=100){document.getElementById("loadingScreen").style.display="none";startGameDirect();return;}
+  loadProgress+=Math.random()*5;if(loadProgress>100)loadProgress=100;
+  document.getElementById("loadingBar").style.width=loadProgress+"%";
+  document.getElementById("loadingText").textContent="Loading... "+Math.floor(loadProgress)+"%";
+  setTimeout(simulateLoading,80);
+}
+function startGameDirect(){
+  loadGameProgress();gameStarted=true;
+  if(!inventory.equipped)equipRod("FishingRod");
+  showMessage("🎣 Selamat datang! [I] Inventory  [B] Fish Index  [M] Map");
+}
+simulateLoading();
+
+// ═══ MAIN LOOP ═══
+let lastTime=0;
+function animate(time){
+  requestAnimationFrame(animate);if(gamePaused)return;
+  const dt=Math.min((time-lastTime)/1000,.1);lastTime=time;
+  if(gameStarted){
+    if(onJetski)updateJetski();else movePlayer(dt);
+    updateCastAnimation();updateFishingWait();updateFishingLine();
+    updateTensionSystem(dt);animateNPCs(time);updateNPCInteraction();
+    updateWeather(dt);updateDayNight(dt);updateWake(dt);updateBubbles(dt);
+    updateMinimap();updateFloatingOrbs(time);updateMultiplayerFrame(dt);
+  }
+  updateCamera();animateWater(time);renderer.render(scene,camera);
+}
+window.addEventListener("load",()=>{
+  const ss=localStorage.getItem("playerShirt");if(ss)setShirt(ss);updateLevelUI();
+});
+animate(0);
+
+(async()=>{
+  try{if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock("landscape");}catch(e){}
+})();
+window.addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+
+// ═══ MULTIPLAYER ═══
+function updateMultiplayerFrame(dt){if(window.MP&&typeof window.MP.update==="function")window.MP.update(dt);}
+
+// ═══ WINDOW EXPOSE ═══
+window.scene=scene;window.camera=camera;window.player=player;window.hook=hook;
+window.rodDatabase=rodDatabase;window.inventory=inventory;
+Object.defineProperty(window,"isFishing",{get:()=>isFishing,set:v=>{isFishing=v;}});
+Object.defineProperty(window,"isSwimming",{get:()=>isSwimming,set:v=>{isSwimming=v;}});
+Object.defineProperty(window,"onJetski",{get:()=>onJetski,set:v=>{onJetski=v;}});
+Object.defineProperty(window,"freezeInput",{get:()=>freezeInput,set:v=>{freezeInput=v;}});
+window.OWNER_NAME_FOR_SYNC="Varz444";
+window.weatherTypes=weatherTypes;window.fishTypes=fishTypes;window.setWeather=setWeather;
+window.gainXP=gainXP;window.checkLevelUp=checkLevelUp;window.updateLevelUI=updateLevelUI;
+window.xpThresholds=xpThresholds;window.renderTab=renderTab;
+window.toggleFishIndex=toggleFishIndex;
+Object.defineProperty(window,'dayTime',{get:()=>dayTime,set:v=>{dayTime=v;}});
+window.renderFishIndex=renderFishIndex;
+Object.defineProperty(window,"coins",{get:()=>coins,set:v=>{coins=v;}});
+Object.defineProperty(window,"playerXP",{get:()=>playerXP,set:v=>{playerXP=v;}});
+Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLevel=v;}});
