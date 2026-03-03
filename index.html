@@ -353,6 +353,52 @@ canvas{display:block;}
   <button id="closeCustomBtn">✕ Close</button>
 </div>
 
+  <div id="settingsMenu" style="display:none;position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);width:min(420px,94vw);
+  background:linear-gradient(160deg,#0a1a2e,#0d2540);
+  border:2px solid rgba(100,200,255,0.35);border-radius:18px;z-index:999;
+  flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.7);
+  font-family:Arial,sans-serif;padding:22px 24px;color:#fff">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <span style="font-size:20px;font-weight:bold">⚙️ Settings</span>
+    <button onclick="closeSettings()" style="background:none;border:none;color:#aaa;font-size:22px;cursor:pointer">✕</button>
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="color:#7ecfff;font-size:12px;text-transform:uppercase;margin-bottom:6px">🖼️ Graphics</div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px">
+      <input type="checkbox" id="settingsShadows" checked onchange="applyGraphicsSettings()"> Enable Shadows
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="checkbox" id="settingsWaterAnim" checked onchange="applyGraphicsSettings()"> Water Animation
+    </label>
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="color:#7ecfff;font-size:12px;text-transform:uppercase;margin-bottom:6px">🔊 Audio</div>
+    <label style="display:flex;align-items:center;gap:10px">Master Volume
+      <input type="range" id="settingsVolume" min="0" max="100" value="80" style="flex:1" onchange="applyAudioSettings()">
+      <span id="settingsVolumeLabel" style="min-width:32px">80%</span>
+    </label>
+  </div>
+  <div style="margin-bottom:14px">
+    <div style="color:#7ecfff;font-size:12px;text-transform:uppercase;margin-bottom:6px">🗺️ HUD</div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px">
+      <input type="checkbox" id="settingsMinimap" checked onchange="applyHUDSettings()"> Show Minimap
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="checkbox" id="settingsFPS" onchange="applyHUDSettings()"> Show FPS Counter
+    </label>
+  </div>
+  <div style="margin-bottom:18px">
+    <div style="color:#7ecfff;font-size:12px;text-transform:uppercase;margin-bottom:8px">👕 Character</div>
+    <label style="display:flex;align-items:center;gap:10px">Shirt Color
+      <input type="color" id="settingsShirtColor" value="#2ecc71" oninput="setShirt(this.value)">
+    </label>
+  </div>
+  <button onclick="saveSettings()" style="width:100%;padding:10px;
+    background:linear-gradient(135deg,#27ae60,#2ecc71);border:none;border-radius:10px;
+    color:#fff;font-size:15px;font-weight:bold;cursor:pointer">💾 Save Settings</button>
+  </div>
+
 <style>
 #harbourBtn{
   position:fixed;left:50%;bottom:230px;transform:translateX(-50%);
