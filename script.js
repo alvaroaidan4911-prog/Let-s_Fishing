@@ -684,14 +684,24 @@ function buildIsland(def,options){
   );
   shore.position.y=2.2;g.add(shore);
 
-  // Trees — only on outer half so center stays clear
-  const treeCount=opt.trees||8;
-  for(let i=0;i<treeCount;i++){
-    const angle=(i/treeCount)*Math.PI*2+(Math.random()-0.5)*0.5;
+// Trees — only on outer half so center stays clear; avoid building exclusion zones
+const treeCount=opt.trees||8;
+const buildingExclusions=opt.buildingExclusions||[];
+for(let i=0;i<treeCount;i++){
+  let tx,tz,attempts=0;
+  do{
+    const angle=(i/treeCount)*Math.PI*2+(Math.random()-0.5)*0.5+Math.random()*0.3;
     const dist=grassR*0.38+Math.random()*grassR*0.52;
-    const h=4.5+Math.random()*4.5;
-    addTree(g,Math.cos(angle)*dist,Math.sin(angle)*dist,h,opt.trunkColor,opt.leafColor);
-  }
+    tx=Math.cos(angle)*dist; tz=Math.sin(angle)*dist; attempts++;
+    let blocked=false;
+    for(const ex of buildingExclusions){
+      if(Math.abs(tx-ex.cx)<ex.hw+2&&Math.abs(tz-ex.cz)<ex.hd+2){blocked=true;break;}
+    }
+    if(!blocked)break;
+  }while(attempts<20);
+  const h=4.5+Math.random()*4.5;
+  addTree(g,tx,tz,h,opt.trunkColor,opt.leafColor);
+}
 
   // Rocks scattered
   const rockCount=opt.rocks||5;
@@ -886,7 +896,13 @@ function buildIsland(def,options){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,lamps:true,lampCount:5,labelColor:"#ffdd88"});
+buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
+  trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
+  lamps:true,lampCount:5,labelColor:"#ffdd88",
+  buildingExclusions:[
+    {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
+    {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
+  ]});
 buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
 buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
 buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
@@ -1201,25 +1217,69 @@ function checkOnLand(){
   }
   return false;
 }
-// Collision boxes [cx,cz,hw,hd] — shops on main island
+// Collision boxes — world-space, for all islands
+// type:"circle" uses circular push, default = AABB box
 const collisionBoxes=[
+  // ── MAIN ISLAND shops ──
   {cx:0,   cz:-25, hw:9, hd:5.5},
   {cx:30,  cz:-25, hw:9, hd:5.5},
   {cx:-30, cz:-25, hw:9, hd:5.5},
   {cx:60,  cz:-25, hw:9, hd:5.5},
+
+  // ── VOLCANO ISLE (center x:-800, z:-600) ──
+  {cx:-800, cz:-600, type:"circle", r:14},   // Volcano mountain cone
+  {cx:-818, cz:-616, hw:5, hd:5},            // Rocky hill NW
+  {cx:-782, cz:-616, hw:5, hd:5},            // Rocky hill NE
+  {cx:-800, cz:-632, hw:5, hd:5},            // Rocky hill S
+  {cx:-800, cz:-582, hw:5, hd:5},            // Rocky hill N
+  {cx:-822, cz:-592, hw:4, hd:4},            // Small boulder W
+  {cx:-778, cz:-590, hw:4, hd:4},            // Small boulder E
+
+  // ── MYSTIC ISLE (center x:700, z:0) ──
+  {cx:700, cz:0, type:"circle", r:16},       // Runic altar circle
+  {cx:712, cz:8,  hw:3, hd:3},
+  {cx:688, cz:-8, hw:3, hd:3},
+  {cx:716, cz:-6, hw:3, hd:3},
+  {cx:684, cz:6,  hw:3, hd:3},
+
+  // ── CRYSTAL ISLE (center x:300, z:1000) ──
+  {cx:300, cz:1000, type:"circle", r:12},    // Snow/ice mound
+  {cx:310, cz:1010, hw:3, hd:3},
+  {cx:290, cz:990,  hw:3, hd:3},
+  {cx:314, cz:994,  hw:3, hd:3},
+  {cx:286, cz:1006, hw:3, hd:3},
+
+  // ── AURORA ISLE (center x:-400, z:1200) ──
+  {cx:-385, cz:1200, hw:3, hd:3},
+  {cx:-415, cz:1210, hw:3, hd:3},
+  {cx:-400, cz:1218, hw:3, hd:3},
+  {cx:-400, cz:1182, hw:3, hd:3},
+  {cx:-420, cz:1192, hw:3, hd:3},
 ];
+
 function resolveCollisions(){
   if(onJetski)return;
   const pr=1.4;
   for(const b of collisionBoxes){
-    const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
-    const ox=b.hw+pr-Math.abs(dx), oz=b.hd+pr-Math.abs(dz);
-    if(ox>0&&oz>0){
-      if(ox<oz)player.position.x+=ox*(dx<0?-1:1);
-      else player.position.z+=oz*(dz<0?-1:1);
+    if(b.type==="circle"){
+      const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
+      const dist=Math.sqrt(dx*dx+dz*dz);
+      const minDist=b.r+pr;
+      if(dist<minDist&&dist>0.01){
+        const push=(minDist-dist)/dist;
+        player.position.x+=dx*push;
+        player.position.z+=dz*push;
+      }
+    } else {
+      const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
+      const ox=b.hw+pr-Math.abs(dx), oz=b.hd+pr-Math.abs(dz);
+      if(ox>0&&oz>0){
+        if(ox<oz)player.position.x+=ox*(dx<0?-1:1);
+        else player.position.z+=oz*(dz<0?-1:1);
+      }
     }
   }
-}
+  }
 function canFishFromHere(){
   const px=player.position.x,pz=player.position.z;
   for(const isl of islandDefs){
@@ -1482,7 +1542,7 @@ function startTension(fish){
 
 function updateTensionSystem(dt){
   if(!tensionActive)return;
-  tensionTimeout-=dt;if(tensionTimeout<=0){loseFish();return;}
+  tensionTimeout-=dt;
   const zoneSpeed=35,zoneWidth=zoneMax-zoneMin;
   if(tensionReeling){zoneMin+=zoneSpeed*dt;zoneMax+=zoneSpeed*dt;}
   else{zoneMin-=zoneSpeed*dt;zoneMax-=zoneSpeed*dt;}
@@ -1498,8 +1558,12 @@ function updateTensionSystem(dt){
   if(tensionVal<=0||tensionVal>=100)tensionDir*=-1;
   const inZone=tensionVal>=zoneMin&&tensionVal<=zoneMax;
   if(inZone)tensionProgress+=dt*18;else tensionProgress-=dt*12;
+  // Extra drain when timeout expires (fish pulling harder)
+  if(tensionTimeout<=0)tensionProgress-=dt*20;
   tensionProgress=THREE.MathUtils.clamp(tensionProgress,0,100);
   if(tensionProgress>=100){catchFish();return;}
+  // Fish only escapes when progress bar is fully drained
+  if(tensionProgress<=0){loseFish();return;}
   updateTensionUI();
   if(tensionReeling)armR.rotation.x=Math.sin(Date.now()*0.03)*0.3-0.8;
   else armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-0.6,0.1);
@@ -1906,7 +1970,7 @@ document.getElementById("saveCustom").addEventListener("click",()=>{localStorage
 document.getElementById("closeCustomBtn").addEventListener("click",()=>document.getElementById("customUI").style.display="none");
 document.getElementById("openMenuBtn").addEventListener("click",()=>{const m=document.getElementById("menuUI");m.style.display=m.style.display==="flex"?"none":"flex";gamePaused=m.style.display==="flex";});
 document.getElementById("resumeBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;});
-document.getElementById("settingsBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";document.getElementById("customUI").style.display="block";});
+document.getElementById("settingsBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;openSettings();});
 document.getElementById("saveBtn").addEventListener("click",saveProgress);
 document.getElementById("quitBtn").addEventListener("click",()=>{if(confirm("Keluar dari game? Progress akan disimpan.")){saveProgress();location.reload();}});
 document.getElementById("sellBtn").addEventListener("click",()=>{if(nearSeller)sellFish();});
@@ -1975,11 +2039,73 @@ function simulateLoading(){
   setTimeout(simulateLoading,80);
 }
 function startGameDirect(){
-  loadGameProgress();gameStarted=true;
+  loadGameProgress();loadSettings();gameStarted=true;
   if(!inventory.equipped)equipRod("FishingRod");
   showMessage("🎣 Selamat datang! [I] Inventory  [B] Fish Index  [M] Map");
 }
 simulateLoading();
+
+// ═══ SETTINGS ═══
+let settingsOpen=false;
+let gameSettings={shadows:true,waterAnim:true,volume:80,minimap:true,fps:false};
+function openSettings(){
+  settingsOpen=true;
+  const el=document.getElementById("settingsMenu");
+  if(el){el.style.display="flex";}
+  const sc=document.getElementById("settingsShirtColor");
+  if(sc)sc.value=document.getElementById("shirtColor")?.value||"#2ecc71";
+  const sv=document.getElementById("settingsVolume");if(sv)sv.value=gameSettings.volume;
+  const svl=document.getElementById("settingsVolumeLabel");if(svl)svl.textContent=gameSettings.volume+"%";
+  document.getElementById("settingsShadows").checked=gameSettings.shadows;
+  document.getElementById("settingsWaterAnim").checked=gameSettings.waterAnim;
+  document.getElementById("settingsMinimap").checked=gameSettings.minimap;
+  document.getElementById("settingsFPS").checked=gameSettings.fps;
+  freezeInput=true;
+}
+function closeSettings(){
+  settingsOpen=false;
+  const el=document.getElementById("settingsMenu");if(el)el.style.display="none";
+  freezeInput=false;
+}
+function applyGraphicsSettings(){
+  gameSettings.shadows=document.getElementById("settingsShadows").checked;
+  gameSettings.waterAnim=document.getElementById("settingsWaterAnim").checked;
+  renderer.shadowMap.enabled=gameSettings.shadows;
+}
+function applyAudioSettings(){
+  const v=parseInt(document.getElementById("settingsVolume").value)/100;
+  gameSettings.volume=Math.round(v*100);
+  document.getElementById("settingsVolumeLabel").textContent=gameSettings.volume+"%";
+}
+function applyHUDSettings(){
+  gameSettings.minimap=document.getElementById("settingsMinimap").checked;
+  gameSettings.fps=document.getElementById("settingsFPS").checked;
+  const mm=document.getElementById("minimap");if(mm)mm.style.display=gameSettings.minimap?"block":"none";
+  const fl=document.getElementById("fpsLabel");if(fl)fl.style.display=gameSettings.fps?"block":"none";
+}
+function saveSettings(){
+  const sc=document.getElementById("settingsShirtColor");
+  if(sc){setShirt(sc.value);localStorage.setItem("playerShirt",sc.value);}
+  try{localStorage.setItem("gameSettings",JSON.stringify(gameSettings));}catch(e){}
+  showMessage("⚙️ Settings saved!");closeSettings();
+}
+function loadSettings(){
+  try{const s=JSON.parse(localStorage.getItem("gameSettings")||"null");
+    if(s){gameSettings={...gameSettings,...s};renderer.shadowMap.enabled=gameSettings.shadows;
+      const mm=document.getElementById("minimap");if(mm)mm.style.display=gameSettings.minimap?"block":"none";}
+  }catch(e){}
+}
+// FPS counter
+(function(){
+  const fl=document.createElement("div");fl.id="fpsLabel";
+  Object.assign(fl.style,{position:"fixed",top:"50px",left:"12px",color:"#7ecfff",fontSize:"11px",
+    background:"rgba(0,0,0,0.55)",padding:"2px 7px",borderRadius:"6px",zIndex:"30",display:"none",pointerEvents:"none"});
+  fl.textContent="FPS: --";document.body.appendChild(fl);
+  let frames=0,lastFPS=Date.now();
+  function countFPS(){requestAnimationFrame(countFPS);frames++;
+    const now=Date.now();if(now-lastFPS>=1000){fl.textContent="FPS: "+frames;frames=0;lastFPS=now;}}
+  countFPS();
+})();
 
 // ═══ MAIN LOOP ═══
 let lastTime=0;
