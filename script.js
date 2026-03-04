@@ -1572,6 +1572,21 @@ function movePlayer(dt){
       armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,0,0.15);
       walkAnim*=0.9;
     }
+    // ── Override armL saat memegang ikan ──
+    if(heldFishIndex>=0&&!isFishing&&!isSwimming){
+      const pose=window._heldFishPose||"light";
+      if(pose==="heavy"){
+        // Ikan besar: tangan ke atas, siku ditekuk — angkat ikan
+        const liftBob=Math.sin(Date.now()*0.002)*0.04; // sedikit goyang
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-2.0+liftBob,0.08);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.3,0.08);
+      } else {
+        // Ikan kecil: tangan ke depan, tunjukin ikan
+        const showBob=Math.sin(Date.now()*0.0025)*0.03;
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-0.7+showBob,0.08);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.25,0.08);
+      }
+    }
   }
   const onLand=checkOnLand();
   if(!onLand&&!isSwimming){isSwimming=true;showMessage("🌊 Swimming!");}
@@ -1984,13 +1999,35 @@ function buyBait(id){
 }
 function toggleHoldFish(i){
   if(heldFishIndex===i){
-    heldFishIndex=-1;heldFishGroup.visible=false;document.getElementById("heldFishHUD").style.display="none";
+    heldFishIndex=-1;heldFishGroup.visible=false;
+    document.getElementById("heldFishHUD").style.display="none";
+    heldFishGroup.scale.setScalar(1.1); // reset scale
+    leftHandAnchor.position.set(0,-1.1,0); // reset anchor
+    window._heldFishPose=null;
   } else {
     heldFishIndex=i;const f=inventory.fish[i];
     // Update warna semua part ikan 3D
     const fc=new THREE.Color(f.color||"#5dade2");
     heldFishGroup.traverse(function(o){if(o.isMesh&&o.material&&!o.material.color.equals(new THREE.Color(0x111111)))o.material.color.set(fc);});
     heldFishGroup.visible=true;
+    // ── Ukuran ikan berdasarkan berat ──
+    const fw=f.weight||100;
+    // Scale: 100g=0.6, 500g=0.9, 1kg=1.2, 5kg=1.8, 10kg=2.4, 20kg=3.2
+    const fishScale=Math.max(0.5,Math.min(3.5, 0.55+Math.pow(fw/1000,0.38)*1.8));
+    heldFishGroup.scale.setScalar(fishScale);
+    // ── Pose tangan berdasarkan berat ──
+    // Kecil (<500g): tangan ke depan, ikan ditunjukin
+    // Besar (>1kg): tangan ke atas, angkat ikan
+    window._heldFishPose = fw >= 1000 ? "heavy" : "light";
+    window._heldFishPoseTarget = fw >= 1000 ? "heavy" : "light";
+    // Posisi anchor: ikan kecil di depan, besar di atas
+    if(fw >= 1000){
+      leftHandAnchor.position.set(0,-0.3,0.2); // lebih ke atas dari tangan
+      heldFishGroup.rotation.set(0.1,0,0.2);
+    } else {
+      leftHandAnchor.position.set(0,-1.1,0.6); // ke depan
+      heldFishGroup.rotation.set(0.15,0,0.1);
+    }
     document.getElementById("heldFishHUD").style.display="block";
     const wLabel=f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"";
     document.getElementById("heldFishHUD").textContent=f.emoji+" "+f.name+(wLabel?" ("+wLabel+")":"");
