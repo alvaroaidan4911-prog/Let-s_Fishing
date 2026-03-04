@@ -1,3 +1,73 @@
+// ── Proximity Fish Gift System ──
+var _proximityGiftCooldown = 0;
+function checkProximityGift(dt) {
+  if (_proximityGiftCooldown > 0) { _proximityGiftCooldown -= dt; return; }
+  if (heldFishIndex < 0) {
+    // Hapus tombol gift jika tidak memegang ikan
+    var existing = document.getElementById("proximityGiftBtn");
+    if (existing) existing.remove();
+    return;
+  }
+  const fish = inventory.fish[heldFishIndex];
+  if (!fish) return;
+  const others = window.otherPlayers || {};
+  let nearest = null, nearestDist = Infinity, nearestName = "";
+  Object.entries(others).forEach(function([id, op]) {
+    if (!op.meshes || !op.meshes.body) return;
+    const dist = player.position.distanceTo(op.meshes.body.position);
+    if (dist < 4.5 && dist < nearestDist) {
+      nearestDist = dist;
+      nearest = id;
+      nearestName = (op.latestData && op.latestData.name) || "Player";
+    }
+  });
+  var btn = document.getElementById("proximityGiftBtn");
+  if (nearest) {
+    if (!btn) {
+      btn = document.createElement("div");
+      btn.id = "proximityGiftBtn";
+      Object.assign(btn.style, {
+        position:"fixed", bottom:"80px", left:"50%",
+        transform:"translateX(-50%)",
+        background:"linear-gradient(135deg,#8e44ad,#6c3483)",
+        border:"2px solid rgba(200,150,255,0.5)",
+        color:"#fff", padding:"10px 20px", borderRadius:"14px",
+        fontSize:"14px", fontWeight:"bold", zIndex:"200",
+        cursor:"pointer", whiteSpace:"nowrap",
+        boxShadow:"0 4px 16px rgba(142,68,173,0.5)",
+        touchAction:"manipulation"
+      });
+      btn.addEventListener("click", function() {
+        var tgt = btn._targetId, tname = btn._targetName;
+        if (!tgt) return;
+        var f = inventory.fish[heldFishIndex];
+        if (!f) return;
+        // Gift via MP if connected
+        if (window.MP && window.MP.isActive() && window.ownerGiftFish) {
+          window.ownerGiftFish(tgt, tname, f.name);
+        } else {
+          showMessage("⚠️ Harus online untuk gift ikan!");
+          return;
+        }
+        // Remove from inventory
+        inventory.fish.splice(heldFishIndex, 1);
+        heldFishIndex = -1;
+        heldFishGroup.visible = false;
+        document.getElementById("heldFishHUD").style.display = "none";
+        btn.remove();
+        _proximityGiftCooldown = 2;
+      });
+      document.body.appendChild(btn);
+    }
+    btn._targetId = nearest;
+    btn._targetName = nearestName;
+    btn.textContent = "🎁 Gift " + fish.emoji + " " + fish.name + " ke " + nearestName;
+    btn.style.display = "block";
+  } else {
+    if (btn) btn.style.display = "none";
+  }
+}
+
 // LET'S FISHING v5.0 — Big Islands, Island Fish, Minimap
 // ============================================================
 
@@ -1117,10 +1187,45 @@ const legR=legL.clone();legR.position.x=0.5;torso.add(legR);
 player.scale.set(0.8,0.8,0.8);player.position.set(0,0,-12);
 
 // HELD FISH
-const heldFishMesh=new THREE.Mesh(new THREE.SphereGeometry(0.28,10,6),new THREE.MeshStandardMaterial({color:0x5dade2,emissive:0x112244,emissiveIntensity:0.3}));
-heldFishMesh.scale.z=1.8;
+// ── 3D Fish Model (body + tail + fin) ──
+function buildFishModel(color){
+  const grp = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({color:color||0x5dade2,emissive:0x112233,emissiveIntensity:0.25,roughness:0.4,metalness:0.3});
+  // Body utama — ellipsoid
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.22,12,8),mat);
+  body.scale.set(1,0.6,1.8); grp.add(body);
+  // Kepala
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.18,10,7),mat);
+  head.position.set(0,0.02,0.32); head.scale.set(0.9,0.75,0.7); grp.add(head);
+  // Ekor
+  const tailMat=mat.clone(); tailMat.side=THREE.DoubleSide;
+  const tailGeo=new THREE.CylinderGeometry(0,0.18,0.28,6,1,true);
+  const tail=new THREE.Mesh(tailGeo,tailMat);
+  tail.position.set(0,0,-0.38); tail.rotation.x=Math.PI/2; grp.add(tail);
+  // Sirip atas
+  const finGeo=new THREE.CylinderGeometry(0,0.1,0.18,4,1,true);
+  const fin=new THREE.Mesh(finGeo,tailMat);
+  fin.position.set(0,0.2,0.05); fin.rotation.z=Math.PI; grp.add(fin);
+  // Sirip samping kiri
+  const sfinL=new THREE.Mesh(new THREE.CylinderGeometry(0,0.08,0.14,4,1,true),tailMat);
+  sfinL.position.set(-0.18,0,0.08); sfinL.rotation.z=-Math.PI/2.5; grp.add(sfinL);
+  // Sirip samping kanan
+  const sfinR=new THREE.Mesh(new THREE.CylinderGeometry(0,0.08,0.14,4,1,true),tailMat);
+  sfinR.position.set(0.18,0,0.08); sfinR.rotation.z=Math.PI/2.5; grp.add(sfinR);
+  // Mata
+  const eyeM=new THREE.MeshStandardMaterial({color:0x111111,emissive:0x000000});
+  const eyeL=new THREE.Mesh(new THREE.SphereGeometry(0.035,6,5),eyeM);
+  eyeL.position.set(-0.09,0.06,0.42); grp.add(eyeL);
+  const eyeR=eyeL.clone(); eyeR.position.x=0.09; grp.add(eyeR);
+  return grp;
+}
+const heldFishGroup = buildFishModel(0x5dade2);
+heldFishGroup.scale.setScalar(1.1);
+heldFishGroup.rotation.set(0.15,0,0.3);
+// Buat heldFishMesh sebagai alias agar kode lama tetap jalan
+const heldFishMesh = heldFishGroup;
 const leftHandAnchor=new THREE.Object3D();leftHandAnchor.position.set(0,-1.1,0);
-armL.add(leftHandAnchor);leftHandAnchor.add(heldFishMesh);heldFishMesh.visible=false;
+armL.add(leftHandAnchor);leftHandAnchor.add(heldFishGroup);heldFishGroup.visible=false;
 
 // ROD MESH
 const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.06,2),new THREE.MeshStandardMaterial({color:0x8b5a2b}));
@@ -1714,7 +1819,11 @@ function catchFish(){
     inventory.bait[inventory.equippedBait]=Math.max(0,inventory.bait[inventory.equippedBait]-1);
     if(inventory.bait[inventory.equippedBait]===0){inventory.equippedBait="none";showMessage("🪱 Bait used up!");}
   }
-  const cf={...pendingFish,id:Date.now()+Math.random()};
+  // Hitung berat berdasarkan rarity (gram)
+  const WEIGHT_RANGE={Junk:[20,80],Common:[80,400],Uncommon:[300,900],Rare:[700,2500],Epic:[1500,6000],Legendary:[5000,20000]};
+  const wr=WEIGHT_RANGE[pendingFish.rarity]||[50,500];
+  const fishWeight=+(wr[0]+Math.random()*(wr[1]-wr[0])).toFixed(1);
+  const cf={...pendingFish,id:Date.now()+Math.random(),weight:fishWeight};
   inventory.fish.push(cf);
   inventory.fishLog.unshift({...cf,time:new Date().toLocaleTimeString()});
   if(inventory.fishLog.length>50)inventory.fishLog.pop();
@@ -1843,6 +1952,7 @@ function renderFishTab(el){
         <div class="fishIcon">${f.emoji}</div><h4>${f.name}</h4>
         <div style="color:${rc[f.rarity]||"#aaa"};font-size:10px">${f.rarity}</div>
         <div style="font-size:9px;color:#7ecfff">${f.island||""}</div>
+        <div style="font-size:9px;color:#f1c40f">⚖️${f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"?"}</div>
         <div class="fishPrice">💰${f.price}</div>
         <button class="holdBtn ${heldFishIndex===i?"unhold":"hold"}" onclick="toggleHoldFish(${i})">${heldFishIndex===i?"Put down":"Hold 🤚"}</button>
       </div>`).join("")
@@ -1874,12 +1984,16 @@ function buyBait(id){
 }
 function toggleHoldFish(i){
   if(heldFishIndex===i){
-    heldFishIndex=-1;heldFishMesh.visible=false;document.getElementById("heldFishHUD").style.display="none";
+    heldFishIndex=-1;heldFishGroup.visible=false;document.getElementById("heldFishHUD").style.display="none";
   } else {
     heldFishIndex=i;const f=inventory.fish[i];
-    heldFishMesh.material.color.set(f.color||"#5dade2");heldFishMesh.visible=true;
+    // Update warna semua part ikan 3D
+    const fc=new THREE.Color(f.color||"#5dade2");
+    heldFishGroup.traverse(function(o){if(o.isMesh&&o.material&&!o.material.color.equals(new THREE.Color(0x111111)))o.material.color.set(fc);});
+    heldFishGroup.visible=true;
     document.getElementById("heldFishHUD").style.display="block";
-    document.getElementById("heldFishHUD").textContent=f.emoji+" Holding: "+f.name;
+    const wLabel=f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"";
+    document.getElementById("heldFishHUD").textContent=f.emoji+" "+f.name+(wLabel?" ("+wLabel+")":"");
   }
   renderTab("fish");
 }
@@ -1888,7 +2002,7 @@ function toggleHoldFish(i){
 function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
 function sellAllFish(){
   let total=0;inventory.fish.forEach(f=>total+=f.price);
-  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishMesh.visible=false;
+  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;
   document.getElementById("coinUI").textContent="💰 "+coins;
   document.getElementById("heldFishHUD").style.display="none";
   showMessage("🐟 Sold all! +💰"+total);
@@ -1918,7 +2032,7 @@ function closeJetskiShop(){document.getElementById("jetskiShopUI").style.display
 function showFishNotification(fish){
   const el=document.getElementById("fishNotify");
   el.style.display="block";el.style.color=fish.color;
-  el.textContent=fish.emoji+" "+fish.name+" ("+fish.rarity+") 🏝️"+(fish.island||"")+" +💰"+fish.price;
+  const _wLabel=fish.weight?(fish.weight>=1000?(fish.weight/1000).toFixed(2)+"kg":fish.weight+"g"):"";el.textContent=fish.emoji+" "+fish.name+" ("+fish.rarity+")"+(_wLabel?" ⚖️"+_wLabel:"")+" 🏝️"+(fish.island||"")+" +💰"+fish.price;
   clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",3000);
 }
 function showEventNotification(text){
@@ -2083,7 +2197,7 @@ document.getElementById("openMenuBtn").addEventListener("click",()=>{const m=doc
 document.getElementById("resumeBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;});
 document.getElementById("settingsBtn").addEventListener("click",()=>{document.getElementById("menuUI").style.display="none";gamePaused=false;openSettings();});
 document.getElementById("saveBtn").addEventListener("click",saveProgress);
-document.getElementById("quitBtn").addEventListener("click",()=>{if(confirm("Keluar dari game? Progress akan disimpan.")){saveProgress();location.reload();}});
+document.getElementById("quitBtn").addEventListener("click",()=>{if(confirm("Keluar dari game? Progress akan disimpan.")){saveProgress();try{window.open('','_self');window.close();}catch(e){location.href='about:blank';}}});
 document.getElementById("sellBtn").addEventListener("click",()=>{if(nearSeller)sellFish();});
 document.getElementById("mountJetskiBtn").addEventListener("click",()=>{if(onJetski)dismountJetski();else if(nearJetski)mountJetski();});
 document.getElementById("openRodShopBtn").addEventListener("click",()=>{toggleInventory();if(inventoryOpen)switchTab("rods");});

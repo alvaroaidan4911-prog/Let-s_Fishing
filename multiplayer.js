@@ -642,31 +642,54 @@ function ownerGiftFish(targetId, targetName, fishName) {
   const fishTypes = window.fishTypes || [];
   const fish = fishTypes.find(f => f.name === fishName);
   if (!fish) return;
+  const weightInput = document.getElementById("ownerFishWeight");
+  let customWeight = null;
+  if (weightInput && weightInput.value !== "") {
+    customWeight = parseFloat(weightInput.value);
+    if (isNaN(customWeight) || customWeight <= 0) customWeight = null;
+  }
+  const WEIGHT_RANGE={Junk:[20,80],Common:[80,400],Uncommon:[300,900],Rare:[700,2500],Epic:[1500,6000],Legendary:[5000,20000]};
+  const wr = WEIGHT_RANGE[fish.rarity] || [50,500];
+  const weight = customWeight !== null ? customWeight : +(wr[0]+Math.random()*(wr[1]-wr[0])).toFixed(1);
+  const wLabel = weight >= 1000 ? (weight/1000).toFixed(2)+"kg" : weight+"g";
   db.ref(`rooms/${roomId}/gifts`).push({
     cmd: "giftFish",
     to: targetId,
     toName: targetName,
     from: localStorage.getItem("playerName") || "Owner",
-    fish: fish,
+    fish: { ...fish, weight },
     ts: Date.now()
   });
-  addSystemMsg(`🎁 Gift ${fish.emoji} ${fish.name} ke ${targetName}`);
+  addSystemMsg(`🎁 Gift ${fish.emoji} ${fish.name} ⚖️${wLabel} ke ${targetName}`);
 }
 
 function ownerAddFishToSelf(fishName) {
   const fishTypes = window.fishTypes || [];
   const fish = fishTypes.find(f => f.name === fishName);
   if (!fish) return;
+  // Baca berat dari input jika ada
+  const weightInput = document.getElementById("ownerFishWeight");
+  let customWeight = null;
+  if (weightInput && weightInput.value !== "") {
+    customWeight = parseFloat(weightInput.value);
+    if (isNaN(customWeight) || customWeight <= 0) customWeight = null;
+  }
+  // Jika tidak diisi, generate random berdasarkan rarity
+  const WEIGHT_RANGE={Junk:[20,80],Common:[80,400],Uncommon:[300,900],Rare:[700,2500],Epic:[1500,6000],Legendary:[5000,20000]};
+  const wr = WEIGHT_RANGE[fish.rarity] || [50,500];
+  const weight = customWeight !== null ? customWeight : +(wr[0]+Math.random()*(wr[1]-wr[0])).toFixed(1);
+  const wLabel = weight >= 1000 ? (weight/1000).toFixed(2)+"kg" : weight+"g";
   const fishObj = {
     ...fish,
     id: Date.now() + Math.random(),
+    weight: weight,
     caughtAt: new Date().toLocaleTimeString()
   };
   if (window.inventory && Array.isArray(window.inventory.fish)) {
     window.inventory.fish.push(fishObj);
   }
-  addSystemMsg(`✅ ${fish.emoji} ${fish.name} ditambahkan ke tas!`);
-  if (typeof window.showMessage === "function") window.showMessage(`🎣 Dapat ${fish.emoji} ${fish.name}!`);
+  addSystemMsg(`✅ ${fish.emoji} ${fish.name} (${wLabel}) ditambahkan ke tas!`);
+  if (typeof window.showMessage === "function") window.showMessage(`🎣 Dapat ${fish.emoji} ${fish.name} ⚖️${wLabel}!`);
 }
 
 function showGiftNotif(text) {
@@ -821,6 +844,13 @@ function renderFishGiveTab(el) {
   // Tombol tambah ke diri sendiri
   html += `<div style="color:#7ecfff;font-size:12px;font-weight:bold;margin-bottom:8px">🐟 Tambah ke Tas Sendiri</div>`;
   html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">`;
+  // Input berat custom
+  html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:rgba(255,255,255,0.05);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1)">
+    <span style="font-size:13px">⚖️ Berat:</span>
+    <input id="ownerFishWeight" type="number" min="1" max="99999" placeholder="gram (kosong=random)"
+      style="flex:1;padding:5px 8px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:7px;color:#fff;font-size:12px">
+    <span style="font-size:11px;color:#888">g</span>
+  </div>`;
   fishTypes.forEach(f => {
     html += `<button onclick="ownerAddFishToSelf('${f.name}')"
       style="padding:6px 10px;background:rgba(255,255,255,0.07);
@@ -1259,6 +1289,16 @@ function addOwnerCrownToNameTag(nameCanvas) {
         setStatusBadge("🟢 Online", "#2ecc71");
         updatePlayerCountBadge();
         addSystemMsg("✅ Terhubung! Selamat bermain 🎣");
+
+        // Realtime ban listener — langsung tampil overlay jika di-ban
+        const myName = localStorage.getItem("playerName") || "";
+        db.ref(`rooms/${roomId}/banned/${myName}`).on("value", snap => {
+          if (snap.val() === true && mpActive) {
+            mpActive = false;
+            myRef.remove();
+            showKickBanOverlay("ban");
+          }
+        });
       });
 
       // ── Listen for other players ──
@@ -1280,7 +1320,12 @@ function addOwnerCrownToNameTag(nameCanvas) {
       });
 
       playersRef.on("child_removed", snap => {
-        if (snap.key === myId) return;
+        // Jika data diri sendiri dihapus = dikick oleh Owner
+        if (snap.key === myId) {
+          mpActive = false;
+          showKickBanOverlay("kick");
+          return;
+        }
         const _op2=otherPlayers[snap.key]; const name = (_op2 && _op2.latestData && _op2.latestData.name) || "Player";
         removeOtherPlayer(snap.key);
         addSystemMsg(`🔴 ${name} keluar.`);
@@ -1764,6 +1809,36 @@ function addOwnerCrownToNameTag(nameCanvas) {
   window.ownerGiftFish        = ownerGiftFish;
   window.ownerAddFishToSelf   = ownerAddFishToSelf;
   window.showGiftNotif        = showGiftNotif;
+  // ── Kick/Ban overlay instant ──
+  function showKickBanOverlay(type) {
+    // Sembunyikan semua UI game
+    document.querySelectorAll("#coinUI,#levelUI,#hotbar,#inventoryBtn,#openMenuBtn,#dayNightUI").forEach(el => { if(el) el.style.display="none"; });
+    const isKick = type === "kick";
+    const overlay = document.createElement("div");
+    overlay.id = "kickBanOverlay";
+    Object.assign(overlay.style, {
+      position:"fixed", inset:"0",
+      background:"rgba(0,0,0,0.97)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      zIndex:"999999", flexDirection:"column", color:"#fff",
+      fontFamily:"Arial", textAlign:"center"
+    });
+    overlay.innerHTML = `
+      <div style="font-size:72px;margin-bottom:20px">${isKick ? "🔨" : "🚫"}</div>
+      <h1 style="color:${isKick?"#e67e22":"#e74c3c"};margin:0 0 12px;font-size:28px">
+        ${isKick ? "Kamu telah di-Kick" : "Kamu telah di-Ban"}
+      </h1>
+      <p style="color:#888;font-size:14px;max-width:280px;line-height:1.6">
+        ${isKick
+          ? "Owner mengeluarkan kamu dari room.<br>Kamu bisa bergabung kembali."
+          : "Kamu tidak bisa masuk ke room ini lagi."}
+      </p>
+      ${isKick ? `<button onclick="location.reload()" style="margin-top:24px;padding:12px 28px;background:linear-gradient(135deg,#27ae60,#2ecc71);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:bold;cursor:pointer">🔄 Coba Lagi</button>` : ""}
+    `;
+    document.body.appendChild(overlay);
+  }
+  window.showKickBanOverlay = showKickBanOverlay;
+
   window.renderFishGiveTab    = renderFishGiveTab;
   window.renderGiftTab        = renderGiftTab;
   window.fishTypes            = window.fishTypes; // expose from script.js
