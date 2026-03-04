@@ -56,7 +56,7 @@ canvas{display:block;}
 .jsLabel{font-size:10px;color:#aaa;}
 
 /* ── INVENTORY ── */
-#inventoryBtn{position:fixed;right:12px;bottom:110px;width:48px;height:48px;background:rgba(0,0,0,.7);border:2px solid rgba(255,255,255,.25);border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;}
+#inventoryBtn{position:fixed;bottom:18px;left:calc(50% + 44px);width:48px;height:48px;background:rgba(0,0,0,.7);border:2px solid rgba(255,255,255,.25);border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;}
 #inventoryUI{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:3000;display:none;flex-direction:column;overflow:hidden;}
 #invHeader{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.1);}
 #invHeader h2{margin:0;color:#7ecfff;font-size:18px;}
@@ -384,9 +384,7 @@ canvas{display:block;}
 <div id="giftNotif"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>
-  if(localStorage.getItem("playerName") === "Varz444") { eruda.init(); }
-</script>
+<script>eruda.init();</script>
 <script src="fish_textures.js" defer></script>
 <script src="script.js" defer></script>
 <script src="multiplayer.js" defer></script>
