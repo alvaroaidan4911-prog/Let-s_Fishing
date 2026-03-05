@@ -1219,13 +1219,52 @@ function buildFishModel(color){
   const eyeR=eyeL.clone(); eyeR.position.x=0.09; grp.add(eyeR);
   return grp;
 }
+// ── Junk model — kotak/benda tak jelas ──
+function buildJunkModel(color){
+  const grp = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({color:color||0x888888,roughness:0.85,metalness:0.15});
+  // Badan utama — kotak tidak simetris (sampah)
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.35,0.28,0.42),mat);
+  grp.add(body);
+  // Tonjolan kiri — benjolan acak
+  const bump1 = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.16,0.2),mat);
+  bump1.position.set(-0.22,0.04,0.05); bump1.rotation.y=0.3; grp.add(bump1);
+  // Tonjolan atas — tutup miring
+  const top = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.08,0.38),mat);
+  top.position.set(0,0.18,0); top.rotation.z=0.15; grp.add(top);
+  // Detail — garis p凹 (darker strip)
+  const stripMat=new THREE.MeshStandardMaterial({color:0x444444,roughness:1});
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.3,0.44),stripMat);
+  strip.position.set(0.1,0,0.01); grp.add(strip);
+  // Tali/kabel kecil menjulur
+  const ropeMat=new THREE.MeshStandardMaterial({color:0x996633,roughness:0.9});
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.25,5),ropeMat);
+  rope.position.set(-0.05,0.18,0.1); rope.rotation.z=0.6; grp.add(rope);
+  return grp;
+}
+
 const heldFishGroup = buildFishModel(0x5dade2);
 heldFishGroup.scale.setScalar(1.1);
 heldFishGroup.rotation.set(0.15,0,0.3);
-// Buat heldFishMesh sebagai alias agar kode lama tetap jalan
 const heldFishMesh = heldFishGroup;
+
+// Junk model (terpisah, swap saat hold)
+const heldJunkGroup = buildJunkModel(0x888888);
+heldJunkGroup.visible = false;
+
+// Anchor kiri (untuk ikan kecil & junk) 
 const leftHandAnchor=new THREE.Object3D();leftHandAnchor.position.set(0,-1.1,0);
-armL.add(leftHandAnchor);leftHandAnchor.add(heldFishGroup);heldFishGroup.visible=false;
+armL.add(leftHandAnchor);leftHandAnchor.add(heldFishGroup);leftHandAnchor.add(heldJunkGroup);
+heldFishGroup.visible=false;heldJunkGroup.visible=false;
+
+// Anchor kanan (untuk ikan besar — pose dua tangan angkat)
+const rightHandAnchor=new THREE.Object3D();rightHandAnchor.position.set(0,-1.1,0);
+armR.add(rightHandAnchor);
+// Dummy mesh di kanan — tidak terlihat, hanya untuk sinkronisasi posisi
+// Ikan besar ditempatkan di midpoint antara kedua tangan via group tersendiri
+const heldFishOverhead = buildFishModel(0x5dade2); // untuk pose overhead
+heldFishOverhead.visible = false;
+scene.add(heldFishOverhead); // langsung ke scene, posisi diupdate manual
 
 // ROD MESH
 const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.06,2),new THREE.MeshStandardMaterial({color:0x8b5a2b}));
@@ -1572,19 +1611,51 @@ function movePlayer(dt){
       armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,0,0.15);
       walkAnim*=0.9;
     }
-    // ── Override armL saat memegang ikan ──
+    // ── Override arms saat memegang ikan ──
     if(heldFishIndex>=0&&!isFishing&&!isSwimming){
       const pose=window._heldFishPose||"light";
+      const t=Date.now();
+
       if(pose==="heavy"){
-        // Ikan besar: tangan ke atas, siku ditekuk — angkat ikan
-        const liftBob=Math.sin(Date.now()*0.002)*0.04; // sedikit goyang
-        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-2.0+liftBob,0.08);
-        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.3,0.08);
-      } else {
-        // Ikan kecil: tangan ke depan, tunjukin ikan
-        const showBob=Math.sin(Date.now()*0.0025)*0.03;
-        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-0.7+showBob,0.08);
-        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.25,0.08);
+        // ── IKAN BESAR: KEDUA tangan lurus ke atas seperti trofi ──
+        const liftBob=Math.sin(t*0.0018)*0.035;
+        // Tangan kiri — ke atas
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-2.4+liftBob,0.07);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.18,0.07);
+        // Tangan kanan — ke atas juga (mirror)
+        armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-2.4+liftBob,0.07);
+        armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.18,0.07);
+        // Update posisi ikan overhead mengikuti posisi antara kedua tangan di dunia
+        if(typeof heldFishOverhead!=="undefined"&&heldFishOverhead.visible){
+          const lhWorld=new THREE.Vector3();
+          leftHandAnchor.getWorldPosition(lhWorld);
+          const rhWorld=new THREE.Vector3();
+          rightHandAnchor.getWorldPosition(rhWorld);
+          heldFishOverhead.position.set(
+            (lhWorld.x+rhWorld.x)/2,
+            Math.max(lhWorld.y,rhWorld.y)+0.3,
+            (lhWorld.z+rhWorld.z)/2
+          );
+          heldFishOverhead.rotation.y += 0.008; // berputar pelan
+          heldFishOverhead.rotation.x = 0.1+Math.sin(t*0.001)*0.05;
+        }
+
+      } else if(pose==="light"){
+        // ── IKAN KECIL: tangan kiri ke depan-atas ──
+        const showBob=Math.sin(t*0.002)*0.025;
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-1.1+showBob,0.08);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.22,0.08);
+        // Tangan kanan sedikit ke samping (pose santai)
+        armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x, 0.1,0.06);
+        armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.15,0.06);
+
+      } else if(pose==="junk"){
+        // ── JUNK: tangan kiri agak turun malas ──
+        const lazyBob=Math.sin(t*0.0015)*0.02;
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-0.4+lazyBob,0.07);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.35,0.07);
+        armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x, 0.05,0.06);
+        armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.1,0.06);
       }
     }
   }
@@ -1999,34 +2070,62 @@ function buyBait(id){
 }
 function toggleHoldFish(i){
   if(heldFishIndex===i){
-    heldFishIndex=-1;heldFishGroup.visible=false;
+    heldFishIndex=-1;
+    heldFishGroup.visible=false;
+    heldJunkGroup.visible=false;
+    heldFishOverhead.visible=false;
     document.getElementById("heldFishHUD").style.display="none";
-    heldFishGroup.scale.setScalar(1.1); // reset scale
-    leftHandAnchor.position.set(0,-1.1,0); // reset anchor
+    heldFishGroup.scale.setScalar(1.1);
+    heldJunkGroup.scale.setScalar(1.0);
+    heldFishOverhead.scale.setScalar(1.0);
+    leftHandAnchor.position.set(0,-1.1,0);
     window._heldFishPose=null;
   } else {
     heldFishIndex=i;const f=inventory.fish[i];
-    // Update warna semua part ikan 3D
-    const fc=new THREE.Color(f.color||"#5dade2");
-    heldFishGroup.traverse(function(o){if(o.isMesh&&o.material&&!o.material.color.equals(new THREE.Color(0x111111)))o.material.color.set(fc);});
-    heldFishGroup.visible=true;
-    // ── Ukuran ikan berdasarkan berat ──
     const fw=f.weight||100;
-    // Scale: 100g=0.6, 500g=0.9, 1kg=1.2, 5kg=1.8, 10kg=2.4, 20kg=3.2
-    const fishScale=Math.max(0.5,Math.min(3.5, 0.55+Math.pow(fw/1000,0.38)*1.8));
-    heldFishGroup.scale.setScalar(fishScale);
-    // ── Pose tangan berdasarkan berat ──
-    // Kecil (<500g): tangan ke depan, ikan ditunjukin
-    // Besar (>1kg): tangan ke atas, angkat ikan
-    window._heldFishPose = fw >= 1000 ? "heavy" : "light";
-    window._heldFishPoseTarget = fw >= 1000 ? "heavy" : "light";
-    // Posisi anchor: ikan kecil di depan, besar di atas
-    if(fw >= 1000){
-      leftHandAnchor.position.set(0,-0.3,0.2); // lebih ke atas dari tangan
-      heldFishGroup.rotation.set(0.1,0,0.2);
+    const isJunk=(f.rarity==="Junk");
+    const fc=new THREE.Color(f.color||"#5dade2");
+
+    // ── Sembunyikan semua model dulu ──
+    heldFishGroup.visible=false;
+    heldJunkGroup.visible=false;
+    heldFishOverhead.visible=false;
+
+    if(isJunk){
+      // ── JUNK: model kotak, satu tangan lemas ke bawah-depan ──
+      heldJunkGroup.traverse(function(o){
+        if(o.isMesh&&o.material&&o.material.color)o.material.color.set(fc);
+      });
+      const junkScale=Math.max(0.6,Math.min(1.6,0.6+fw/600));
+      heldJunkGroup.scale.setScalar(junkScale);
+      leftHandAnchor.position.set(0,-1.2,0.5);
+      heldJunkGroup.rotation.set(-0.2,0.3,0.1);
+      heldJunkGroup.visible=true;
+      window._heldFishPose="junk";
+
+    } else if(fw>=1000){
+      // ── IKAN BESAR: kedua tangan ke atas, ikan di overhead ──
+      heldFishOverhead.traverse(function(o){
+        if(o.isMesh&&o.material&&!o.material.color.equals(new THREE.Color(0x111111)))o.material.color.set(fc);
+      });
+      // Scale berdasarkan berat — makin berat makin besar
+      const bigScale=Math.max(1.2,Math.min(4.0, 0.8+Math.pow(fw/1000,0.4)*1.6));
+      heldFishOverhead.scale.setScalar(bigScale);
+      heldFishOverhead.rotation.set(0.1, Date.now()*0.0005, 0.15); // perlahan berputar
+      heldFishOverhead.visible=true;
+      window._heldFishPose="heavy";
+
     } else {
-      leftHandAnchor.position.set(0,-1.1,0.6); // ke depan
-      heldFishGroup.rotation.set(0.15,0,0.1);
+      // ── IKAN KECIL: satu tangan ke depan tunjukin ikan ──
+      heldFishGroup.traverse(function(o){
+        if(o.isMesh&&o.material&&!o.material.color.equals(new THREE.Color(0x111111)))o.material.color.set(fc);
+      });
+      const lightScale=Math.max(0.5,Math.min(1.2, 0.45+Math.pow(fw/500,0.4)*0.7));
+      heldFishGroup.scale.setScalar(lightScale);
+      leftHandAnchor.position.set(0,-1.0,0.7);
+      heldFishGroup.rotation.set(0.1,0,0.15);
+      heldFishGroup.visible=true;
+      window._heldFishPose="light";
     }
     document.getElementById("heldFishHUD").style.display="block";
     const wLabel=f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"";
@@ -2039,7 +2138,7 @@ function toggleHoldFish(i){
 function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
 function sellAllFish(){
   let total=0;inventory.fish.forEach(f=>total+=f.price);
-  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;
+  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
   document.getElementById("coinUI").textContent="💰 "+coins;
   document.getElementById("heldFishHUD").style.display="none";
   showMessage("🐟 Sold all! +💰"+total);
@@ -2386,7 +2485,7 @@ function animate(time){
     updateTensionSystem(dt);animateNPCs(time);updateNPCInteraction();
     updateWeather(dt);updateDayNight(dt);updateWake(dt);updateBubbles(dt);
     updatePerformance(dt,time);
-    // updateMinimap removedupdateFloatingOrbs(time);updateMultiplayerFrame(dt);
+    updateMultiplayerFrame(dt); // MP sync every frame
   }
   if(window._cinActive){window._cinUpdateCamera&&window._cinUpdateCamera();}else{updateCamera();}
   animateWater(time);renderer.render(scene,camera);

@@ -44,10 +44,29 @@ window.FIREBASE_CONFIG = {
 const OWNER_NAME = "Varz444";
 
 // ──────────────────────────────────────────────
-// CEK APAKAH PEMAIN SAAT INI ADALAH OWNER
+// SISTEM ADMIN — Tambah nama admin di sini
 // ──────────────────────────────────────────────
+// Owner bisa set/remove admin via panel
+// Admin: bisa kelola cuaca, teleport, kick/ban — TIDAK bisa ikan/koin/xp
+
 function isOwner() {
   return localStorage.getItem("playerName") === OWNER_NAME;
+}
+
+function getAdminList() {
+  try { return JSON.parse(localStorage.getItem("adminList_lf") || "[]"); } catch(e) { return []; }
+}
+function saveAdminList(arr) {
+  localStorage.setItem("adminList_lf", JSON.stringify(arr));
+}
+function isAdmin() {
+  const name = localStorage.getItem("playerName") || "";
+  if (isOwner()) return true; // Owner = admin tertinggi
+  return getAdminList().includes(name);
+}
+function isAdminOnly() {
+  // True jika admin tapi bukan owner
+  return !isOwner() && getAdminList().includes(localStorage.getItem("playerName") || "");
 }
 
 // ──────────────────────────────────────────────
@@ -200,6 +219,16 @@ function listenServerCommands() {
       const w = weatherTypes.find(x => x.name === cmd.name);
       if (w && typeof window.setWeather === "function") window.setWeather(w);
     }
+    // ── KICK dengan alasan ──
+    if (cmd.cmd === "kicked" && cmd.targetId === myId) {
+      mpActive = false;
+      showKickBanOverlay("kick", cmd.reason || "", cmd.by || "");
+    }
+    // ── BAN dengan alasan ──
+    if (cmd.cmd === "banned" && cmd.targetId === myId) {
+      mpActive = false;
+      showKickBanOverlay("ban", cmd.reason || "", cmd.by || "");
+    }
     // ── BROADCAST NOTIFICATION ──
     if (cmd.cmd === "broadcast" && cmd.message) {
       // Tampilkan notifikasi seperti fish notification
@@ -229,7 +258,7 @@ function checkIfBanned(cb) {
 // BUILD OWNER PANEL UI
 // ──────────────────────────────────────────────
 function buildOwnerPanel() {
-  if (!isOwner()) return;
+  if (!isOwner() && !isAdmin()) return;
 
   // Tombol buka panel
   const btn = document.createElement("div");
@@ -245,7 +274,12 @@ function buildOwnerPanel() {
     boxShadow: "0 0 14px rgba(243,156,18,0.6)",
     userSelect: "none"
   });
-  btn.textContent = "👑 Owner";
+  const isAdm = isAdminOnly();
+  btn.textContent = isAdm ? "🛡️ Admin" : "👑 Owner";
+  btn.style.background = isAdm
+    ? "linear-gradient(135deg,#2980b9,#3498db)"
+    : "linear-gradient(135deg,#f39c12,#e67e22)";
+  btn.style.boxShadow = isAdm ? "0 0 14px rgba(52,152,219,0.6)" : "0 0 14px rgba(243,156,18,0.6)";
   btn.onclick = () => {
     const panel = document.getElementById("ownerPanel");
     if (panel) { panel.style.display = panel.style.display === "flex" ? "none" : "flex"; refreshOwnerPanel(); }
@@ -278,10 +312,14 @@ function buildOwnerPanel() {
     borderBottom: "1px solid rgba(243,156,18,0.3)",
     display: "flex", alignItems: "center", justifyContent: "space-between"
   });
+  const myPanelName = localStorage.getItem("playerName") || "";
+  const panelIsAdmin = isAdminOnly();
   header.innerHTML = `
     <div>
-      <div style="color:#f39c12;font-size:18px;font-weight:bold">👑 Owner Panel</div>
-      <div style="color:#888;font-size:11px">Logged in as ${OWNER_NAME}</div>
+      <div style="color:${panelIsAdmin?'#3498db':'#f39c12'};font-size:18px;font-weight:bold">
+        ${panelIsAdmin ? '🛡️ Admin Panel' : '👑 Owner Panel'}
+      </div>
+      <div style="color:#888;font-size:11px">Logged in as ${myPanelName}${panelIsAdmin?' (Admin)':''}</div>
     </div>
     <button onclick="document.getElementById('ownerPanel').style.display='none'"
       style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
@@ -293,7 +331,10 @@ function buildOwnerPanel() {
   Object.assign(tabs.style, {
     display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)"
   });
-  const tabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"]];
+  // Admin hanya dapat tab terbatas
+  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"]];
+  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"]];
+  const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
     const t = document.createElement("div");
     t.dataset.tab = id;
@@ -355,13 +396,17 @@ function refreshOwnerPanel() {
     }
   }
 
+  // Admin: reset to allowed tab if current tab not allowed
+  const adminAllowedTabs = ["players","broadcast","world"];
+  if (isAdminOnly() && !adminAllowedTabs.includes(currentOwnerTab)) currentOwnerTab = "players";
+
   if (currentOwnerTab === "players") renderPlayersTab(content);
   else if (currentOwnerTab === "gift") renderGiftTab(content);
   else if (currentOwnerTab === "broadcast") renderBroadcastTab(content);
   else if (currentOwnerTab === "world") renderWorldTab(content);
   else if (currentOwnerTab === "banned") renderBannedTab(content);
   else if (currentOwnerTab === "fish") renderFishGiveTab(content);
-  else if (currentOwnerTab === "gift") renderGiftTab(content);
+  else if (currentOwnerTab === "admins") renderAdminsTab(content);
 }
 
 // ── TAB: Players ──
@@ -1290,6 +1335,29 @@ function addOwnerCrownToNameTag(nameCanvas) {
         updatePlayerCountBadge();
         addSystemMsg("✅ Terhubung! Selamat bermain 🎣");
 
+        // Listen admin list from Firebase — sync ke localStorage
+        const myName2 = localStorage.getItem("playerName") || "";
+        db.ref(`rooms/${roomId}/admins/${myName2}`).on("value", snap => {
+          if (snap.val() === true) {
+            const list = getAdminList();
+            if (!list.includes(myName2)) { list.push(myName2); saveAdminList(list); }
+            // Build admin panel if not yet built
+            if (!document.getElementById("ownerPanelBtn")) buildOwnerPanel();
+            addSystemMsg("🛡️ Kamu sekarang adalah Admin!");
+          } else if (snap.val() === null) {
+            // Removed from admin
+            const list = getAdminList().filter(n => n !== myName2);
+            saveAdminList(list);
+            // Remove panel if not owner
+            if (!isOwner()) {
+              const btn = document.getElementById("ownerPanelBtn");
+              const panel = document.getElementById("ownerPanel");
+              if (btn) btn.remove();
+              if (panel) panel.remove();
+            }
+          }
+        });
+
         // Realtime ban listener — langsung tampil overlay jika di-ban
         const myName = localStorage.getItem("playerName") || "";
         db.ref(`rooms/${roomId}/banned/${myName}`).on("value", snap => {
@@ -1322,8 +1390,11 @@ function addOwnerCrownToNameTag(nameCanvas) {
       playersRef.on("child_removed", snap => {
         // Jika data diri sendiri dihapus = dikick oleh Owner
         if (snap.key === myId) {
-          mpActive = false;
-          showKickBanOverlay("kick");
+          // Jika belum ada overlay (kick tanpa cmd — fallback)
+          if (!document.getElementById("kickBanOverlay")) {
+            mpActive = false;
+            showKickBanOverlay("kick", "", "");
+          }
           return;
         }
         const _op2=otherPlayers[snap.key]; const name = (_op2 && _op2.latestData && _op2.latestData.name) || "Player";
@@ -1792,6 +1863,8 @@ function addOwnerCrownToNameTag(nameCanvas) {
   // ── Expose semua fungsi owner ke global window ──
   window.kickPlayer           = kickPlayer;
   window.banPlayer            = banPlayer;
+  window.showKickBanModal     = showKickBanModal;
+  window.banPlayer            = banPlayer;
   window.unbanPlayer          = unbanPlayer;
   window.ownerBroadcast       = ownerBroadcast;
   window.ownerSetWeather      = ownerSetWeather;
@@ -1840,6 +1913,12 @@ function addOwnerCrownToNameTag(nameCanvas) {
   window.showKickBanOverlay = showKickBanOverlay;
 
   window.renderFishGiveTab    = renderFishGiveTab;
+  window.renderAdminsTab      = renderAdminsTab;
+  window.addAdmin             = addAdmin;
+  window.addAdminByInput      = addAdminByInput;
+  window.removeAdmin          = removeAdmin;
+  window.isAdmin              = isAdmin;
+  window.isAdminOnly          = isAdminOnly;
   window.renderGiftTab        = renderGiftTab;
   window.fishTypes            = window.fishTypes; // expose from script.js
   window.ownerGiftFish        = ownerGiftFish;
