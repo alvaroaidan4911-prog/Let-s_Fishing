@@ -138,6 +138,7 @@ function kickPlayer(playerId, playerName) {
 
 function doKickPlayer(playerId, playerName, reason) {
   if (!db) return;
+  if (playerName === OWNER_NAME) return; // owner tidak bisa di-kick
   const byRaw = localStorage.getItem("playerName") || "Owner";
   const by = getDisplayName(byRaw);
   db.ref(`rooms/${roomId}/serverCommands`).push({
@@ -158,6 +159,7 @@ function banPlayer(playerId, playerName) {
 
 function doBanPlayer(playerId, playerName, reason) {
   if (!db) return;
+  if (playerName === OWNER_NAME) return; // owner tidak bisa di-ban
   const byRaw2 = localStorage.getItem("playerName") || "Owner";
   const by = getDisplayName(byRaw2);
   db.ref(`rooms/${roomId}/serverCommands`).push({
@@ -314,12 +316,12 @@ function listenServerCommands() {
       }
     }
     // ── KICK dengan alasan ──
-    if (cmd.cmd === "kicked" && cmd.targetId === myId) {
+    if (cmd.cmd === "kicked" && cmd.targetId === myId && !isOwner()) {
       mpActive = false;
       showKickBanOverlay("kick", cmd.reason || "", cmd.by || "");
     }
     // ── BAN dengan alasan ──
-    if (cmd.cmd === "banned" && cmd.targetId === myId) {
+    if (cmd.cmd === "banned" && cmd.targetId === myId && !isOwner()) {
       mpActive = false;
       showKickBanOverlay("ban", cmd.reason || "", cmd.by || "");
     }
@@ -423,7 +425,7 @@ function buildOwnerPanel() {
   });
   // Admin hanya dapat tab terbatas
   const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 FreeCam"]];
-  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"]];
+  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["banned","🚫 Banned"]];
   const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
     const t = document.createElement("div");
@@ -478,7 +480,7 @@ function refreshOwnerPanel() {
   // (cinematic button dihapus — akses via tab Admins)
 
   // Admin: reset to allowed tab if current tab not allowed
-  const adminAllowedTabs = ["players","broadcast","world"];
+  const adminAllowedTabs = ["players","broadcast","world","banned"];
   if (isAdminOnly() && !adminAllowedTabs.includes(currentOwnerTab)) currentOwnerTab = "players";
 
   if (currentOwnerTab === "players") renderPlayersTab(content);
@@ -520,16 +522,17 @@ function renderPlayersTab(el) {
             <div style="width:10px;height:10px;background:#2ecc71;border-radius:50%;box-shadow:0 0 6px #2ecc71"></div>
           </div>
           <div style="display:flex;gap:7px;flex-wrap:wrap">
-            <button onclick="kickPlayer('${id}','${name}')"
+            \${name !== OWNER_NAME ? \`
+            <button onclick="kickPlayer('\${id}','\${name}')"
               style="padding:6px 13px;background:linear-gradient(135deg,#e67e22,#d35400);
                      border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">
               🦵 Kick
             </button>
-            <button onclick="banPlayer('${id}','${name}')"
+            <button onclick="banPlayer('\${id}','\${name}')"
               style="padding:6px 13px;background:linear-gradient(135deg,#c0392b,#e74c3c);
                      border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">
               🚫 Ban
-            </button>
+            </button>\` : '<span style="color:#f39c12;font-size:11px;font-weight:bold;padding:4px 8px;background:rgba(243,156,18,0.15);border-radius:6px">👑 Owner</span>'}
             <button onclick="ownerTeleportTo('${id}')"
               style="padding:6px 13px;background:rgba(255,255,255,0.1);
                      border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;cursor:pointer;font-size:11px">
