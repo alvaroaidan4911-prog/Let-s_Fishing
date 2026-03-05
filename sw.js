@@ -1,4 +1,4 @@
-const CACHE_NAME = "lets-fishing-v6.6";
+const CACHE_NAME = "lets-fishing-v6.7";
 
 const ASSETS = [
   "./",
