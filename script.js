@@ -2499,6 +2499,13 @@ function animate(time){
 }
 window.addEventListener("load",()=>{
   const ss=localStorage.getItem("playerShirt");if(ss)setShirt(ss);updateLevelUI();
+  // Matikan text selection di seluruh halaman (anti copy/paste popup saat main)
+  document.body.style.userSelect="none";
+  document.body.style.webkitUserSelect="none";
+  document.body.style.msUserSelect="none";
+  document.body.style.webkitTouchCallout="none";
+  document.documentElement.style.userSelect="none";
+  document.documentElement.style.webkitUserSelect="none";
 });
 animate(0);
 
@@ -2561,11 +2568,8 @@ window.xpThresholds=xpThresholds;window.renderTab=renderTab;
 window.toggleFishIndex=toggleFishIndex;
 Object.defineProperty(window,'dayTime',{get:()=>dayTime,set:v=>{dayTime=v;}});
 window.applyDayTimeSync=function(t){
-  // Smooth lerp: max jump 0.5s of game time per real second to avoid jarring skip
-  const diff=t-dayTime;
-  const wrapped=diff>0.5?diff-1:diff<-0.5?diff+1:diff;
-  if(Math.abs(wrapped)<0.01)dayTime=t;       // close enough, snap
-  else dayTime=(dayTime+wrapped*0.05+1)%1;   // smooth approach
+  // Snap langsung — non-owner tidak jalan sendiri jadi tidak perlu smooth
+  dayTime=t;
 };
 window.renderFishIndex=renderFishIndex;
 Object.defineProperty(window,"coins",{get:()=>coins,set:v=>{coins=v;}});

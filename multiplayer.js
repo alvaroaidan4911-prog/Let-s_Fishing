@@ -1688,15 +1688,14 @@ function addOwnerCrownToNameTag(nameCanvas) {
         const wt = window.weatherTypes || [];
         const w = wt.find(x => x.name === data.weather);
         if (w && typeof window.setWeather === "function") {
-          // setWeather without re-broadcasting (avoid loop)
           window._weatherSyncFromServer = true;
-          window.setWeather(w);
+          window.setWeather(w); // setWeather sudah punya guard cek nama sama
           window._weatherSyncFromServer = false;
         }
-        // Sync dayTime (smooth)
+        // Sync dayTime — snap langsung
         if (data.dayTime !== undefined) {
+          window.dayTime = data.dayTime;
           if (typeof window.applyDayTimeSync === "function") window.applyDayTimeSync(data.dayTime);
-          else window.dayTime = data.dayTime;
         }
       });
       // Keep old weather listener for backward compat
@@ -2108,7 +2107,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
       const myName = localStorage.getItem("playerName");
       if (myName === (window.OWNER_NAME_FOR_SYNC||"Varz444") && db) {
         _worldSyncTimer = (_worldSyncTimer||0) + dt;
-        if (_worldSyncTimer >= 2) {
+        if (_worldSyncTimer >= 1.5) {
           _worldSyncTimer = 0;
           db.ref(`rooms/${roomId}/worldState`).set({
             weather: window.currentWeather ? window.currentWeather.name : "Sunny",
