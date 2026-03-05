@@ -421,7 +421,9 @@ function buildOwnerPanel() {
   // Tabs
   const tabs = document.createElement("div");
   Object.assign(tabs.style, {
-    display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)"
+    display: "flex", overflowX: "auto", overflowY: "hidden", flexShrink: "0",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    WebkitOverflowScrolling: "touch", scrollbarWidth: "none"
   });
   // Admin hanya dapat tab terbatas
   const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"]];
@@ -432,8 +434,8 @@ function buildOwnerPanel() {
     t.dataset.tab = id;
     t.textContent = label;
     Object.assign(t.style, {
-      flex: "1", padding: "10px 4px", textAlign: "center",
-      cursor: "pointer", fontSize: "12px", color: "#888",
+      flex: "0 0 auto", padding: "10px 10px", textAlign: "center",
+      cursor: "pointer", fontSize: "11px", color: "#888", whiteSpace: "nowrap",
       borderBottom: "3px solid transparent", transition: "all .2s"
     });
     t.onclick = () => switchOwnerTab(id);
@@ -444,9 +446,14 @@ function buildOwnerPanel() {
   const content = document.createElement("div");
   content.id = "ownerPanelContent";
   Object.assign(content.style, {
-    flex: "1", overflowY: "auto", padding: "16px"
+    flex: "1", overflowY: "auto", padding: "16px",
+    WebkitOverflowScrolling: "touch",
+    touchAction: "pan-y"
   });
 
+  // Cegah touch event tembus ke game controls
+  panel.addEventListener("touchstart", e => e.stopPropagation(), {passive:false});
+  panel.addEventListener("touchmove", e => e.stopPropagation(), {passive:false});
   panel.appendChild(header);
   panel.appendChild(tabs);
   panel.appendChild(content);
@@ -1652,10 +1659,28 @@ function addOwnerCrownToNameTag(nameCanvas) {
       });
 
       // ── Listen for worldState (weather + dayTime) — owner is master ──
+      // Initial sync: baca sekali saat join
+      db.ref(`rooms/${roomId}/worldState`).once("value").then(snap => {
+        const data = snap.val();
+        if (!data) return;
+        const myNameInit = localStorage.getItem("playerName");
+        if (myNameInit === (window.OWNER_NAME_FOR_SYNC||"Varz444")) return;
+        const wtInit = window.weatherTypes || [];
+        const wInit = wtInit.find(x => x.name === data.weather);
+        if (wInit && typeof window.setWeather === "function") {
+          window._weatherSyncFromServer = true;
+          window.setWeather(wInit);
+          window._weatherSyncFromServer = false;
+        }
+        if (data.dayTime !== undefined) {
+          if (typeof window.applyDayTimeSync === "function") window.applyDayTimeSync(data.dayTime);
+          else window.dayTime = data.dayTime;
+        }
+      });
       db.ref(`rooms/${roomId}/worldState`).on("value", snap => {
         const data = snap.val();
-        if (!data || !data.ts) return;
-        if (Date.now() - data.ts > 60000) return; // abaikan data lama >60 detik
+        if (!data) return;
+        // Terima semua data worldState dari owner
         const myName = localStorage.getItem("playerName");
         const isOwnerClient = myName === (window.OWNER_NAME_FOR_SYNC || "Varz444");
         if (isOwnerClient) return; // owner tidak perlu sync dari diri sendiri
@@ -2083,7 +2108,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
       const myName = localStorage.getItem("playerName");
       if (myName === (window.OWNER_NAME_FOR_SYNC||"Varz444") && db) {
         _worldSyncTimer = (_worldSyncTimer||0) + dt;
-        if (_worldSyncTimer >= 5) {
+        if (_worldSyncTimer >= 2) {
           _worldSyncTimer = 0;
           db.ref(`rooms/${roomId}/worldState`).set({
             weather: window.currentWeather ? window.currentWeather.name : "Sunny",

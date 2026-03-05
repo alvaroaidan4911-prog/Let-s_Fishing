@@ -1262,13 +1262,13 @@ const rightHandAnchor=new THREE.Object3D();rightHandAnchor.position.set(0,-1.1,0
 armR.add(rightHandAnchor);
 // Dummy mesh di kanan — tidak terlihat, hanya untuk sinkronisasi posisi
 // Ikan besar ditempatkan di midpoint antara kedua tangan via group tersendiri
-// heldFishOverhead — attach ke playerRoot agar ikut player + scale relatif
+// heldFishOverhead — attach ke torso agar ikut badan
+// torso.y=3, kepala di y=1.9 dari torso, jadi atas kepala = y~3.2 dari torso
 const heldFishOverhead = buildFishModel(0x5dade2);
 heldFishOverhead.visible = false;
-// Posisi di atas kepala: y=10 (dalam ruang lokal player, player tinggi ~6 unit)
-heldFishOverhead.position.set(0, 10, 0);
-heldFishOverhead.rotation.set(0.15, 0, 0.15);
-player.add(heldFishOverhead); // ikut player otomatis
+heldFishOverhead.position.set(0, 3.5, 0); // tepat di atas kepala
+heldFishOverhead.rotation.set(0.1, 0, 0.1);
+torso.add(heldFishOverhead); // ikut torso
 
 // ROD MESH
 const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.06,2),new THREE.MeshStandardMaterial({color:0x8b5a2b}));
@@ -1621,17 +1621,17 @@ function movePlayer(dt){
       const t=Date.now();
 
       if(pose==="heavy"){
-        // ── IKAN BESAR: KEDUA tangan lurus ke atas seperti trofi angkat piala ──
-        const liftBob=Math.sin(t*0.0018)*0.03;
-        // Tangan kiri — lurus ke atas (-PI = sejajar badan tapi keatas)
-        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-Math.PI+liftBob,0.09);
-        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.12,0.09);
-        // Tangan kanan — mirror
-        armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-Math.PI+liftBob,0.09);
-        armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.12,0.09);
+        // ── IKAN BESAR: kedua tangan lurus ke atas, menopang ikan ──
+        const liftBob=Math.sin(t*0.0018)*0.025;
+        // Tangan kiri — lurus ke atas rapat ke kepala
+        armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-Math.PI*0.9+liftBob,0.1);
+        armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.08,0.1);
+        // Tangan kanan — mirror simetris
+        armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-Math.PI*0.9+liftBob,0.1);
+        armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.08,0.1);
         // Ikan berputar pelan di atas kepala
         if(typeof heldFishOverhead!=="undefined"&&heldFishOverhead.visible){
-          heldFishOverhead.rotation.y += 0.012;
+          heldFishOverhead.rotation.y += 0.010;
         }
 
       } else if(pose==="light"){
@@ -2115,7 +2115,8 @@ function toggleHoldFish(i){
       });
       // Scale berdasarkan berat — makin berat makin besar
       // 1kg=3.0, 5kg=5.0, 10kg=6.5, 20kg=8.0
-      const bigScale=Math.max(3.0, Math.min(9.0, 2.5+Math.pow(fw/1000,0.35)*3.5));
+      // Scale natural: 1kg=1.8x, 5kg=2.8x, 10kg=3.5x, 20kg=4.5x
+      const bigScale=Math.max(1.8, Math.min(4.5, 1.4+Math.pow(fw/1000,0.38)*2.0));
       heldFishOverhead.scale.setScalar(bigScale);
       heldFishOverhead.rotation.set(0.1, 0, 0.1);
       heldFishOverhead.visible=true;
