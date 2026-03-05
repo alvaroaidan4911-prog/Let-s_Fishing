@@ -65,8 +65,15 @@ function isAdmin() {
   return getAdminList().includes(name);
 }
 function isAdminOnly() {
-  // True jika admin tapi bukan owner
   return !isOwner() && getAdminList().includes(localStorage.getItem("playerName") || "");
+}
+
+// ── Format nama dengan badge role ──
+function getDisplayName(rawName) {
+  if (!rawName) return "Player";
+  if (rawName === OWNER_NAME) return "👑OWNER (" + rawName + ")";
+  if (getAdminList().includes(rawName)) return "🛡ADMIN (" + rawName + ")";
+  return rawName;
 }
 
 // ──────────────────────────────────────────────
@@ -131,7 +138,8 @@ function kickPlayer(playerId, playerName) {
 
 function doKickPlayer(playerId, playerName, reason) {
   if (!db) return;
-  const by = localStorage.getItem("playerName") || "Owner";
+  const byRaw = localStorage.getItem("playerName") || "Owner";
+  const by = getDisplayName(byRaw);
   db.ref(`rooms/${roomId}/serverCommands`).push({
     cmd:"kicked", targetId:playerId, by, reason:reason||"", ts:Date.now()
   });
@@ -150,7 +158,8 @@ function banPlayer(playerId, playerName) {
 
 function doBanPlayer(playerId, playerName, reason) {
   if (!db) return;
-  const by = localStorage.getItem("playerName") || "Owner";
+  const byRaw2 = localStorage.getItem("playerName") || "Owner";
+  const by = getDisplayName(byRaw2);
   db.ref(`rooms/${roomId}/serverCommands`).push({
     cmd:"banned", targetId:playerId, by, reason:reason||"", ts:Date.now()
   });
@@ -191,17 +200,20 @@ function unbanPlayer(playerName) {
 // Broadcast pesan ke semua player
 function ownerBroadcast(message) {
   if (!db || !message.trim()) return;
-  const ownerName = localStorage.getItem("playerName") || OWNER_NAME;
+  const senderName = localStorage.getItem("playerName") || OWNER_NAME;
+  const senderIsOwner = senderName === OWNER_NAME;
+  const senderLabel = getDisplayName(senderName);
   // Kirim via serverCommand supaya semua player dapat notifikasi
   db.ref(`rooms/${roomId}/serverCommands`).push({
     cmd: "broadcast",
     message: message.trim(),
-    ownerName: ownerName,
+    ownerName: senderName,
+    ownerLabel: senderLabel,
     ts: Date.now()
   });
   // Juga kirim ke chat sebagai catatan
   db.ref(`rooms/${roomId}/chat`).push({
-    name: "👑 " + ownerName,
+    name: senderLabel,
     text: "📢 " + message,
     senderId: "server",
     ts: Date.now()
@@ -323,12 +335,12 @@ function listenServerCommands() {
     if (cmd.cmd === "broadcast" && cmd.message) {
       // Tampilkan notifikasi seperti fish notification
       if (typeof window.showBroadcastNotif === "function") {
-        window.showBroadcastNotif(cmd.ownerName || "Owner", cmd.message);
+        window.showBroadcastNotif(cmd.ownerLabel || cmd.ownerName || "Owner", cmd.message);
       } else {
         // Fallback ke showMessage
-        if (typeof window.showMessage === "function") window.showMessage("👑 " + (cmd.ownerName||"Owner") + ": " + cmd.message);
+        if (typeof window.showMessage === "function") window.showMessage((cmd.ownerLabel||cmd.ownerName||"Owner") + ": " + cmd.message);
       }
-      addSystemMsg(`📢 Broadcast dari ${cmd.ownerName||"Owner"}: ${cmd.message}`);
+      addSystemMsg(`📢 ${cmd.ownerLabel||cmd.ownerName||"Owner"}: ${cmd.message}`);
     }
   }); // end cmdRef listener
 }
@@ -1518,7 +1530,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
 
       // Register presence
       myRef.set({
-        name: myName, shirtColor: shirt,
+        name: getDisplayName(myName), shirtColor: shirt,
         x: 0, y: 0, z: -8, ry: 0,
         isFishing: false, isSwimming: false, onJetski: false,
         hookVisible: false, hookX: 0, hookY: 0, hookZ: 0,
@@ -1812,7 +1824,8 @@ function addOwnerCrownToNameTag(nameCanvas) {
     const text = inp.value.trim();
     if (!text) return;
     inp.value = "";
-    const name = localStorage.getItem("playerName") || "Player";
+    const rawName = localStorage.getItem("playerName") || "Player";
+    const name = getDisplayName(rawName);
     chatRef.push({ name, text, senderId: myId, ts: Date.now() });
     appendChatMsg(name, text, true);
   }

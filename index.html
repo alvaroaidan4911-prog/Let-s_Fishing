@@ -345,7 +345,7 @@ canvas{display:block;}
   <h2>🎣 Menu</h2>
   <button id="resumeBtn">▶ Resume</button>
   <button id="settingsBtn">⚙️ Settings</button>
-  <button id="cinematicMenuBtn" style="background:linear-gradient(135deg,#8e44ad,#6c3483);border:none;" onclick="if(window.cinematicToggle){window.cinematicToggle();document.getElementById('menuUI').style.display='none';window.gamePaused=false;}">🎬 Cinematic</button>
+  
   <button id="saveBtn">💾 Save</button>
   <button id="quitBtn">🚪 Quit</button>
 </div>
@@ -384,7 +384,7 @@ canvas{display:block;}
 <div id="giftNotif"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
+<script>if(localStorage.getItem("playerName")==="Varz444"){eruda.init();}</script>
 <script src="fish_textures.js" defer></script>
 <script src="script.js" defer></script>
 <script src="multiplayer.js" defer></script>
