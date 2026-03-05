@@ -426,7 +426,7 @@ function buildOwnerPanel() {
     WebkitOverflowScrolling: "touch", scrollbarWidth: "none"
   });
   // Admin hanya dapat tab terbatas
-  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"]];
+  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 FreeCam"]];
   const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"]];
   const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
@@ -479,21 +479,7 @@ function switchOwnerTab(tab) {
 function refreshOwnerPanel() {
   const content = document.getElementById("ownerPanelContent");
   if (!content) return;
-  // Add cinematic button if not yet added
-  if(!document.getElementById("cinPanelBtn")){
-    const op=document.getElementById("ownerPanel");
-    if(op){
-      const cb=document.createElement("button");
-      cb.id="cinPanelBtn";
-      cb.textContent="🎬 Cinematic Mode";
-      Object.assign(cb.style,{width:"100%",padding:"10px",marginTop:"10px",
-        background:"linear-gradient(135deg,#8e44ad,#6c3483)",
-        border:"none",borderRadius:"10px",color:"#fff",
-        fontSize:"13px",fontWeight:"bold",cursor:"pointer"});
-      cb.onclick=()=>{if(window.cinematicToggle)window.cinematicToggle();};
-      op.appendChild(cb);
-    }
-  }
+  // (cinematic button dihapus — akses via tab Admins)
 
   // Admin: reset to allowed tab if current tab not allowed
   const adminAllowedTabs = ["players","broadcast","world"];
@@ -506,6 +492,7 @@ function refreshOwnerPanel() {
   else if (currentOwnerTab === "banned") renderBannedTab(content);
   else if (currentOwnerTab === "fish") renderFishGiveTab(content);
   else if (currentOwnerTab === "admins") renderAdminsTab(content);
+  else if (currentOwnerTab === "cinematic") renderCinematicTab(content);
 }
 
 // ── TAB: Players ──
