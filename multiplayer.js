@@ -300,11 +300,7 @@ function listenServerCommands() {
       showGiftNotif(`🎁 Gift dari ${cmd.from||"Owner"}: +💰${cmd.value}!`);
       addSystemMsg(`💰 Gift koin dari ${cmd.from}: +${cmd.value}`);
     }
-    if (cmd.cmd === "syncWeather") {
-      const weatherTypes = window.weatherTypes || [];
-      const w = weatherTypes.find(x => x.name === cmd.name);
-      if (w && typeof window.setWeather === "function") window.setWeather(w);
-    }
+    // syncWeather cmd tidak dipakai lagi — cuaca sync via worldState
     // ── Cinematic Free Cam access ──
     if (cmd.cmd === "cinAccess" && cmd.targetId === myId) {
       if (cmd.grant) {
@@ -1674,9 +1670,11 @@ function addOwnerCrownToNameTag(nameCanvas) {
         // Sync cuaca
         const wt = window.weatherTypes || [];
         const w = wt.find(x => x.name === data.weather);
-        if (w && typeof window.setWeather === "function") {
+        // Hanya apply jika cuaca benar-benar berubah
+        const curW = window.currentWeather ? window.currentWeather.name : null;
+        if (w && w.name !== curW && typeof window.setWeather === "function") {
           window._weatherSyncFromServer = true;
-          window.setWeather(w); // setWeather sudah punya guard cek nama sama
+          window.setWeather(w);
           window._weatherSyncFromServer = false;
         }
         // Sync dayTime — snap langsung
@@ -1685,17 +1683,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
           if (typeof window.applyDayTimeSync === "function") window.applyDayTimeSync(data.dayTime);
         }
       });
-      // Keep old weather listener for backward compat
-      db.ref(`rooms/${roomId}/weather`).on("value", snap => {
-        const data = snap.val();
-        if (!data || !data.name) return;
-        if (Date.now() - data.ts > 30000) return;
-        const myName = localStorage.getItem("playerName");
-        if (myName === (window.OWNER_NAME_FOR_SYNC || "Varz444")) return;
-        const wt = window.weatherTypes || [];
-        const w = wt.find(x => x.name === data.name);
-        if (w && typeof window.setWeather === "function") window.setWeather(w);
-      });
+      // (old weather listener dihapus — pakai worldState saja)
 
       // ── Listen for chat ──
       chatRef.limitToLast(1).on("child_added", snap => {
@@ -1711,11 +1699,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
         const ev = snap.val();
         if (!ev || ev.senderId === myId) return;
         if (Date.now() - ev.ts > 8000) return; // abaikan event lama
-        if (ev.type === "weather") {
-          const wt = window.weatherTypes || [];
-          const w = wt.find(x => x.name === (ev.data && ev.data.name));
-          if (w && typeof window.setWeather === "function") window.setWeather(w);
-        }
+        // weather via worldState saja, bukan events
       });
 
       // (status set inside checkIfBanned callback)
