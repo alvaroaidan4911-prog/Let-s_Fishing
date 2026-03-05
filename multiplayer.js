@@ -213,7 +213,7 @@ function ownerBroadcast(message) {
   });
   // Juga kirim ke chat sebagai catatan
   db.ref(`rooms/${roomId}/chat`).push({
-    name: senderLabel,
+    name: senderName,
     text: "📢 " + message,
     senderId: "server",
     ts: Date.now()
@@ -434,8 +434,8 @@ function buildOwnerPanel() {
     display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)"
   });
   // Admin hanya dapat tab terbatas
-  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 Cinematic"]];
-  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["cinematic","🎬 Cinematic"]];
+  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"]];
+  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"]];
   const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
     const t = document.createElement("div");
@@ -509,7 +509,6 @@ function refreshOwnerPanel() {
   else if (currentOwnerTab === "banned") renderBannedTab(content);
   else if (currentOwnerTab === "fish") renderFishGiveTab(content);
   else if (currentOwnerTab === "admins") renderAdminsTab(content);
-  else if (currentOwnerTab === "cinematic") renderCinematicTab(content);
 }
 
 // ── TAB: Players ──
@@ -1359,7 +1358,13 @@ function addOwnerCrownToNameTag(nameCanvas) {
     nc.font = "bold 32px Arial";
     nc.textAlign = "center";
     nc.textBaseline = "middle";
-    nc.fillText((data.name || "Player").substring(0, 14), 150, 36);
+    // Show role badge in name tag
+    const rawTagName = data.name || "Player";
+    const tagIsOwner = rawTagName === OWNER_NAME;
+    const tagIsAdmin = !tagIsOwner && getAdminList().includes(rawTagName);
+    const tagLabel = tagIsOwner ? ("👑 " + rawTagName) : tagIsAdmin ? ("🛡 " + rawTagName) : rawTagName;
+    nc.fillStyle = tagIsOwner ? "#f39c12" : tagIsAdmin ? "#7ecfff" : "#fff";
+    nc.fillText(tagLabel.substring(0, 18), 150, 36);
     const nameSprite = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(nameCanvas), transparent: true, depthTest: false })
     );
@@ -1573,6 +1578,8 @@ function addOwnerCrownToNameTag(nameCanvas) {
             // Build admin panel if not yet built
             if (!document.getElementById("ownerPanelBtn")) buildOwnerPanel();
             addSystemMsg("🛡️ Kamu sekarang adalah Admin!");
+            // Update name tags of all other players (they need to re-render nametag)
+            rebuildAllNameTags();
           } else if (snap.val() === null) {
             // Removed from admin
             const list = getAdminList().filter(n => n !== myName2);
@@ -1693,8 +1700,9 @@ function addOwnerCrownToNameTag(nameCanvas) {
       chatRef.limitToLast(1).on("child_added", snap => {
         const msg = snap.val();
         if (!msg || msg.senderId === myId) return;
-        appendChatMsg(msg.name, msg.text, false);
-        showFloatingBubble(msg.senderId, msg.name, msg.text);
+        const displayName = getDisplayName(msg.name);
+        appendChatMsg(displayName, msg.text, false);
+        showFloatingBubble(msg.senderId, displayName, msg.text);
       });
 
       // ── Listen for game events (weather sync, jetski, dll) ──
@@ -1825,8 +1833,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
     if (!text) return;
     inp.value = "";
     const rawName = localStorage.getItem("playerName") || "Player";
-    const name = getDisplayName(rawName);
-    chatRef.push({ name, text, senderId: myId, ts: Date.now() });
+    chatRef.push({ name: rawName, text, senderId: myId, ts: Date.now() });
     appendChatMsg(name, text, true);
   }
 
@@ -1860,6 +1867,37 @@ function addOwnerCrownToNameTag(nameCanvas) {
     area.scrollTop = area.scrollHeight;
   }
 
+  // Rebuild name tags for all other players (e.g. after admin list changes)
+  function rebuildAllNameTags() {
+    Object.entries(otherPlayers).forEach(([id, op]) => {
+      if (!op.meshes || !op.latestData) return;
+      const m = op.meshes;
+      // Find the nameSprite and update its canvas
+      if (!m.nameSprite) return;
+      const nameCanvas = document.createElement("canvas");
+      nameCanvas.width = 300; nameCanvas.height = 72;
+      const nc = nameCanvas.getContext("2d");
+      nc.fillStyle = "rgba(0,0,0,0.65)";
+      nc.beginPath();
+      if (nc.roundRect) nc.roundRect(0, 0, 300, 72, 10);
+      else nc.rect(0, 0, 300, 72);
+      nc.fill();
+      const rawTagName = op.latestData.name || "Player";
+      const tagIsOwner = rawTagName === OWNER_NAME;
+      const tagIsAdmin = !tagIsOwner && getAdminList().includes(rawTagName);
+      const tagLabel = tagIsOwner ? ("👑 " + rawTagName) : tagIsAdmin ? ("🛡 " + rawTagName) : rawTagName;
+      nc.fillStyle = tagIsOwner ? "#f39c12" : tagIsAdmin ? "#7ecfff" : "#fff";
+      nc.font = "bold 32px Arial";
+      nc.textAlign = "center";
+      nc.textBaseline = "middle";
+      nc.fillText(tagLabel.substring(0, 18), 150, 36);
+      if (m.nameSprite.material && m.nameSprite.material.map) {
+        m.nameSprite.material.map.image = nameCanvas;
+        m.nameSprite.material.map.needsUpdate = true;
+      }
+    });
+  }
+
   function showFloatingBubble(senderId, name, text) {
     const op = otherPlayers[senderId];
     if (!op || !op.meshes) return;
@@ -1868,16 +1906,20 @@ function addOwnerCrownToNameTag(nameCanvas) {
     if (Math.abs(v.z) > 1) return; // behind camera
 
     const el = document.createElement("div");
-    el.textContent = text;
+    // Determine name color by role
+    const isOwnerMsg = name.startsWith("👑");
+    const isAdminMsg = name.startsWith("🛡");
+    const nameColor = isOwnerMsg ? "#f39c12" : isAdminMsg ? "#3498db" : "#7ecfff";
+    el.innerHTML = `<div style="font-size:10px;color:${nameColor};font-weight:bold;margin-bottom:3px">${name}</div><div>${text}</div>`;
     Object.assign(el.style, {
       position: "fixed",
       left: ((v.x * 0.5 + 0.5) * window.innerWidth) + "px",
       top: ((-v.y * 0.5 + 0.5) * window.innerHeight - 60) + "px",
       transform: "translateX(-50%)",
       background: "rgba(0,0,0,0.82)", color: "#fff",
-      padding: "5px 12px", borderRadius: "10px",
+      padding: "6px 12px", borderRadius: "10px",
       fontSize: "12px", zIndex: "1000",
-      pointerEvents: "none", maxWidth: "180px",
+      pointerEvents: "none", maxWidth: "200px",
       border: "1px solid rgba(255,255,255,0.2)",
       textAlign: "center", lineHeight: "1.4"
     });
