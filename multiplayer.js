@@ -211,13 +211,9 @@ function ownerBroadcast(message) {
     ownerLabel: senderLabel,
     ts: Date.now()
   });
-  // Juga kirim ke chat sebagai catatan
-  db.ref(`rooms/${roomId}/chat`).push({
-    name: senderName,
-    text: "📢 " + message,
-    senderId: "server",
-    ts: Date.now()
-  });
+  // Broadcast hanya via serverCommands, tidak perlu chatRef (mencegah dobel notif)
+  // Tetap tambahkan ke chat panel lokal saja
+  appendChatMsg ? appendChatMsg(senderLabel, "📢 " + message, false) : null;
   addSystemMsg(`📢 Broadcast terkirim: "${message}"`);
 }
 
@@ -333,13 +329,7 @@ function listenServerCommands() {
     }
     // ── BROADCAST NOTIFICATION ──
     if (cmd.cmd === "broadcast" && cmd.message) {
-      // Tampilkan notifikasi seperti fish notification
-      if (typeof window.showBroadcastNotif === "function") {
-        window.showBroadcastNotif(cmd.ownerLabel || cmd.ownerName || "Owner", cmd.message);
-      } else {
-        // Fallback ke showMessage
-        if (typeof window.showMessage === "function") window.showMessage((cmd.ownerLabel||cmd.ownerName||"Owner") + ": " + cmd.message);
-      }
+      showBroadcastToast(cmd.ownerName || "Owner", cmd.message);
       addSystemMsg(`📢 ${cmd.ownerLabel||cmd.ownerName||"Owner"}: ${cmd.message}`);
     }
   }); // end cmdRef listener
@@ -1896,6 +1886,46 @@ function addOwnerCrownToNameTag(nameCanvas) {
         m.nameSprite.material.map.needsUpdate = true;
       }
     });
+  }
+
+  // ── Broadcast toast notification (badge role terpisah dari nama) ──
+  function showBroadcastToast(rawName, message) {
+    // Tentukan role dan warna
+    const isOwnerSender = rawName === OWNER_NAME;
+    const isAdminSender = !isOwnerSender && getAdminList().includes(rawName);
+    const roleLabel = isOwnerSender ? "👑 OWNER" : isAdminSender ? "🛡 ADMIN" : "📢";
+    const roleColor = isOwnerSender ? "#f39c12" : isAdminSender ? "#3498db" : "#aaa";
+
+    // Hapus toast lama jika masih ada
+    const old = document.getElementById("broadcastToast");
+    if (old) old.remove();
+
+    const toast = document.createElement("div");
+    toast.id = "broadcastToast";
+    Object.assign(toast.style, {
+      position: "fixed", top: "80px", left: "50%",
+      transform: "translateX(-50%)",
+      background: "rgba(5,8,18,0.95)",
+      border: `2px solid ${roleColor}55`,
+      borderRadius: "14px", padding: "12px 20px",
+      color: "#fff", fontFamily: "Arial",
+      zIndex: "9001", textAlign: "center",
+      boxShadow: `0 0 20px ${roleColor}44`,
+      maxWidth: "300px", pointerEvents: "none"
+    });
+    toast.innerHTML = `
+      <div style="font-size:11px;color:${roleColor};font-weight:bold;letter-spacing:1px;margin-bottom:4px">
+        ${roleLabel} <span style="color:#aaa;font-weight:normal">• ${rawName}</span>
+      </div>
+      <div style="font-size:14px;color:#fff;line-height:1.4">${message}</div>
+    `;
+    document.body.appendChild(toast);
+    // Fade out
+    setTimeout(() => {
+      toast.style.transition = "opacity 0.6s";
+      toast.style.opacity = "0";
+      setTimeout(() => toast.remove(), 700);
+    }, 4000);
   }
 
   function showFloatingBubble(senderId, name, text) {
