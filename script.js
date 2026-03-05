@@ -709,11 +709,11 @@ water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
 
 // ═══ ISLAND DEFS ═══
 const islandDefs=[
-  {id:"main",   x:0,    z:0,    sandR:90, grassR:78, label:"🏝️ Main Island",  fishKey:"main"},
-  {id:"mystic", x:700,  z:0,    sandR:65, grassR:55, label:"🔮 Mystic Isle",   fishKey:"mystic"},
-  {id:"volcano",x:-800, z:-600, sandR:70, grassR:60, label:"🌋 Volcano Isle",  fishKey:"volcano"},
-  {id:"crystal",x:300,  z:1000, sandR:62, grassR:52, label:"💎 Crystal Isle",  fishKey:"crystal"},
-  {id:"aurora", x:-400, z:1200, sandR:58, grassR:48, label:"🌌 Aurora Isle",   fishKey:"aurora"},
+  {id:"main",   x:0,    z:0,    sandR:200, grassR:185, label:"🏝️ Main Island",  fishKey:"main"},
+  {id:"mystic", x:900,  z:0,    sandR:155, grassR:140, label:"🔮 Mystic Isle",   fishKey:"mystic"},
+  {id:"volcano",x:-1000,z:-700, sandR:165, grassR:150, label:"🌋 Volcano Isle",  fishKey:"volcano"},
+  {id:"crystal",x:400,  z:1300, sandR:150, grassR:135, label:"💎 Crystal Isle",  fishKey:"crystal"},
+  {id:"aurora", x:-500, z:1500, sandR:145, grassR:130, label:"🌌 Aurora Isle",   fishKey:"aurora"},
 ];
 
 // ═══ FLOATING ORBS ═══
@@ -858,25 +858,126 @@ for(let i=0;i<treeCount;i++){
     addFlower(g,Math.cos(a)*d,Math.sin(a)*d,flowerColors[Math.floor(Math.random()*flowerColors.length)]);
   }
 
-  // Path stones from center toward shore (2 directions)
+  // ── Jalan aspal: 4 arah dari center ke tepi, lebar 3 unit ──
   if(opt.paths!==false){
-    for(let p=0;p<2;p++){
-      const pAngle=p*Math.PI+(opt.pathAngle||0);
-      for(let s=0;s<8;s++){
-        const pd=5+s*4.5;
-        const jx=(Math.random()-0.5)*1.2,jz=(Math.random()-0.5)*1.2;
-        addPathStone(g,Math.cos(pAngle)*pd+jx,Math.sin(pAngle)*pd+jz);
+    const roadDirs=4;
+    const roadMat=new THREE.MeshStandardMaterial({color:0x444444,roughness:0.95});
+    for(let p=0;p<roadDirs;p++){
+      const pAngle=p*(Math.PI/2)+(opt.pathAngle||0.3);
+      const roadLen=grassR*0.85;
+      const segments=Math.floor(roadLen/4);
+      for(let s=0;s<segments;s++){
+        const pd=4+s*4;
+        // Aspal lebar
+        const tile=new THREE.Mesh(
+          new THREE.BoxGeometry(3.2,0.08,4.5),
+          roadMat
+        );
+        tile.position.set(Math.cos(pAngle)*pd,0.05,Math.sin(pAngle)*pd);
+        tile.rotation.y=pAngle;
+        g.add(tile);
+        // Garis putih tengah jalan (setiap 2 tile)
+        if(s%2===0){
+          const line=new THREE.Mesh(
+            new THREE.BoxGeometry(0.22,0.09,1.8),
+            new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.08})
+          );
+          line.position.set(Math.cos(pAngle)*pd,0.07,Math.sin(pAngle)*pd);
+          line.rotation.y=pAngle;
+          g.add(line);
+        }
       }
+    }
+    // Roundabout di tengah
+    const rbMat=new THREE.MeshStandardMaterial({color:0x555555,roughness:0.9});
+    const rb=new THREE.Mesh(new THREE.CylinderGeometry(9,9,0.1,24),rbMat);
+    rb.position.y=0.06;g.add(rb);
+    // Taman kecil di roundabout
+    const rbGrass=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.5,0.12,20),
+      new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.9}));
+    rbGrass.position.y=0.1;g.add(rbGrass);
+    // Tugu di tengah roundabout
+    const tugu=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,5,8),
+      new THREE.MeshStandardMaterial({color:0xcccccc,roughness:0.6}));
+    tugu.position.y=2.5;g.add(tugu);
+    const tugutop=new THREE.Mesh(new THREE.ConeGeometry(1.2,2,8),
+      new THREE.MeshStandardMaterial({color:0xffd700,emissive:0xffaa00,emissiveIntensity:0.2}));
+    tugutop.position.y=6.5;g.add(tugutop);
+  }
+
+  // ── Hills: bukit-bukit kecil tersebar di pulau ──
+  const hillCount=opt.hills||6;
+  const hillMat=new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.95});
+  for(let i=0;i<hillCount;i++){
+    const ha=Math.random()*Math.PI*2;
+    const hd=grassR*0.25+Math.random()*grassR*0.45;
+    const hr=8+Math.random()*14;
+    const hh=3+Math.random()*8;
+    // Bukit elipsoid
+    const hill=new THREE.Mesh(
+      new THREE.SphereGeometry(hr,12,8),
+      hillMat
+    );
+    hill.scale.y=hh/hr*0.5;
+    hill.position.set(Math.cos(ha)*hd,-hr*0.3,Math.sin(ha)*hd);
+    g.add(hill);
+    // Pohon di atas bukit
+    if(Math.random()<0.6){
+      const hh2=4+Math.random()*4;
+      addTree(g,Math.cos(ha)*hd,Math.sin(ha)*hd,hh2,opt.trunkColor,opt.leafColor);
     }
   }
 
-  // Benches (4 around center)
+  // Benches (8 di sepanjang jalan)
   if(opt.benches!==false){
-    for(let i=0;i<4;i++){
-      const ba=i*(Math.PI/2)+(opt.benchAngle||0.4);
-      const bd=grassR*0.28;
+    for(let i=0;i<8;i++){
+      const ba=i*(Math.PI/4)+(opt.benchAngle||0.2);
+      const bd=grassR*0.22+Math.random()*grassR*0.2;
       addBench(g,Math.cos(ba)*bd,Math.sin(ba)*bd,ba+Math.PI/2);
     }
+  }
+
+  // ── Rumah-rumah sederhana di sepanjang jalan ──
+  const houseCount=opt.houses||(Math.floor(grassR/25));
+  const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd];
+  for(let i=0;i<houseCount;i++){
+    const ha=(i/houseCount)*Math.PI*2;
+    const hd=grassR*0.42+Math.random()*grassR*0.30;
+    const hx=Math.cos(ha)*hd, hz=Math.sin(ha)*hd;
+    const hcolor=houseMats[Math.floor(Math.random()*houseMats.length)];
+    const hw=5+Math.random()*3, hh=4+Math.random()*3, hd2=4+Math.random()*2;
+    // Dinding
+    const wall=new THREE.Mesh(
+      new THREE.BoxGeometry(hw,hh,hd2),
+      new THREE.MeshStandardMaterial({color:hcolor,roughness:0.8})
+    );
+    wall.position.set(hx,hh/2,hz);
+    wall.rotation.y=ha+Math.PI/4;
+    g.add(wall);
+    // Atap
+    const roof=new THREE.Mesh(
+      new THREE.ConeGeometry(Math.max(hw,hd2)*0.75,hh*0.55,4),
+      new THREE.MeshStandardMaterial({color:0x8B4513,roughness:0.9})
+    );
+    roof.position.set(hx,hh+hh*0.27,hz);
+    roof.rotation.y=ha+Math.PI/4+Math.PI/4;
+    g.add(roof);
+    // Pintu
+    const door=new THREE.Mesh(
+      new THREE.BoxGeometry(1.0,1.8,0.12),
+      new THREE.MeshStandardMaterial({color:0x5C4A1E})
+    );
+    door.position.set(hx+Math.cos(ha)*hd2*0.52,0.9,hz+Math.sin(ha)*hd2*0.52);
+    door.rotation.y=ha;
+    g.add(door);
+    // Jendela
+    const win=new THREE.Mesh(
+      new THREE.BoxGeometry(0.9,0.9,0.12),
+      new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88aacc,emissiveIntensity:0.1,transparent:true,opacity:0.85})
+    );
+    win.position.set(hx+Math.cos(ha+0.4)*hd2*0.52,hh*0.6,hz+Math.sin(ha+0.4)*hd2*0.52);
+    win.rotation.y=ha;
+    g.add(win);
   }
 
   // Lamps (placed around center, registered for night glow)
@@ -1028,17 +1129,17 @@ for(let i=0;i<treeCount;i++){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
+buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true,grassColor:0xaaffaa,
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
-  lamps:true,lampCount:5,labelColor:"#ffdd88",
+  lamps:true,lampCount:10,labelColor:"#ffdd88",
   buildingExclusions:[
     {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
     {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
   ]});
-buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
-buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:22,rocks:14,flowers:20,hills:6,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:8,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:25,rocks:10,flowers:70,hills:7,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:10,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
 
 // ═══ SHOP BUILDER ═══
 function makeShop(px,pz,label){
@@ -1360,6 +1461,9 @@ renderer.domElement.addEventListener("touchend",e=>{
 // ═══ JOYSTICK ═══
 const joy=document.getElementById("joystick"),stick=document.getElementById("stick");
 let joyX=0,joyY=0,joyTouchId=null;
+// ── JUMP SYSTEM ──
+let velY=0, isGrounded=true, jumpBtnHeld=false;
+const GRAVITY=-0.025, JUMP_FORCE=0.38;
 joy.addEventListener("touchstart",e=>{
   e.preventDefault();const t=e.changedTouches[0];
   if(t.clientX<window.innerWidth/2)joyTouchId=t.identifier;
@@ -1378,7 +1482,16 @@ joy.addEventListener("touchend",e=>{
   }
 },{passive:true});
 const keys={};
-window.addEventListener("keydown",e=>{if(e.key)keys[e.key.toLowerCase()]=true;});
+window.addEventListener("keydown",e=>{
+  if(e.key)keys[e.key.toLowerCase()]=true;
+  // JUMP: Spacebar
+  if(e.code==="Space"&&isGrounded&&!isSwimming&&!isFishing&&!onJetski){
+    velY=JUMP_FORCE; isGrounded=false;
+    // Animasi lengan saat lompat
+    armL.rotation.x=-0.8; armR.rotation.x=-0.8;
+    e.preventDefault();
+  }
+});
 window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
 
 // ─── RUN BUTTON (mobile) ───
@@ -1407,6 +1520,38 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   // Mouse (PC testing)
   btn.addEventListener("mousedown",()=>{runBtnHeld=true;});
   btn.addEventListener("mouseup",()=>{runBtnHeld=false;});
+
+  // ── JUMP Button (mobile) ──
+  const jumpBtn=document.createElement("div");
+  jumpBtn.id="jumpBtn";
+  jumpBtn.textContent="⬆";
+  Object.assign(jumpBtn.style,{
+    position:"fixed",
+    left:"170px", bottom:"30px",
+    width:"58px", height:"58px",
+    borderRadius:"50%",
+    background:"linear-gradient(135deg,#3498db,#2980b9)",
+    border:"2px solid rgba(100,180,255,0.5)",
+    color:"#fff", fontSize:"26px",
+    display:"flex", alignItems:"center", justifyContent:"center",
+    zIndex:"20", cursor:"pointer",
+    boxShadow:"0 4px 12px rgba(52,152,219,0.5)",
+    touchAction:"manipulation", userSelect:"none",
+    fontWeight:"bold"
+  });
+  jumpBtn.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    if(isGrounded&&!isSwimming&&!isFishing&&!onJetski){
+      velY=JUMP_FORCE; isGrounded=false;
+      armL.rotation.x=-0.8; armR.rotation.x=-0.8;
+    }
+  },{passive:false});
+  jumpBtn.addEventListener("mousedown",()=>{
+    if(isGrounded&&!isSwimming&&!isFishing&&!onJetski){
+      velY=JUMP_FORCE; isGrounded=false;
+    }
+  });
+  document.body.appendChild(jumpBtn);
   document.body.appendChild(btn);
 })();
 let walkAnim=0;
@@ -1582,8 +1727,25 @@ function movePlayer(dt){
   isRunning=(keys["shift"]||runBtnHeld)&&!isSwimming&&!isFishing&&!freezePlayer;
   const spd=isSwimming?0.07:isRunning?0.26:0.13;
   if(!freezePlayer)player.position.addScaledVector(dir,spd);
-  if(isSwimming)player.position.y=THREE.MathUtils.lerp(player.position.y,-1.8,0.1);
-  else player.position.y=THREE.MathUtils.lerp(player.position.y,0,0.15);
+  if(isSwimming){
+    player.position.y=THREE.MathUtils.lerp(player.position.y,-1.8,0.1);
+    velY=0; isGrounded=false;
+  } else if(onJetski){
+    velY=0; isGrounded=true;
+  } else {
+    // Gravity + jump physics
+    const groundY=0; // ground level
+    if(!isGrounded){
+      velY+=GRAVITY;
+      player.position.y+=velY;
+      if(player.position.y<=groundY){
+        player.position.y=groundY;
+        velY=0; isGrounded=true;
+      }
+    } else {
+      player.position.y=THREE.MathUtils.lerp(player.position.y,groundY,0.18);
+    }
+  }
   const moving=dir.lengthSq()>0.001&&!freezeInput&&!isFishing;
   if(isSwimming){
     uwDiv.style.display="block";
@@ -1600,7 +1762,22 @@ function movePlayer(dt){
     }
   } else {
     uwDiv.style.display="none";
-    resetBodyPose();
+    // Animasi lompat
+    if(!isGrounded&&velY>0){
+      // Naik: tangan ke atas, kaki ditekuk
+      armL.rotation.x=THREE.MathUtils.lerp(armL.rotation.x,-1.2,0.2);
+      armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-1.2,0.2);
+      legL.rotation.x=THREE.MathUtils.lerp(legL.rotation.x,-0.5,0.2);
+      legR.rotation.x=THREE.MathUtils.lerp(legR.rotation.x,-0.5,0.2);
+    } else if(!isGrounded&&velY<0){
+      // Turun: tangan melebar, kaki lurus
+      armL.rotation.z=THREE.MathUtils.lerp(armL.rotation.z, 0.8,0.15);
+      armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.8,0.15);
+      legL.rotation.x=THREE.MathUtils.lerp(legL.rotation.x, 0.3,0.15);
+      legR.rotation.x=THREE.MathUtils.lerp(legR.rotation.x, 0.3,0.15);
+    } else {
+      resetBodyPose();
+    }
     if(moving)walkAnim+=isRunning?0.32:0.18;
     const sw=Math.sin(walkAnim);
     if(moving&&!castingPose&&!isFishing){
@@ -2940,7 +3117,7 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
   // UI elements yang disembunyikan saat cinematic
   var CIN_UI_IDS = ["coinUI","levelUI","weatherUI","joystick","stick",
-    "hotbar","runBtn","inventoryBtn","fishIndexBtn","dayNightUI",
+    "hotbar","runBtn","jumpBtn","inventoryBtn","fishIndexBtn","dayNightUI",
     "fpsCounter","islandBadge","openMenuBtn","fullscreenBtn",
     "tensionContainer","biteIcon","fishNotify","eventNotify",
     "mpStatusBadge","ownerPanelBtn","broadcastNotif","interactHint",
@@ -3045,7 +3222,7 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
   function takeScreenshot(){
     var ids = ["cinPanel","cinOverlay","coinUI","levelUI","weatherUI","joystick",
-               "hotbar","runBtn","inventoryBtn","fishIndexBtn","dayNightUI",
+               "hotbar","runBtn","jumpBtn","inventoryBtn","fishIndexBtn","dayNightUI",
                "fpsCounter","islandBadge","mpStatusBadge","ownerPanelBtn","cinFab"];
     var els = ids.map(function(id){return document.getElementById(id);}).filter(Boolean);
     var prev = els.map(function(el){return el.style.visibility;});
