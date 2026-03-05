@@ -1530,7 +1530,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
 
       // Register presence
       myRef.set({
-        name: getDisplayName(myName), shirtColor: shirt,
+        name: myName, shirtColor: shirt,
         x: 0, y: 0, z: -8, ry: 0,
         isFishing: false, isSwimming: false, onJetski: false,
         hookVisible: false, hookX: 0, hookY: 0, hookZ: 0,
