@@ -74,23 +74,101 @@ function isAdminOnly() {
 // ──────────────────────────────────────────────
 
 // Kick player (hapus dari database)
-function kickPlayer(playerId, playerName) {
-  if (!db) return;
-  if (!confirm(`Kick player "${playerName}"?`)) return;
-  db.ref(`rooms/${roomId}/players/${playerId}`).remove();
-  db.ref(`rooms/${roomId}/chat`).push({
-    name: "🔨 SERVER",
-    text: `${playerName} telah di-kick oleh Owner.`,
-    senderId: "server",
-    ts: Date.now()
+// ── Modal kick/ban dengan input alasan ──
+function showKickBanModal(type, playerId, playerName) {
+  const old = document.getElementById("kickBanModal");
+  if (old) old.remove();
+  const isKick = type === "kick";
+  const modal = document.createElement("div");
+  modal.id = "kickBanModal";
+  Object.assign(modal.style, {
+    position:"fixed", inset:"0", background:"rgba(0,0,0,0.78)",
+    display:"flex", alignItems:"center", justifyContent:"center",
+    zIndex:"999998", fontFamily:"Arial"
   });
-  addSystemMsg(`🔨 Kamu kick ${playerName}`);
+  modal.innerHTML = `
+    <div style="background:#0d1a2e;border:2px solid ${isKick?"rgba(231,126,34,0.5)":"rgba(231,76,60,0.5)"};
+                border-radius:16px;padding:24px;width:min(340px,90vw);color:#fff">
+      <div style="font-size:20px;font-weight:bold;color:${isKick?"#e67e22":"#e74c3c"};margin-bottom:6px">
+        ${isKick?"🔨 Kick":"🚫 Ban"} — ${playerName}
+      </div>
+      <div style="color:#888;font-size:12px;margin-bottom:14px">
+        ${isKick?"Player akan dikeluarkan dan bisa join kembali.":"Player tidak bisa masuk ke room ini lagi."}
+      </div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:6px">📝 Alasan (opsional):</div>
+      <input id="kickBanReason" placeholder="Contoh: Cheating, spam, dll..."
+        style="width:100%;box-sizing:border-box;padding:9px 12px;
+               background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+               border-radius:9px;color:#fff;font-size:13px;margin-bottom:14px">
+      <div style="display:flex;gap:8px">
+        <button id="kickBanConfirmBtn"
+          style="flex:1;padding:10px;background:linear-gradient(135deg,${isKick?"#e67e22,#d35400":"#c0392b,#e74c3c"});
+                 border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer">
+          ${isKick?"🔨 Kick":"🚫 Ban"}
+        </button>
+        <button onclick="document.getElementById('kickBanModal').remove()"
+          style="flex:1;padding:10px;background:rgba(255,255,255,0.08);
+                 border:1px solid rgba(255,255,255,0.15);border-radius:10px;
+                 color:#aaa;font-size:13px;cursor:pointer">Batal</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById("kickBanConfirmBtn").addEventListener("click", () => {
+    const reason = (document.getElementById("kickBanReason").value || "").trim();
+    modal.remove();
+    if (isKick) doKickPlayer(playerId, playerName, reason);
+    else doBanPlayer(playerId, playerName, reason);
+  });
+  document.getElementById("kickBanReason").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("kickBanConfirmBtn").click();
+  });
+  setTimeout(() => { const inp = document.getElementById("kickBanReason"); if(inp) inp.focus(); }, 50);
 }
 
-// Ban player (simpan nama ke banned list di Firebase)
-function banPlayer(playerId, playerName) {
+function kickPlayer(playerId, playerName) {
+  showKickBanModal("kick", playerId, playerName);
+}
+
+function doKickPlayer(playerId, playerName, reason) {
   if (!db) return;
-  if (!confirm(`Ban player "${playerName}"? Mereka tidak bisa masuk lagi.`)) return;
+  const by = localStorage.getItem("playerName") || "Owner";
+  db.ref(`rooms/${roomId}/serverCommands`).push({
+    cmd:"kicked", targetId:playerId, by, reason:reason||"", ts:Date.now()
+  });
+  setTimeout(() => db.ref(`rooms/${roomId}/players/${playerId}`).remove(), 800);
+  db.ref(`rooms/${roomId}/chat`).push({
+    name:"🔨 SERVER",
+    text:`${playerName} di-kick oleh ${by}${reason?": "+reason:"."}`,
+    senderId:"server", ts:Date.now()
+  });
+  addSystemMsg(`🔨 Kamu kick ${playerName}${reason?" ("+reason+")":""}`);
+}
+
+function banPlayer(playerId, playerName) {
+  showKickBanModal("ban", playerId, playerName);
+}
+
+function doBanPlayer(playerId, playerName, reason) {
+  if (!db) return;
+  const by = localStorage.getItem("playerName") || "Owner";
+  db.ref(`rooms/${roomId}/serverCommands`).push({
+    cmd:"banned", targetId:playerId, by, reason:reason||"", ts:Date.now()
+  });
+  setTimeout(() => {
+    db.ref(`rooms/${roomId}/banned/${playerName}`).set({ reason:reason||"", by, ts:Date.now() });
+    db.ref(`rooms/${roomId}/players/${playerId}`).remove();
+  }, 800);
+  db.ref(`rooms/${roomId}/chat`).push({
+    name:"🚫 SERVER",
+    text:`${playerName} di-ban oleh ${by}${reason?": "+reason:"."}`,
+    senderId:"server", ts:Date.now()
+  });
+  addSystemMsg(`🚫 Kamu ban ${playerName}${reason?" ("+reason+")":""}`);
+}
+
+// (legacy stub — tidak dipakai langsung)
+function _banPlayerOld(playerId, playerName) {
+  if (!db) return;
   db.ref(`rooms/${roomId}/banned/${playerName}`).set(true);
   db.ref(`rooms/${roomId}/players/${playerId}`).remove();
   db.ref(`rooms/${roomId}/chat`).push({
