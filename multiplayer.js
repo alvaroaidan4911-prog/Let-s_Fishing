@@ -219,6 +219,18 @@ function listenServerCommands() {
       const w = weatherTypes.find(x => x.name === cmd.name);
       if (w && typeof window.setWeather === "function") window.setWeather(w);
     }
+    // ── Cinematic Free Cam access ──
+    if (cmd.cmd === "cinAccess" && cmd.targetId === myId) {
+      if (cmd.grant) {
+        localStorage.setItem("cinFreeCamAccess", "1");
+        if (typeof window.showMessage === "function") window.showMessage("🎬 Kamu diberi akses Free Cam!");
+        // Build cinematic FAB if not exists
+        if (typeof window._buildCinFab === "function") window._buildCinFab();
+      } else {
+        localStorage.removeItem("cinFreeCamAccess");
+        if (typeof window.showMessage === "function") window.showMessage("🎬 Akses Free Cam dicabut.");
+      }
+    }
     // ── KICK dengan alasan ──
     if (cmd.cmd === "kicked" && cmd.targetId === myId) {
       mpActive = false;
@@ -332,8 +344,8 @@ function buildOwnerPanel() {
     display: "flex", borderBottom: "1px solid rgba(255,255,255,0.08)"
   });
   // Admin hanya dapat tab terbatas
-  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"]];
-  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"]];
+  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 Cinematic"]];
+  const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["cinematic","🎬 Cinematic"]];
   const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
     const t = document.createElement("div");
@@ -407,6 +419,7 @@ function refreshOwnerPanel() {
   else if (currentOwnerTab === "banned") renderBannedTab(content);
   else if (currentOwnerTab === "fish") renderFishGiveTab(content);
   else if (currentOwnerTab === "admins") renderAdminsTab(content);
+  else if (currentOwnerTab === "cinematic") renderCinematicTab(content);
 }
 
 // ── TAB: Players ──
@@ -1004,6 +1017,132 @@ function renderBannedTab(el) {
 }
 
 // ──────────────────────────────────────────────
+// ── TAB: Cinematic (grant free cam access) ──
+function renderCinematicTab(el) {
+  const players = Object.entries(otherPlayers || {});
+  const cinAccessList = JSON.parse(localStorage.getItem("cinAccessList_lf") || "[]");
+
+  let html = `<div style="color:#aaa;font-size:11px;margin-bottom:12px">
+    Beri akses <b>Free Cam</b> ke player.<br>
+    Player yang diberi akses hanya bisa menggunakan free cam mode saja.
+  </div>`;
+
+  html += `<button onclick="if(window.cinematicToggle)window.cinematicToggle();"
+    style="width:100%;padding:10px;margin-bottom:14px;
+           background:linear-gradient(135deg,#8e44ad,#6c3483);
+           border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer">
+    🎬 Buka Panel Cinematic Saya
+  </button>`;
+
+  if (players.length > 0) {
+    html += `<div style="color:#cc88ff;font-size:12px;font-weight:bold;margin-bottom:8px">👥 Player Online</div>`;
+    players.forEach(([id, op]) => {
+      const name = (op.latestData && op.latestData.name) || "Player";
+      const hasAccess = cinAccessList.includes(name);
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;
+                background:rgba(142,68,173,0.08);border:1px solid rgba(142,68,173,0.2);
+                border-radius:10px;padding:9px 13px;margin-bottom:7px">
+        <span style="color:#ddd;font-size:13px">🎥 ${name}</span>
+        <button onclick="toggleCinAccess('${name}','${id}')"
+          style="padding:5px 12px;background:${hasAccess?"linear-gradient(135deg,#c0392b,#e74c3c)":"linear-gradient(135deg,#8e44ad,#6c3483)"};
+                 border:none;border-radius:7px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">
+          ${hasAccess ? "✕ Cabut" : "✓ Beri Akses"}
+        </button>
+      </div>`;
+    });
+  } else {
+    html += `<div style="color:#555;font-size:12px;padding:16px;text-align:center">Tidak ada player online.</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function toggleCinAccess(playerName, playerId) {
+  const list = JSON.parse(localStorage.getItem("cinAccessList_lf") || "[]");
+  const hasAccess = list.includes(playerName);
+  const newList = hasAccess ? list.filter(n => n !== playerName) : [...list, playerName];
+  localStorage.setItem("cinAccessList_lf", JSON.stringify(newList));
+  if (db) db.ref(`rooms/${roomId}/serverCommands`).push({
+    cmd: "cinAccess", targetId: playerId, grant: !hasAccess, ts: Date.now()
+  });
+  addSystemMsg(`🎬 ${hasAccess?"Cabut":"Beri"} akses Free Cam: ${playerName}`);
+  refreshOwnerPanel();
+}
+
+// ── TAB: Admins (owner only) ──
+function renderAdminsTab(el) {
+  if (!isOwner()) { el.innerHTML = `<div style="color:#e74c3c;padding:20px;text-align:center">Hanya Owner yang bisa mengatur admin.</div>`; return; }
+
+  const adminList = getAdminList();
+  const onlinePlayers = Object.values(otherPlayers || {}).map(op => (op.latestData && op.latestData.name) || null).filter(Boolean);
+
+  let html = `<div style="color:#aaa;font-size:11px;margin-bottom:14px">Admin bisa: kelola cuaca, teleport, kick/ban.<br><b>Tidak bisa</b>: ambil ikan, koin, atau XP.</div>`;
+
+  html += `<div style="color:#3498db;font-size:12px;font-weight:bold;margin-bottom:8px">🛡️ Admin Saat Ini (${adminList.length})</div>`;
+  if (adminList.length === 0) {
+    html += `<div style="color:#555;font-size:12px;margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px">Belum ada admin.</div>`;
+  } else {
+    adminList.forEach(name => {
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;
+                background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.25);
+                border-radius:10px;padding:9px 13px;margin-bottom:7px">
+        <span style="color:#7ecfff;font-size:13px">🛡️ ${name}</span>
+        <button onclick="removeAdmin('${name}')"
+          style="padding:4px 10px;background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.4);
+                 border-radius:7px;color:#e74c3c;cursor:pointer;font-size:11px">✕ Hapus</button>
+      </div>`;
+    });
+  }
+
+  const candidates = onlinePlayers.filter(n => !adminList.includes(n) && n !== OWNER_NAME);
+  if (candidates.length > 0) {
+    html += `<div style="color:#3498db;font-size:12px;font-weight:bold;margin:14px 0 8px">➕ Jadikan Admin</div>`;
+    candidates.forEach(name => {
+      html += `<button onclick="addAdmin('${name}')"
+        style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;margin-bottom:6px;
+               background:rgba(52,152,219,0.08);border:1px solid rgba(52,152,219,0.2);
+               border-radius:9px;color:#fff;cursor:pointer;font-size:12px;text-align:left">
+        <span>👤</span> ${name}
+        <span style="margin-left:auto;color:#3498db;font-size:11px">+ Jadikan Admin</span>
+      </button>`;
+    });
+  }
+
+  html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07)">
+    <div style="color:#aaa;font-size:11px;margin-bottom:6px">Tambah admin by nama:</div>
+    <div style="display:flex;gap:6px">
+      <input id="adminNameInput" placeholder="Nama player..." style="flex:1;padding:7px 10px;
+        background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);
+        border-radius:8px;color:#fff;font-size:12px">
+      <button onclick="addAdminByInput()" style="padding:7px 14px;background:linear-gradient(135deg,#2980b9,#3498db);
+        border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;font-weight:bold">+ Admin</button>
+    </div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+function addAdmin(name) {
+  if (!isOwner()) return;
+  const list = getAdminList();
+  if (!list.includes(name)) { list.push(name); saveAdminList(list); }
+  addSystemMsg(`🛡️ ${name} dijadikan Admin!`);
+  if (db) db.ref(`rooms/${roomId}/admins/${name}`).set(true);
+  refreshOwnerPanel();
+}
+function addAdminByInput() {
+  const inp = document.getElementById("adminNameInput");
+  if (!inp || !inp.value.trim()) return;
+  addAdmin(inp.value.trim()); inp.value = "";
+}
+function removeAdmin(name) {
+  if (!isOwner()) return;
+  saveAdminList(getAdminList().filter(n => n !== name));
+  if (db) db.ref(`rooms/${roomId}/admins/${name}`).remove();
+  addSystemMsg(`🛡️ ${name} dicopot dari Admin.`);
+  refreshOwnerPanel();
+}
+
 // CROWN BADGE DI ATAS KEPALA OWNER
 // (otomatis tampil di atas nama kamu untuk player lain)
 // ──────────────────────────────────────────────
@@ -1838,6 +1977,43 @@ function addOwnerCrownToNameTag(nameCanvas) {
   });
 
   // ═══════════════════════════════════════════════
+  // EXPOSE SEMUA FUNGSI KE WINDOW — harus sebelum buildOwnerPanel!
+  // ═══════════════════════════════════════════════
+  window.kickPlayer           = kickPlayer;
+  window.banPlayer            = banPlayer;
+  window.showKickBanModal     = showKickBanModal;
+  window.unbanPlayer          = unbanPlayer;
+  window.ownerBroadcast       = ownerBroadcast;
+  window.ownerSetWeather      = ownerSetWeather;
+  window.ownerGiveCoins       = ownerGiveCoins;
+  window.ownerGiveCoinsToSelf = ownerGiveCoinsToSelf;
+  window.ownerClearChat       = ownerClearChat;
+  window.ownerTeleportSelf    = ownerTeleportSelf;
+  window.ownerTeleportTo      = ownerTeleportTo;
+  window.switchOwnerTab       = switchOwnerTab;
+  window.refreshOwnerPanel    = refreshOwnerPanel;
+  window.ownerGiveXP          = ownerGiveXP;
+  window.ownerSetLevel        = ownerSetLevel;
+  window.ownerGiveXPToAll     = ownerGiveXPToAll;
+  window.ownerGiftCoins       = ownerGiftCoins;
+  window.ownerGiftFish        = ownerGiftFish;
+  window.ownerAddFishToSelf   = ownerAddFishToSelf;
+  window.ownerGiftFishToPlayer   = typeof ownerGiftFishToPlayer !== "undefined" ? ownerGiftFishToPlayer : ownerGiftFish;
+  window.ownerGiftCoinsToPlayer  = typeof ownerGiftCoinsToPlayer !== "undefined" ? ownerGiftCoinsToPlayer : ownerGiftCoins;
+  window.showGiftNotif        = showGiftNotif;
+  window.renderFishGiveTab    = renderFishGiveTab;
+  window.renderAdminsTab      = renderAdminsTab;
+  window.renderCinematicTab   = renderCinematicTab;
+  window.toggleCinAccess      = toggleCinAccess;
+  window.renderGiftTab        = renderGiftTab;
+  window.renderBannedTab      = renderBannedTab;
+  window.addAdmin             = addAdmin;
+  window.addAdminByInput      = addAdminByInput;
+  window.removeAdmin          = removeAdmin;
+  window.isAdmin              = isAdmin;
+  window.isAdminOnly          = isAdminOnly;
+
+  // ═══════════════════════════════════════════════
   // BOOT
   // ═══════════════════════════════════════════════
   buildStatusBadge();
@@ -1860,28 +2036,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
     });
   });
 
-  // ── Expose semua fungsi owner ke global window ──
-  window.kickPlayer           = kickPlayer;
-  window.banPlayer            = banPlayer;
-  window.showKickBanModal     = showKickBanModal;
-  window.banPlayer            = banPlayer;
-  window.unbanPlayer          = unbanPlayer;
-  window.ownerBroadcast       = ownerBroadcast;
-  window.ownerSetWeather      = ownerSetWeather;
-  window.ownerGiveCoins       = ownerGiveCoins;
-  window.ownerGiveCoinsToSelf = ownerGiveCoinsToSelf;
-  window.ownerClearChat       = ownerClearChat;
-  window.ownerTeleportSelf    = ownerTeleportSelf;
-  window.ownerTeleportTo      = ownerTeleportTo;
-  window.switchOwnerTab       = switchOwnerTab;
-  window.refreshOwnerPanel    = refreshOwnerPanel;
-  window.ownerGiveXP          = ownerGiveXP;
-  window.ownerSetLevel        = ownerSetLevel;
-  window.ownerGiveXPToAll     = ownerGiveXPToAll;
-  window.ownerGiftCoins       = ownerGiftCoins;
-  window.ownerGiftFish        = ownerGiftFish;
-  window.ownerAddFishToSelf   = ownerAddFishToSelf;
-  window.showGiftNotif        = showGiftNotif;
+  // (fungsi sudah di-expose di atas sebelum buildOwnerPanel)
   // ── Kick/Ban overlay instant ──
   function showKickBanOverlay(type) {
     // Sembunyikan semua UI game
@@ -1914,6 +2069,8 @@ function addOwnerCrownToNameTag(nameCanvas) {
 
   window.renderFishGiveTab    = renderFishGiveTab;
   window.renderAdminsTab      = renderAdminsTab;
+  window.renderCinematicTab   = renderCinematicTab;
+  window.toggleCinAccess      = toggleCinAccess;
   window.addAdmin             = addAdmin;
   window.addAdminByInput      = addAdminByInput;
   window.removeAdmin          = removeAdmin;

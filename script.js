@@ -1626,17 +1626,13 @@ function movePlayer(dt){
         armR.rotation.x=THREE.MathUtils.lerp(armR.rotation.x,-2.4+liftBob,0.07);
         armR.rotation.z=THREE.MathUtils.lerp(armR.rotation.z,-0.18,0.07);
         // Update posisi ikan overhead mengikuti posisi antara kedua tangan di dunia
+        // Ikan overhead posisinya di atas player (di atas kepala)
         if(typeof heldFishOverhead!=="undefined"&&heldFishOverhead.visible){
-          const lhWorld=new THREE.Vector3();
-          leftHandAnchor.getWorldPosition(lhWorld);
-          const rhWorld=new THREE.Vector3();
-          rightHandAnchor.getWorldPosition(rhWorld);
-          heldFishOverhead.position.set(
-            (lhWorld.x+rhWorld.x)/2,
-            Math.max(lhWorld.y,rhWorld.y)+0.3,
-            (lhWorld.z+rhWorld.z)/2
-          );
-          heldFishOverhead.rotation.y += 0.008; // berputar pelan
+          // Posisi: ikut player, terapung di atas kepala
+          const pw=new THREE.Vector3();
+          player.getWorldPosition(pw);
+          heldFishOverhead.position.set(pw.x, pw.y+7.5*player.scale.y, pw.z);
+          heldFishOverhead.rotation.y += 0.008;
           heldFishOverhead.rotation.x = 0.1+Math.sin(t*0.001)*0.05;
         }
 
@@ -1838,11 +1834,22 @@ function startTension(fish){
 function updateTensionSystem(dt){
   if(!tensionActive)return;
   tensionTimeout-=dt;
-  const zoneSpeed=35,zoneWidth=zoneMax-zoneMin;
-  if(tensionReeling){zoneMin+=zoneSpeed*dt;zoneMax+=zoneSpeed*dt;}
-  else{zoneMin-=zoneSpeed*dt;zoneMax-=zoneSpeed*dt;}
-  if(zoneMin<0){zoneMin=0;zoneMax=zoneWidth;}
-  if(zoneMax>100){zoneMax=100;zoneMin=100-zoneWidth;}
+  const zoneSpeed=28,zoneWidth=zoneMax-zoneMin;
+  // Zone bergerak mengikuti ikan (tensionVal) agar selalu bisa dijangkau
+  const targetCenter=tensionVal;
+  const currentCenter=(zoneMin+zoneMax)/2;
+  const diff=targetCenter-currentCenter;
+  // Zone bergerak mengejar ikan perlahan, player harus menekan reel untuk align
+  if(tensionReeling){
+    // Saat reel: zone bergerak ke kanan (mengejar)
+    zoneMin+=zoneSpeed*dt;zoneMax+=zoneSpeed*dt;
+  } else {
+    // Saat tidak reel: zone mundur ke kiri
+    zoneMin-=zoneSpeed*dt;zoneMax-=zoneSpeed*dt;
+  }
+  // Pastikan zone tidak keluar batas — balik arah jika mentok
+  if(zoneMin<0){zoneMin=0;zoneMax=Math.max(zoneWidth,zoneWidth);}
+  if(zoneMax>100){zoneMax=100;zoneMin=Math.min(100-zoneWidth,100-zoneWidth);}
   const fishSpd=RARITY_FISH_SPEED[(pendingFish&&pendingFish.rarity)||"Common"]||0.3;
   tensionFishSpeed+=(Math.random()-0.5)*0.12*tensionDifficulty;
   tensionFishSpeed=THREE.MathUtils.clamp(tensionFishSpeed,-fishSpd*1.2,fishSpd*1.2);
@@ -3206,11 +3213,37 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
     if(k==="e") cinFreeMoving.u=false;
   });
 
+  // ── Function to build FAB (called when access is granted mid-session) ──
+  function _buildCinFabNow(){
+    if(document.getElementById("cinFab")) return;
+    buildPanel();
+    var fab = document.createElement("div");
+    fab.id = "cinFab";
+    Object.assign(fab.style,{
+      position:"fixed", right:"12px", bottom:"265px",
+      width:"46px", height:"46px", borderRadius:"50%",
+      background:"linear-gradient(135deg,#8e44ad,#6c3483)",
+      border:"2px solid rgba(200,100,255,0.5)",
+      color:"#fff", fontSize:"20px",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      zIndex:"25", cursor:"pointer",
+      boxShadow:"0 4px 14px rgba(142,68,173,0.6)",
+      touchAction:"manipulation", userSelect:"none"
+    });
+    fab.textContent = "🎬";
+    fab.addEventListener("click", function(){ showPanel(); });
+    document.body.appendChild(fab);
+    window.cinematicToggle = function(){ buildPanel(); showPanel(); };
+    window._buildCinFab = null;
+  }
+  window._buildCinFab = _buildCinFabNow;
+
   // ── Init: buat FAB button saat game ready ──
   var _initInt = setInterval(function(){
     if(window.gameStarted && window.player){
       clearInterval(_initInt);
-      if(!isOwner()) return;
+      const hasCinAccess = isOwner() || localStorage.getItem("cinFreeCamAccess") === "1";
+      if(!hasCinAccess) return;
       buildPanel();
 
       // FAB button 🎬 di layar
@@ -3234,6 +3267,7 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
       // Expose toggle untuk menu ☰
       window.cinematicToggle = function(){ buildPanel(); showPanel(); };
+      window._buildCinFab = null; // already built
     }
   }, 300);
 
