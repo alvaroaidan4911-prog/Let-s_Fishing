@@ -960,7 +960,7 @@ for(let i=0;i<treeCount;i++){
     );
     floor.position.y=0.2; hg.add(floor);
     // Dinding utama (depan terbuka)
-    const wallMat=new THREE.MeshStandardMaterial({color:hcolor,roughness:0.8});
+    const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
     // Belakang
     const wb=new THREE.Mesh(new THREE.BoxGeometry(HW,HH,0.5),wallMat);
     wb.position.set(0,HH/2,-HD/2); hg.add(wb);
@@ -1002,7 +1002,7 @@ for(let i=0;i<treeCount;i++){
       frame.position.set(side*HW*0.3,HH*0.58,HD/2); hg.add(frame);
     });
     // Atap pelana besar
-    const roofMat=new THREE.MeshStandardMaterial({color:rcolor,roughness:0.9});
+    const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
     const roof=new THREE.Mesh(new THREE.BoxGeometry(HW+2,0.4,HD+2),roofMat);
     roof.position.y=HH+0.2; hg.add(roof);
     // Puncak atap (ridge)
@@ -1546,7 +1546,7 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   btn.id="runBtn";
   Object.assign(btn.style,{
     position:"fixed",
-    left:"55px",bottom:"168px",transition:"all 0.3s",
+    left:"148px",bottom:"28px",transition:"all 0.3s",
     width:"58px",height:"58px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,rgba(255,120,0,0.85),rgba(200,60,0,0.85))",
@@ -1573,16 +1573,16 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   jumpBtn.textContent="⬆";
   Object.assign(jumpBtn.style,{
     position:"fixed",
-    right:"25px", bottom:"35px",
-    width:"68px", height:"68px",
+    left:"170px", bottom:"30px",
+    width:"58px", height:"58px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,#3498db,#2980b9)",
     border:"2px solid rgba(100,180,255,0.5)",
-    color:"#fff", fontSize:"28px",
+    color:"#fff", fontSize:"26px",
     display:"flex", alignItems:"center", justifyContent:"center",
     zIndex:"20", cursor:"pointer",
     boxShadow:"0 4px 12px rgba(52,152,219,0.5)",
-    touchAction:"none", userSelect:"none",
+    touchAction:"manipulation", userSelect:"none",
     fontWeight:"bold"
   });
   jumpBtn.addEventListener("touchstart",e=>{
