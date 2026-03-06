@@ -952,7 +952,7 @@ for(let i=0;i<treeCount;i++){
     const HW=16, HH=11, HD=10;
     const hg=new THREE.Group();
     hg.position.set(hx,0,hz);
-    hg.rotation.y=ha+Math.random()*0.4-0.2;
+    hg.rotation.y=ha; // hadap ke arah keluar dari center
     // Lantai
     const floor=new THREE.Mesh(
       new THREE.BoxGeometry(HW+1,0.4,HD+1),
@@ -1001,27 +1001,27 @@ for(let i=0;i<treeCount;i++){
       );
       frame.position.set(side*HW*0.3,HH*0.58,HD/2); hg.add(frame);
     });
-    // Atap pelana besar
+    // Atap pelana — pakai prisma segitiga (ExtrudeGeometry)
     const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
-    const roof=new THREE.Mesh(new THREE.BoxGeometry(HW+2,0.4,HD+2),roofMat);
-    roof.position.y=HH+0.2; hg.add(roof);
-    // Puncak atap (ridge)
-    const ridgeL=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.35,0.4),roofMat);
-    ridgeL.position.set(0,HH+4.5,0); hg.add(ridgeL);
-    // Panel atap miring kiri-kanan
-    [-1,1].forEach(side=>{
-      const rp=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.3,(HD/2+1.5)),roofMat);
-      rp.position.set(0,HH+2.5,side*(HD/4+0.5));
-      rp.rotation.x=side*0.55;
-      hg.add(rp);
-    });
+    // Bentuk segitiga untuk atap
+    const roofShape=new THREE.Shape();
+    roofShape.moveTo(-(HD/2+1.5),0);
+    roofShape.lineTo(0,5);
+    roofShape.lineTo(HD/2+1.5,0);
+    roofShape.closePath();
+    const roofGeo=new THREE.ExtrudeGeometry(roofShape,{depth:HW+2,bevelEnabled:false});
+    const roofMesh=new THREE.Mesh(roofGeo,roofMat);
+    // Putar dan posisikan: extrude ke arah X, bentuk di bidang ZY
+    roofMesh.rotation.y=Math.PI/2;
+    roofMesh.position.set(HW/2+1,HH,-HD/2-1.5);
+    hg.add(roofMesh);
     // Cerobong asap
     if(Math.random()<0.5){
       const chimney=new THREE.Mesh(
         new THREE.BoxGeometry(1.8,4,1.8),
         new THREE.MeshStandardMaterial({color:0x888888,roughness:1})
       );
-      chimney.position.set(HW*0.3,HH+2,0); hg.add(chimney);
+      chimney.position.set(HW*0.25,HH+3,0); hg.add(chimney);
     }
     g.add(hg);
   }
@@ -2750,7 +2750,7 @@ function adaptUI(){
 
 
     if(fibtn){Object.assign(fibtn.style,{top:"4px",left:"calc(50% + 90px)",width:"32px",height:"32px",fontSize:"14px"});}
-    if(runbtn){Object.assign(runbtn.style,{bottom:"10px",left:"120px",width:"46px",height:"46px",fontSize:"10px"});}
+    if(runbtn){Object.assign(runbtn.style,{bottom:"115px",left:"37px",width:"46px",height:"46px",fontSize:"10px"});}
     if(dnui){Object.assign(dnui.style,{top:"4px",fontSize:"11px",padding:"2px 10px"});}
     if(fps){Object.assign(fps.style,{bottom:"2px",fontSize:"9px"});}
   } else {
@@ -2759,7 +2759,7 @@ function adaptUI(){
 
 
     if(fibtn){Object.assign(fibtn.style,{top:"8px",left:"calc(50% + 125px)",width:"40px",height:"40px",fontSize:"18px"});}
-    if(runbtn){Object.assign(runbtn.style,{bottom:"28px",left:"148px",width:"58px",height:"58px",fontSize:"11px"});}
+    if(runbtn){Object.assign(runbtn.style,{bottom:"168px",left:"55px",width:"58px",height:"58px",fontSize:"11px"});}
     if(dnui){Object.assign(dnui.style,{top:"8px",fontSize:"13px",padding:"4px 16px"});}
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
