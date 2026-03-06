@@ -627,11 +627,11 @@ function renderWorldTab(el) {
     <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
       <div style="color:#7ecfff;font-size:12px;font-weight:bold;margin-bottom:8px">📍 Teleport Diri Sendiri</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button onclick="ownerTeleportSelf(0,-50)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
-        <button onclick="ownerTeleportSelf(700,-30)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
-        <button onclick="ownerTeleportSelf(-800,-550)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
-        <button onclick="ownerTeleportSelf(300,970)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
-        <button onclick="ownerTeleportSelf(-400,1170)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
+        <button onclick="ownerTeleportSelf(0,0)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
+        <button onclick="ownerTeleportSelf(900,0)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
+        <button onclick="ownerTeleportSelf(-1000,-700)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
+        <button onclick="ownerTeleportSelf(400,1300)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
+        <button onclick="ownerTeleportSelf(-500,1500)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
       </div>
     </div>
 

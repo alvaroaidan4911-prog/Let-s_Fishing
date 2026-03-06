@@ -87,14 +87,14 @@ let jetskiSpawned=false,nearHarbour=false;
 const jetskiMaxSpeed=0.45;
 // Harbour positions: one per island (at sand edge)
 const HARBOUR_DEFS=[
-  {id:"main",    x:0,    z:85,   spawnX:0,    spawnZ:95,   label:"🚢 Pelabuhan Utama"},
-  {id:"mystic",  x:700,  z:57,   spawnX:700,  spawnZ:68,   label:"🔮 Dermaga Mystic"},
-  {id:"volcano", x:-800, z:-538, spawnX:-800, spawnZ:-528, label:"🌋 Dermaga Volcano"},
-  {id:"crystal", x:300,  z:1054, spawnX:300,  spawnZ:1065, label:"💎 Dermaga Crystal"},
-  {id:"aurora",  x:-400, z:1250, spawnX:-400, spawnZ:1260, label:"🌌 Dermaga Aurora"},
+  {id:"main",    x:0,     z:163,  spawnX:0,     spawnZ:188,  label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:900,   z:123,  spawnX:900,   spawnZ:143,  label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-1000, z:-568, spawnX:-1000, spawnZ:-548, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:400,   z:1419, spawnX:400,   spawnZ:1438, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-500,  z:1614, spawnX:-500,  spawnZ:1633, label:"🌌 Dermaga Aurora"},
 ];
-const HARBOUR_POS=new THREE.Vector3(0,0,85);
-const jetskiSpawnPos=new THREE.Vector3(0,0.1,95);
+const HARBOUR_POS=new THREE.Vector3(0,0,163);
+const jetskiSpawnPos=new THREE.Vector3(0,0.1,188);
 let currentHarbourId="main";
 
 // ═══ TENSION ═══
@@ -938,46 +938,92 @@ for(let i=0;i<treeCount;i++){
   }
 
   // ── Rumah-rumah sederhana di sepanjang jalan ──
-  const houseCount=opt.houses||(Math.floor(grassR/25));
-  const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd];
+  // ── Rumah besar seukuran toko (efektif ~16x11x10 unit, sama dgn shop scale 1.6×base) ──
+  const houseCount=opt.houses||(Math.floor(grassR/30));
+  const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
+  const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
   for(let i=0;i<houseCount;i++){
-    const ha=(i/houseCount)*Math.PI*2;
-    const hd=grassR*0.42+Math.random()*grassR*0.30;
+    const ha=(i/houseCount)*Math.PI*2+(Math.random()-0.5)*0.3;
+    const hd=grassR*0.40+Math.random()*grassR*0.32;
     const hx=Math.cos(ha)*hd, hz=Math.sin(ha)*hd;
-    const hcolor=houseMats[Math.floor(Math.random()*houseMats.length)];
-    const hw=5+Math.random()*3, hh=4+Math.random()*3, hd2=4+Math.random()*2;
-    // Dinding
-    const wall=new THREE.Mesh(
-      new THREE.BoxGeometry(hw,hh,hd2),
-      new THREE.MeshStandardMaterial({color:hcolor,roughness:0.8})
+    const hcolor=houseMats[i%houseMats.length];
+    const rcolor=roofColors[Math.floor(Math.random()*roofColors.length)];
+    // Ukuran seukuran toko: 16 wide, 11 tall, 10 deep (world units)
+    const HW=16, HH=11, HD=10;
+    const hg=new THREE.Group();
+    hg.position.set(hx,0,hz);
+    hg.rotation.y=ha+Math.random()*0.4-0.2;
+    // Lantai
+    const floor=new THREE.Mesh(
+      new THREE.BoxGeometry(HW+1,0.4,HD+1),
+      new THREE.MeshStandardMaterial({color:0xccbbaa,roughness:1})
     );
-    wall.position.set(hx,hh/2,hz);
-    wall.rotation.y=ha+Math.PI/4;
-    g.add(wall);
-    // Atap
-    const roof=new THREE.Mesh(
-      new THREE.ConeGeometry(Math.max(hw,hd2)*0.75,hh*0.55,4),
-      new THREE.MeshStandardMaterial({color:0x8B4513,roughness:0.9})
-    );
-    roof.position.set(hx,hh+hh*0.27,hz);
-    roof.rotation.y=ha+Math.PI/4+Math.PI/4;
-    g.add(roof);
-    // Pintu
+    floor.position.y=0.2; hg.add(floor);
+    // Dinding utama (depan terbuka)
+    const wallMat=new THREE.MeshStandardMaterial({color:hcolor,roughness:0.8});
+    // Belakang
+    const wb=new THREE.Mesh(new THREE.BoxGeometry(HW,HH,0.5),wallMat);
+    wb.position.set(0,HH/2,-HD/2); hg.add(wb);
+    // Kiri
+    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,HH,HD),wallMat);
+    wl.position.set(-HW/2,HH/2,0); hg.add(wl);
+    // Kanan
+    const wr=wl.clone(); wr.position.x=HW/2; hg.add(wr);
+    // Depan dengan celah pintu
+    const wft=new THREE.Mesh(new THREE.BoxGeometry(HW,HH*0.38,0.5),wallMat);
+    wft.position.set(0,HH*0.81,HD/2); hg.add(wft);
+    const wfL=new THREE.Mesh(new THREE.BoxGeometry(HW*0.3,HH,0.5),wallMat);
+    wfL.position.set(-HW*0.35,HH/2,HD/2); hg.add(wfL);
+    const wfR=wfL.clone(); wfR.position.x=HW*0.35; hg.add(wfR);
+    // Pintu kayu
     const door=new THREE.Mesh(
-      new THREE.BoxGeometry(1.0,1.8,0.12),
-      new THREE.MeshStandardMaterial({color:0x5C4A1E})
+      new THREE.BoxGeometry(HW*0.22,HH*0.55,0.4),
+      new THREE.MeshStandardMaterial({color:0x5C4A1E,roughness:0.9})
     );
-    door.position.set(hx+Math.cos(ha)*hd2*0.52,0.9,hz+Math.sin(ha)*hd2*0.52);
-    door.rotation.y=ha;
-    g.add(door);
-    // Jendela
-    const win=new THREE.Mesh(
-      new THREE.BoxGeometry(0.9,0.9,0.12),
-      new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88aacc,emissiveIntensity:0.1,transparent:true,opacity:0.85})
+    door.position.set(0,HH*0.275,HD/2+0.1); hg.add(door);
+    // Ambang pintu
+    const doorTop=new THREE.Mesh(
+      new THREE.BoxGeometry(HW*0.28,0.5,0.5),
+      new THREE.MeshStandardMaterial({color:0x3e2200})
     );
-    win.position.set(hx+Math.cos(ha+0.4)*hd2*0.52,hh*0.6,hz+Math.sin(ha+0.4)*hd2*0.52);
-    win.rotation.y=ha;
-    g.add(win);
+    doorTop.position.set(0,HH*0.58,HD/2); hg.add(doorTop);
+    // Jendela x2 (kiri & kanan pintu)
+    [-1,1].forEach(side=>{
+      const win=new THREE.Mesh(
+        new THREE.BoxGeometry(HW*0.18,HH*0.28,0.4),
+        new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88bbdd,emissiveIntensity:0.15,transparent:true,opacity:0.88})
+      );
+      win.position.set(side*HW*0.3,HH*0.58,HD/2+0.1); hg.add(win);
+      // Kusen jendela
+      const frame=new THREE.Mesh(
+        new THREE.BoxGeometry(HW*0.21,HH*0.31,0.35),
+        new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.7})
+      );
+      frame.position.set(side*HW*0.3,HH*0.58,HD/2); hg.add(frame);
+    });
+    // Atap pelana besar
+    const roofMat=new THREE.MeshStandardMaterial({color:rcolor,roughness:0.9});
+    const roof=new THREE.Mesh(new THREE.BoxGeometry(HW+2,0.4,HD+2),roofMat);
+    roof.position.y=HH+0.2; hg.add(roof);
+    // Puncak atap (ridge)
+    const ridgeL=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.35,0.4),roofMat);
+    ridgeL.position.set(0,HH+4.5,0); hg.add(ridgeL);
+    // Panel atap miring kiri-kanan
+    [-1,1].forEach(side=>{
+      const rp=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.3,(HD/2+1.5)),roofMat);
+      rp.position.set(0,HH+2.5,side*(HD/4+0.5));
+      rp.rotation.x=side*0.55;
+      hg.add(rp);
+    });
+    // Cerobong asap
+    if(Math.random()<0.5){
+      const chimney=new THREE.Mesh(
+        new THREE.BoxGeometry(1.8,4,1.8),
+        new THREE.MeshStandardMaterial({color:0x888888,roughness:1})
+      );
+      chimney.position.set(HW*0.3,HH+2,0); hg.add(chimney);
+    }
+    g.add(hg);
   }
 
   // Lamps (placed around center, registered for night glow)
@@ -1133,8 +1179,8 @@ buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
   lamps:true,lampCount:10,labelColor:"#ffdd88",
   buildingExclusions:[
-    {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
-    {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
+    {cx:0,   cz:-70,hw:14,hd:10},{cx:50,  cz:-70,hw:14,hd:10},
+    {cx:-50, cz:-70,hw:14,hd:10},{cx:100, cz:-70,hw:14,hd:10}
   ]});
 buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
 buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
@@ -1165,10 +1211,10 @@ function makeShop(px,pz,label){
   sg.position.set(0,8.2,2.9);g.add(sg);
   return{counter:ctr};
 }
-const {counter}=makeShop(0,-25,"🐟 SELL FISH");
-const {counter:rodShopCounter}=makeShop(30,-25,"🎣 ROD SHOP");
-const {counter:baitShopCounter}=makeShop(-30,-25,"🪱 BAIT SHOP");
-const {counter:jetskiShopCounter}=makeShop(60,-25,"🛥️ JETSKI");
+const {counter}=makeShop(0,-70,"🐟 SELL FISH");
+const {counter:rodShopCounter}=makeShop(50,-70,"🎣 ROD SHOP");
+const {counter:baitShopCounter}=makeShop(-50,-70,"🪱 BAIT SHOP");
+const {counter:jetskiShopCounter}=makeShop(100,-70,"🛥️ JETSKI");
 
 // ═══ HARBOUR ═══
 function buildHarbour(hdef){
@@ -1257,10 +1303,10 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-22);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,30,-22);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-30,-22);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,60,-22);
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-64);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-64);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-64);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-64);
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -1500,7 +1546,7 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   btn.id="runBtn";
   Object.assign(btn.style,{
     position:"fixed",
-    left:"148px",bottom:"28px",transition:"all 0.3s",
+    left:"55px",bottom:"168px",transition:"all 0.3s",
     width:"58px",height:"58px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,rgba(255,120,0,0.85),rgba(200,60,0,0.85))",
@@ -1527,16 +1573,16 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   jumpBtn.textContent="⬆";
   Object.assign(jumpBtn.style,{
     position:"fixed",
-    left:"170px", bottom:"30px",
-    width:"58px", height:"58px",
+    right:"25px", bottom:"35px",
+    width:"68px", height:"68px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,#3498db,#2980b9)",
     border:"2px solid rgba(100,180,255,0.5)",
-    color:"#fff", fontSize:"26px",
+    color:"#fff", fontSize:"28px",
     display:"flex", alignItems:"center", justifyContent:"center",
     zIndex:"20", cursor:"pointer",
     boxShadow:"0 4px 12px rgba(52,152,219,0.5)",
-    touchAction:"manipulation", userSelect:"none",
+    touchAction:"none", userSelect:"none",
     fontWeight:"bold"
   });
   jumpBtn.addEventListener("touchstart",e=>{
