@@ -1546,7 +1546,7 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   btn.id="runBtn";
   Object.assign(btn.style,{
     position:"fixed",
-    left:"148px",bottom:"28px",transition:"all 0.3s",
+    left:"55px",bottom:"168px",transition:"all 0.3s",
     width:"58px",height:"58px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,rgba(255,120,0,0.85),rgba(200,60,0,0.85))",
@@ -1573,16 +1573,16 @@ window.addEventListener("keyup",e=>{if(e.key)keys[e.key.toLowerCase()]=false;});
   jumpBtn.textContent="⬆";
   Object.assign(jumpBtn.style,{
     position:"fixed",
-    left:"170px", bottom:"30px",
-    width:"58px", height:"58px",
+    right:"25px", bottom:"35px",
+    width:"68px", height:"68px",
     borderRadius:"50%",
     background:"linear-gradient(135deg,#3498db,#2980b9)",
     border:"2px solid rgba(100,180,255,0.5)",
-    color:"#fff", fontSize:"26px",
+    color:"#fff", fontSize:"28px",
     display:"flex", alignItems:"center", justifyContent:"center",
     zIndex:"20", cursor:"pointer",
     boxShadow:"0 4px 12px rgba(52,152,219,0.5)",
-    touchAction:"manipulation", userSelect:"none",
+    touchAction:"none", userSelect:"none",
     fontWeight:"bold"
   });
   jumpBtn.addEventListener("touchstart",e=>{
