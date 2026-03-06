@@ -937,8 +937,7 @@ for(let i=0;i<treeCount;i++){
     }
   }
 
-  // ── Rumah-rumah sederhana di sepanjang jalan ──
-  // ── Rumah besar seukuran toko (efektif ~16x11x10 unit, sama dgn shop scale 1.6×base) ──
+  // ── Rumah besar seukuran toko ──
   const houseCount=opt.houses||(Math.floor(grassR/30));
   const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
   const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
@@ -948,80 +947,100 @@ for(let i=0;i<treeCount;i++){
     const hx=Math.cos(ha)*hd, hz=Math.sin(ha)*hd;
     const hcolor=houseMats[i%houseMats.length];
     const rcolor=roofColors[Math.floor(Math.random()*roofColors.length)];
-    // Ukuran seukuran toko: 16 wide, 11 tall, 10 deep (world units)
-    const HW=16, HH=11, HD=10;
+    const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
+    const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
+    // Dimensi: W=lebar, H=tinggi dinding, D=kedalaman
+    const W=16, H=8, D=10;
+    // Lebar pintu & tinggi pintu
+    const DW=3.2, DH=5.5;
+    // Lebar panel samping dinding depan
+    const SW=(W-DW)/2; // = 6.4
     const hg=new THREE.Group();
     hg.position.set(hx,0,hz);
-    hg.rotation.y=ha; // hadap ke arah keluar dari center
-    // Lantai
+    hg.rotation.y=ha;
+
+    // ── Lantai ──
     const floor=new THREE.Mesh(
-      new THREE.BoxGeometry(HW+1,0.4,HD+1),
-      new THREE.MeshStandardMaterial({color:0xccbbaa,roughness:1})
+      new THREE.BoxGeometry(W+0.5,0.3,D+0.5),
+      new THREE.MeshStandardMaterial({color:0xbbaa99,roughness:1})
     );
-    floor.position.y=0.2; hg.add(floor);
-    // Dinding utama (depan terbuka)
-    const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
-    // Belakang
-    const wb=new THREE.Mesh(new THREE.BoxGeometry(HW,HH,0.5),wallMat);
-    wb.position.set(0,HH/2,-HD/2); hg.add(wb);
-    // Kiri
-    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,HH,HD),wallMat);
-    wl.position.set(-HW/2,HH/2,0); hg.add(wl);
-    // Kanan
-    const wr=wl.clone(); wr.position.x=HW/2; hg.add(wr);
-    // Depan dengan celah pintu
-    const wft=new THREE.Mesh(new THREE.BoxGeometry(HW,HH*0.38,0.5),wallMat);
-    wft.position.set(0,HH*0.81,HD/2); hg.add(wft);
-    const wfL=new THREE.Mesh(new THREE.BoxGeometry(HW*0.3,HH,0.5),wallMat);
-    wfL.position.set(-HW*0.35,HH/2,HD/2); hg.add(wfL);
-    const wfR=wfL.clone(); wfR.position.x=HW*0.35; hg.add(wfR);
-    // Pintu kayu
+    floor.position.y=0.15; hg.add(floor);
+
+    // ── Dinding belakang (penuh) ──
+    const wb=new THREE.Mesh(new THREE.BoxGeometry(W,H,0.4),wallMat);
+    wb.position.set(0,H/2,-D/2); hg.add(wb);
+
+    // ── Dinding kiri & kanan ──
+    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.4,H,D),wallMat);
+    wl.position.set(-W/2,H/2,0); hg.add(wl);
+    const wr=new THREE.Mesh(new THREE.BoxGeometry(0.4,H,D),wallMat);
+    wr.position.set( W/2,H/2,0); hg.add(wr);
+
+    // ── Dinding depan: panel kiri, panel kanan, balok atas pintu ──
+    // Panel kiri depan
+    const wfL=new THREE.Mesh(new THREE.BoxGeometry(SW,H,0.4),wallMat);
+    wfL.position.set(-(DW/2+SW/2), H/2, D/2); hg.add(wfL);
+    // Panel kanan depan
+    const wfR=new THREE.Mesh(new THREE.BoxGeometry(SW,H,0.4),wallMat);
+    wfR.position.set( (DW/2+SW/2), H/2, D/2); hg.add(wfR);
+    // Balok atas pintu
+    const wfTop=new THREE.Mesh(new THREE.BoxGeometry(DW,H-DH,0.4),wallMat);
+    wfTop.position.set(0, DH+(H-DH)/2, D/2); hg.add(wfTop);
+
+    // ── Pintu kayu ──
     const door=new THREE.Mesh(
-      new THREE.BoxGeometry(HW*0.22,HH*0.55,0.4),
+      new THREE.BoxGeometry(DW-0.3,DH-0.1,0.35),
       new THREE.MeshStandardMaterial({color:0x5C4A1E,roughness:0.9})
     );
-    door.position.set(0,HH*0.275,HD/2+0.1); hg.add(door);
-    // Ambang pintu
-    const doorTop=new THREE.Mesh(
-      new THREE.BoxGeometry(HW*0.28,0.5,0.5),
-      new THREE.MeshStandardMaterial({color:0x3e2200})
+    door.position.set(0,(DH-0.1)/2,D/2+0.05); hg.add(door);
+    // Kusen pintu
+    const doorFrame=new THREE.Mesh(
+      new THREE.BoxGeometry(DW+0.3,DH+0.2,0.3),
+      new THREE.MeshStandardMaterial({color:0x3e2200,roughness:0.8})
     );
-    doorTop.position.set(0,HH*0.58,HD/2); hg.add(doorTop);
-    // Jendela x2 (kiri & kanan pintu)
+    doorFrame.position.set(0,(DH+0.2)/2,D/2-0.05); hg.add(doorFrame);
+
+    // ── Jendela x2 ──
     [-1,1].forEach(side=>{
+      const wx=side*(DW/2+SW/2);
+      // Kaca
       const win=new THREE.Mesh(
-        new THREE.BoxGeometry(HW*0.18,HH*0.28,0.4),
-        new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88bbdd,emissiveIntensity:0.15,transparent:true,opacity:0.88})
+        new THREE.BoxGeometry(SW*0.55,H*0.35,0.3),
+        new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88bbdd,emissiveIntensity:0.15,transparent:true,opacity:0.85})
       );
-      win.position.set(side*HW*0.3,HH*0.58,HD/2+0.1); hg.add(win);
+      win.position.set(wx,H*0.58,D/2+0.05); hg.add(win);
       // Kusen jendela
-      const frame=new THREE.Mesh(
-        new THREE.BoxGeometry(HW*0.21,HH*0.31,0.35),
+      const wframe=new THREE.Mesh(
+        new THREE.BoxGeometry(SW*0.55+0.5,H*0.35+0.5,0.25),
         new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.7})
       );
-      frame.position.set(side*HW*0.3,HH*0.58,HD/2); hg.add(frame);
+      wframe.position.set(wx,H*0.58,D/2-0.05); hg.add(wframe);
     });
-    // Atap pelana — pakai prisma segitiga (ExtrudeGeometry)
-    const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
-    // Bentuk segitiga untuk atap
-    const roofShape=new THREE.Shape();
-    roofShape.moveTo(-(HD/2+1.5),0);
-    roofShape.lineTo(0,5);
-    roofShape.lineTo(HD/2+1.5,0);
-    roofShape.closePath();
-    const roofGeo=new THREE.ExtrudeGeometry(roofShape,{depth:HW+2,bevelEnabled:false});
+
+    // ── Atap pelana — prisma segitiga benar ──
+    // Buat shape segitiga di bidang XY, extrude ke Z (kedalaman rumah)
+    const roofH=3.5; // tinggi puncak atap
+    const roofOvW=1.0; // overhang samping
+    const roofOvD=1.0; // overhang depan-belakang
+    const rs=new THREE.Shape();
+    rs.moveTo(-(W/2+roofOvW), 0);
+    rs.lineTo(0, roofH);
+    rs.lineTo( W/2+roofOvW, 0);
+    rs.closePath();
+    const roofGeo=new THREE.ExtrudeGeometry(rs,{depth:D+roofOvD*2,bevelEnabled:false});
     const roofMesh=new THREE.Mesh(roofGeo,roofMat);
-    // Putar dan posisikan: extrude ke arah X, bentuk di bidang ZY
-    roofMesh.rotation.y=Math.PI/2;
-    roofMesh.position.set(HW/2+1,HH,-HD/2-1.5);
+    // ExtrudeGeometry extrude ke +Z by default
+    // Rotasi tidak perlu, tinggal posisikan: y=H (duduk di atas dinding), z=-D/2-roofOvD
+    roofMesh.position.set(0, H, -(D/2+roofOvD));
     hg.add(roofMesh);
-    // Cerobong asap
+
+    // ── Cerobong asap ──
     if(Math.random()<0.5){
       const chimney=new THREE.Mesh(
-        new THREE.BoxGeometry(1.8,4,1.8),
+        new THREE.BoxGeometry(1.4,3.5,1.4),
         new THREE.MeshStandardMaterial({color:0x888888,roughness:1})
       );
-      chimney.position.set(HW*0.25,HH+3,0); hg.add(chimney);
+      chimney.position.set(W*0.2, H+roofH*0.6, 0); hg.add(chimney);
     }
     g.add(hg);
   }
