@@ -2572,7 +2572,6 @@ function animate(time){
     updateWeather(dt);updateDayNight(dt);updateWake(dt);updateBubbles(dt);
     updatePerformance(dt,time);
     updateMultiplayerFrame(dt); // MP sync every frame
-    if(whales.length>0) updateWhales(dt);
   }
   if(window._cinActive){window._cinUpdateCamera&&window._cinUpdateCamera();}else{updateCamera();}
   animateWater(time);renderer.render(scene,camera);
@@ -3362,12 +3361,10 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
 // ═══════════════════════════════════════════════════════
 // ── WHALE GLTF SYSTEM ──
-// Paus 3D berenang di laut sekitar pulau utama
+// Hanya untuk held model Cosmic Whale
 // ═══════════════════════════════════════════════════════
-const whales = [];
 let whaleTemplate = null;
-let whaleMixer = null; // AnimationMixer untuk animasi Idle
-let whaleClip = null;
+let heldWhaleModel = null;
 
 (function loadWhaleModel(){
   if(typeof THREE.GLTFLoader === 'undefined'){
@@ -3379,74 +3376,12 @@ let whaleClip = null;
     'models/whale.gltf',
     function(gltf){
       whaleTemplate = gltf.scene;
-      whaleClip = gltf.animations[0] || null; // animasi "Idle"
-
-      // Scale paus agar pas di dunia game
-      whaleTemplate.scale.setScalar(0.04);
-
-      // Spawn beberapa paus berenang di laut
-      spawnAmbientWhales();
       console.log('🐋 Whale model loaded!');
     },
     undefined,
     function(err){ console.warn('Whale load error:', err); }
   );
 })();
-
-function spawnAmbientWhales(){
-  if(!whaleTemplate) return;
-  const count = 3; // jumlah paus di laut
-  for(let i = 0; i < count; i++){
-    const whale = whaleTemplate.clone();
-    // Posisi awal: radius 250-400 dari center, di laut
-    const angle = (i / count) * Math.PI * 2;
-    const radius = 250 + Math.random() * 150;
-    whale.position.set(
-      Math.cos(angle) * radius,
-      -0.5, // sedikit di bawah permukaan air
-      Math.sin(angle) * radius
-    );
-    whale.rotation.y = angle + Math.PI; // hadap ke arah berenang
-
-    // Setup AnimationMixer per paus
-    const mixer = new THREE.AnimationMixer(whale);
-    if(whaleClip){
-      const action = mixer.clipAction(whaleClip);
-      action.play();
-    }
-
-    scene.add(whale);
-    whales.push({
-      mesh: whale,
-      mixer: mixer,
-      angle: angle,
-      radius: radius,
-      speed: 0.0003 + Math.random() * 0.0002, // kecepatan berenang
-      bobOffset: Math.random() * Math.PI * 2,   // fase naik-turun
-    });
-  }
-}
-
-// Panggil di animate loop — updateWhales(delta)
-function updateWhales(delta){
-  const t = performance.now() * 0.001;
-  for(const w of whales){
-    // Update AnimationMixer
-    if(w.mixer) w.mixer.update(delta);
-
-    // Gerak melingkar di laut
-    w.angle += w.speed;
-    w.mesh.position.x = Math.cos(w.angle) * w.radius;
-    w.mesh.position.z = Math.sin(w.angle) * w.radius;
-    // Naik-turun gentle (efek berenang)
-    w.mesh.position.y = -0.5 + Math.sin(t * 0.8 + w.bobOffset) * 0.4;
-    // Arahkan ke arah gerak
-    w.mesh.rotation.y = -w.angle - Math.PI / 2;
-  }
-}
-
-// ── Tampilkan whale model saat Cosmic Whale dipegang ──
-let heldWhaleModel = null;
 
 function updateHeldFishModel(fishName){
   const isWhale = (fishName === 'Cosmic Whale');
@@ -3559,13 +3494,27 @@ function toggleHudEdit() {
   if (btn) btn.style.background = hudEditMode ? '#27ae60' : '#3498db';
   if (hint) hint.style.display = hudEditMode ? 'block' : 'none';
 
-  // Tutup settings agar user bisa lihat layar penuh
   if (hudEditMode) {
+    // Freeze semua input game saat edit HUD
+    freezeInput = true;
+    freezePlayer = true;
+    gamePaused = true;
+
+    // Tutup settings agar user lihat layar penuh
     const sm = document.getElementById('settingsMenu');
     if (sm) { sm.style.display='none'; sm.classList.remove('show'); }
-    // Toast notif
+
+    // Tampilkan tombol Save di layar utama
+    showHudSaveButton();
     showHudEditToast('✏️ Mode Edit HUD — drag tombol sesukamu!');
   } else {
+    // Unfreeze saat selesai edit
+    freezeInput = false;
+    freezePlayer = false;
+    gamePaused = false;
+
+    // Sembunyikan tombol Save
+    hideHudSaveButton();
     showHudEditToast('✅ Posisi HUD disimpan!');
   }
 
@@ -3578,6 +3527,46 @@ function toggleHudEdit() {
       disableHudDrag(el);
     }
   });
+}
+
+function showHudSaveButton(){
+  let sb = document.getElementById('hudSaveBtn');
+  if(!sb){
+    sb = document.createElement('div');
+    sb.id = 'hudSaveBtn';
+    sb.style.cssText = [
+      'position:fixed',
+      'bottom:30px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:linear-gradient(135deg,#27ae60,#1e8449)',
+      'color:#fff',
+      'font-size:16px',
+      'font-weight:700',
+      'padding:14px 36px',
+      'border-radius:16px',
+      'z-index:99998',
+      'cursor:pointer',
+      'border:2px solid rgba(255,255,255,0.25)',
+      'box-shadow:0 4px 20px rgba(39,174,96,0.5)',
+      'user-select:none',
+      'letter-spacing:0.5px'
+    ].join(';');
+    sb.textContent = '💾 Simpan Posisi HUD';
+    sb.addEventListener('click', function(){
+      // Simpan semua posisi
+      HUD_ELEMENTS.forEach(e => saveHudPosition(e.id));
+      // Selesai edit
+      toggleHudEdit();
+    });
+    document.body.appendChild(sb);
+  }
+  sb.style.display = 'block';
+}
+
+function hideHudSaveButton(){
+  const sb = document.getElementById('hudSaveBtn');
+  if(sb) sb.style.display = 'none';
 }
 
 function showHudEditToast(msg) {
