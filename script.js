@@ -788,6 +788,9 @@ function addPathStone(g,tx,tz){
   s.position.set(tx,0.06,tz);s.rotation.y=Math.random()*Math.PI;g.add(s);
 }
 
+// collisionBoxes declared early so buildIsland can push to it
+if(typeof collisionBoxes==="undefined")var collisionBoxes=[];
+
 function buildIsland(def,options){
   const {x,z,sandR,grassR,label}=def;
   const opt=options||{};
@@ -1655,7 +1658,8 @@ function checkOnLand(){
 // Mystic: runic ring TorusGeometry(grassR*0.28=15.4) at (700,0)
 // Crystal: snow mound SphereGeometry(grassR*0.22=11.4) at (300,1000)
 // Shops: scale=1.6 → world floor 16x9.6, back wall at z=-4.8 from shop center
-const collisionBoxes=[
+// collisionBoxes already declared above — now populate it
+collisionBoxes.push(...[
   // ─ MAIN ISLAND: Shops at (0,-70),(50,-70),(-50,-70),(100,-70) scale=1.6 ─
   // Back walls (z = pz - 4.8)
   {cx:0,   cz:-74.8, hw:8.5, hd:1.5},  // SELL FISH — back
@@ -1706,7 +1710,7 @@ const collisionBoxes=[
 
   // ─ AURORA ISLE center(-400,1200) grassR=48 ─
   // No big static obstacles — only floating orbs (no collision)
-];
+]);
 
 function resolveCollisions(){
   if(onJetski||isSwimming)return;
