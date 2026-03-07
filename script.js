@@ -87,14 +87,14 @@ let jetskiSpawned=false,nearHarbour=false;
 const jetskiMaxSpeed=0.45;
 // Harbour positions: one per island (at sand edge)
 const HARBOUR_DEFS=[
-  {id:"main",    x:0,     z:178,  spawnX:0,     spawnZ:195,  label:"🚢 Pelabuhan Utama"},
-  {id:"mystic",  x:900,   z:133,  spawnX:900,   spawnZ:150,  label:"🔮 Dermaga Mystic"},
-  {id:"volcano", x:-1000, z:-562, spawnX:-1000, spawnZ:-547, label:"🌋 Dermaga Volcano"},
-  {id:"crystal", x:400,   z:1428, spawnX:400,   spawnZ:1443, label:"💎 Dermaga Crystal"},
-  {id:"aurora",  x:-500,  z:1623, spawnX:-500,  spawnZ:1638, label:"🌌 Dermaga Aurora"},
+  {id:"main",    x:0,    z:85,   spawnX:0,    spawnZ:95,   label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:700,  z:57,   spawnX:700,  spawnZ:68,   label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-800, z:-538, spawnX:-800, spawnZ:-528, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:300,  z:1054, spawnX:300,  spawnZ:1065, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-400, z:1250, spawnX:-400, spawnZ:1260, label:"🌌 Dermaga Aurora"},
 ];
-const HARBOUR_POS=new THREE.Vector3(0,0,178);
-const jetskiSpawnPos=new THREE.Vector3(0,0.1,195);
+const HARBOUR_POS=new THREE.Vector3(0,0,85);
+const jetskiSpawnPos=new THREE.Vector3(0,0.1,95);
 let currentHarbourId="main";
 
 // ═══ TENSION ═══
@@ -709,11 +709,11 @@ water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
 
 // ═══ ISLAND DEFS ═══
 const islandDefs=[
-  {id:"main",   x:0,    z:0,    sandR:200, grassR:185, label:"🏝️ Main Island",  fishKey:"main"},
-  {id:"mystic", x:900,  z:0,    sandR:155, grassR:140, label:"🔮 Mystic Isle",   fishKey:"mystic"},
-  {id:"volcano",x:-1000,z:-700, sandR:165, grassR:150, label:"🌋 Volcano Isle",  fishKey:"volcano"},
-  {id:"crystal",x:400,  z:1300, sandR:150, grassR:135, label:"💎 Crystal Isle",  fishKey:"crystal"},
-  {id:"aurora", x:-500, z:1500, sandR:145, grassR:130, label:"🌌 Aurora Isle",   fishKey:"aurora"},
+  {id:"main",   x:0,    z:0,    sandR:90, grassR:78, label:"🏝️ Main Island",  fishKey:"main"},
+  {id:"mystic", x:700,  z:0,    sandR:65, grassR:55, label:"🔮 Mystic Isle",   fishKey:"mystic"},
+  {id:"volcano",x:-800, z:-600, sandR:70, grassR:60, label:"🌋 Volcano Isle",  fishKey:"volcano"},
+  {id:"crystal",x:300,  z:1000, sandR:62, grassR:52, label:"💎 Crystal Isle",  fishKey:"crystal"},
+  {id:"aurora", x:-400, z:1200, sandR:58, grassR:48, label:"🌌 Aurora Isle",   fishKey:"aurora"},
 ];
 
 // ═══ FLOATING ORBS ═══
@@ -861,204 +861,26 @@ for(let i=0;i<treeCount;i++){
     addFlower(g,Math.cos(a)*d,Math.sin(a)*d,flowerColors[Math.floor(Math.random()*flowerColors.length)]);
   }
 
-  // ── Jalan aspal: 4 arah dari center ke tepi, lebar 3 unit ──
+  // Path stones from center toward shore (2 directions)
   if(opt.paths!==false){
-    const roadDirs=4;
-    const roadMat=new THREE.MeshStandardMaterial({color:0x444444,roughness:0.95});
-    for(let p=0;p<roadDirs;p++){
-      const pAngle=p*(Math.PI/2)+(opt.pathAngle||0.3);
-      const roadLen=grassR*0.85;
-      const segments=Math.floor(roadLen/4);
-      for(let s=0;s<segments;s++){
-        const pd=4+s*4;
-        // Aspal lebar
-        const tile=new THREE.Mesh(
-          new THREE.BoxGeometry(3.2,0.08,4.5),
-          roadMat
-        );
-        tile.position.set(Math.cos(pAngle)*pd,0.05,Math.sin(pAngle)*pd);
-        tile.rotation.y=pAngle;
-        g.add(tile);
-        // Garis putih tengah jalan (setiap 2 tile)
-        if(s%2===0){
-          const line=new THREE.Mesh(
-            new THREE.BoxGeometry(0.22,0.09,1.8),
-            new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.08})
-          );
-          line.position.set(Math.cos(pAngle)*pd,0.07,Math.sin(pAngle)*pd);
-          line.rotation.y=pAngle;
-          g.add(line);
-        }
+    for(let p=0;p<2;p++){
+      const pAngle=p*Math.PI+(opt.pathAngle||0);
+      for(let s=0;s<8;s++){
+        const pd=5+s*4.5;
+        const jx=(Math.random()-0.5)*1.2,jz=(Math.random()-0.5)*1.2;
+        addPathStone(g,Math.cos(pAngle)*pd+jx,Math.sin(pAngle)*pd+jz);
       }
     }
-    // Roundabout di tengah
-    const rbMat=new THREE.MeshStandardMaterial({color:0x555555,roughness:0.9});
-    const rb=new THREE.Mesh(new THREE.CylinderGeometry(9,9,0.1,24),rbMat);
-    rb.position.y=0.06;g.add(rb);
-    // Taman kecil di roundabout
-    const rbGrass=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.5,0.12,20),
-      new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.9}));
-    rbGrass.position.y=0.1;g.add(rbGrass);
-    // Tugu di tengah roundabout
-    const tugu=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,5,8),
-      new THREE.MeshStandardMaterial({color:0xcccccc,roughness:0.6}));
-    tugu.position.y=2.5;g.add(tugu);
-    const tugutop=new THREE.Mesh(new THREE.ConeGeometry(1.2,2,8),
-      new THREE.MeshStandardMaterial({color:0xffd700,emissive:0xffaa00,emissiveIntensity:0.2}));
-    tugutop.position.y=6.5;g.add(tugutop);
   }
 
-  // ── Hills: bukit-bukit kecil tersebar di pulau ──
-  const hillCount=opt.hills||6;
-  const hillMat=new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.95});
-  for(let i=0;i<hillCount;i++){
-    const ha=Math.random()*Math.PI*2;
-    const hd=grassR*0.25+Math.random()*grassR*0.45;
-    const hr=8+Math.random()*14;
-    const hh=3+Math.random()*8;
-    // Bukit elipsoid
-    const hill=new THREE.Mesh(
-      new THREE.SphereGeometry(hr,12,8),
-      hillMat
-    );
-    hill.scale.y=hh/hr*0.5;
-    hill.position.set(Math.cos(ha)*hd,-hr*0.3,Math.sin(ha)*hd);
-    g.add(hill);
-    // Pohon di atas bukit
-    if(Math.random()<0.6){
-      const hh2=4+Math.random()*4;
-      addTree(g,Math.cos(ha)*hd,Math.sin(ha)*hd,hh2,opt.trunkColor,opt.leafColor);
-    }
-  }
-
-  // Benches (8 di sepanjang jalan)
   if(opt.benches!==false){
-    for(let i=0;i<8;i++){
-      const ba=i*(Math.PI/4)+(opt.benchAngle||0.2);
-      const bd=grassR*0.22+Math.random()*grassR*0.2;
+    for(let i=0;i<4;i++){
+      const ba=i*(Math.PI/2)+(opt.benchAngle||0.4);
+      const bd=grassR*0.28;
       addBench(g,Math.cos(ba)*bd,Math.sin(ba)*bd,ba+Math.PI/2);
     }
   }
 
-  // ── Rumah besar seukuran toko ──
-  const houseCount=opt.houses||(Math.floor(grassR/30));
-  const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
-  const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
-  for(let i=0;i<houseCount;i++){
-    let ha,hd,hx,hz,hAttempts=0;
-    do{
-      ha=(i/houseCount)*Math.PI*2+(Math.random()-0.5)*0.6;
-      hd=grassR*0.40+Math.random()*grassR*0.32;
-      hx=Math.cos(ha)*hd; hz=Math.sin(ha)*hd;
-      hAttempts++;
-      let blocked=false;
-      for(const ex of buildingExclusions){
-        if(Math.abs(hx-ex.cx)<ex.hw+10&&Math.abs(hz-ex.cz)<ex.hd+10){blocked=true;break;}
-      }
-      if(!blocked)break;
-    }while(hAttempts<30);
-    const hcolor=houseMats[i%houseMats.length];
-    const rcolor=roofColors[Math.floor(Math.random()*roofColors.length)];
-    const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
-    const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
-    // Dimensi: W=lebar, H=tinggi dinding, D=kedalaman
-    const W=16, H=8, D=10;
-    // Lebar pintu & tinggi pintu
-    const DW=3.2, DH=5.5;
-    // Lebar panel samping dinding depan
-    const SW=(W-DW)/2; // = 6.4
-    const hg=new THREE.Group();
-    hg.position.set(hx,0,hz);
-    hg.rotation.y=ha;
-
-    // ── Lantai ──
-    const floor=new THREE.Mesh(
-      new THREE.BoxGeometry(W+0.5,0.3,D+0.5),
-      new THREE.MeshStandardMaterial({color:0xbbaa99,roughness:1})
-    );
-    floor.position.y=0.15; hg.add(floor);
-
-    // ── Dinding belakang (penuh) ──
-    const wb=new THREE.Mesh(new THREE.BoxGeometry(W,H,0.4),wallMat);
-    wb.position.set(0,H/2,-D/2); hg.add(wb);
-
-    // ── Dinding kiri & kanan ──
-    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.4,H,D),wallMat);
-    wl.position.set(-W/2,H/2,0); hg.add(wl);
-    const wr=new THREE.Mesh(new THREE.BoxGeometry(0.4,H,D),wallMat);
-    wr.position.set( W/2,H/2,0); hg.add(wr);
-
-    // ── Dinding depan: panel kiri, panel kanan, balok atas pintu ──
-    // Panel kiri depan
-    const wfL=new THREE.Mesh(new THREE.BoxGeometry(SW,H,0.4),wallMat);
-    wfL.position.set(-(DW/2+SW/2), H/2, D/2); hg.add(wfL);
-    // Panel kanan depan
-    const wfR=new THREE.Mesh(new THREE.BoxGeometry(SW,H,0.4),wallMat);
-    wfR.position.set( (DW/2+SW/2), H/2, D/2); hg.add(wfR);
-    // Balok atas pintu
-    const wfTop=new THREE.Mesh(new THREE.BoxGeometry(DW,H-DH,0.4),wallMat);
-    wfTop.position.set(0, DH+(H-DH)/2, D/2); hg.add(wfTop);
-
-    // ── Pintu kayu ──
-    const door=new THREE.Mesh(
-      new THREE.BoxGeometry(DW-0.3,DH-0.1,0.35),
-      new THREE.MeshStandardMaterial({color:0x5C4A1E,roughness:0.9})
-    );
-    door.position.set(0,(DH-0.1)/2,D/2+0.05); hg.add(door);
-    // Kusen pintu
-    const doorFrame=new THREE.Mesh(
-      new THREE.BoxGeometry(DW+0.3,DH+0.2,0.3),
-      new THREE.MeshStandardMaterial({color:0x3e2200,roughness:0.8})
-    );
-    doorFrame.position.set(0,(DH+0.2)/2,D/2-0.05); hg.add(doorFrame);
-
-    // ── Jendela x2 ──
-    [-1,1].forEach(side=>{
-      const wx=side*(DW/2+SW/2);
-      // Kaca
-      const win=new THREE.Mesh(
-        new THREE.BoxGeometry(SW*0.55,H*0.35,0.3),
-        new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88bbdd,emissiveIntensity:0.15,transparent:true,opacity:0.85})
-      );
-      win.position.set(wx,H*0.58,D/2+0.05); hg.add(win);
-      // Kusen jendela
-      const wframe=new THREE.Mesh(
-        new THREE.BoxGeometry(SW*0.55+0.5,H*0.35+0.5,0.25),
-        new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.7})
-      );
-      wframe.position.set(wx,H*0.58,D/2-0.05); hg.add(wframe);
-    });
-
-    // ── Atap pelana — prisma segitiga benar ──
-    // Buat shape segitiga di bidang XY, extrude ke Z (kedalaman rumah)
-    const roofH=3.5; // tinggi puncak atap
-    const roofOvW=1.0; // overhang samping
-    const roofOvD=1.0; // overhang depan-belakang
-    const rs=new THREE.Shape();
-    rs.moveTo(-(W/2+roofOvW), 0);
-    rs.lineTo(0, roofH);
-    rs.lineTo( W/2+roofOvW, 0);
-    rs.closePath();
-    const roofGeo=new THREE.ExtrudeGeometry(rs,{depth:D+roofOvD*2,bevelEnabled:false});
-    const roofMesh=new THREE.Mesh(roofGeo,roofMat);
-    // ExtrudeGeometry extrude ke +Z by default
-    // Rotasi tidak perlu, tinggal posisikan: y=H (duduk di atas dinding), z=-D/2-roofOvD
-    roofMesh.position.set(0, H, -(D/2+roofOvD));
-    hg.add(roofMesh);
-
-    // ── Cerobong asap ──
-    if(Math.random()<0.5){
-      const chimney=new THREE.Mesh(
-        new THREE.BoxGeometry(1.4,3.5,1.4),
-        new THREE.MeshStandardMaterial({color:0x888888,roughness:1})
-      );
-      chimney.position.set(W*0.2, H+roofH*0.6, 0); hg.add(chimney);
-    }
-    g.add(hg);
-    // ── Collision OBB untuk rumah (oriented, mengikuti rotasi) ──
-    const worldHX=x+hx, worldHZ=z+hz;
-    collisionBoxes.push({cx:worldHX, cz:worldHZ, hw:9, hd:6, angle:hg.rotation.y, type:"obb"});
-  }
 
   // Lamps (placed around center, registered for night glow)
   if(opt.lamps!==false){
@@ -1209,18 +1031,17 @@ for(let i=0;i<treeCount;i++){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true,grassColor:0xaaffaa,
+buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
-  lamps:true,lampCount:10,labelColor:"#ffdd88",
+  lamps:true,lampCount:5,labelColor:"#ffdd88",
   buildingExclusions:[
-    {cx:0,   cz:-70,hw:28,hd:25},{cx:50,  cz:-70,hw:28,hd:25},
-    {cx:-50, cz:-70,hw:28,hd:25},{cx:100, cz:-70,hw:28,hd:25},
-    {cx:50,  cz:-70,hw:180,hd:12}
+    {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
+    {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
   ]});
-buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
-buildIsland(islandDefs[3],{trees:22,rocks:14,flowers:20,hills:6,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:8,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[4],{trees:25,rocks:10,flowers:70,hills:7,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:10,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
 
 // ═══ SHOP BUILDER ═══
 function makeShop(px,pz,label){
@@ -1246,10 +1067,10 @@ function makeShop(px,pz,label){
   sg.position.set(0,8.2,2.9);g.add(sg);
   return{counter:ctr};
 }
-const {counter}=makeShop(0,-70,"🐟 SELL FISH");
-const {counter:rodShopCounter}=makeShop(50,-70,"🎣 ROD SHOP");
-const {counter:baitShopCounter}=makeShop(-50,-70,"🪱 BAIT SHOP");
-const {counter:jetskiShopCounter}=makeShop(100,-70,"🛥️ JETSKI");
+const {counter}=makeShop(0,-25,"🐟 SELL FISH");
+const {counter:rodShopCounter}=makeShop(30,-25,"🎣 ROD SHOP");
+const {counter:baitShopCounter}=makeShop(-30,-25,"🪱 BAIT SHOP");
+const {counter:jetskiShopCounter}=makeShop(60,-25,"🛥️ JETSKI");
 
 // ═══ HARBOUR ═══
 function buildHarbour(hdef){
@@ -1338,10 +1159,10 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-70);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-70);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-70);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-70);
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-22);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,30,-22);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-30,-22);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,60,-22);
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -1665,21 +1486,19 @@ function checkOnLand(){
 // Shops: scale=1.6 → world floor 16x9.6, back wall at z=-4.8 from shop center
 // collisionBoxes already declared above — now populate it
 collisionBoxes.push(...[
-  // ─ MAIN ISLAND: Shops at (0,-70),(50,-70),(-50,-70),(100,-70) scale=1.6 ─
-  // Back walls (z = pz - 4.8)
-  {cx:0,   cz:-74.8, hw:8.5, hd:1.5},  // SELL FISH — back
-  {cx:50,  cz:-74.8, hw:8.5, hd:1.5},  // ROD SHOP — back
-  {cx:-50, cz:-74.8, hw:8.5, hd:1.5},  // BAIT SHOP — back
-  {cx:100, cz:-74.8, hw:8.5, hd:1.5},  // JETSKI — back
-  // Side walls (x = px ± 8, z center = pz)
-  {cx:-8.2,  cz:-70, hw:1.5, hd:4.8},  // SELL left
-  {cx:8.2,   cz:-70, hw:1.5, hd:4.8},  // SELL right
-  {cx:41.8,  cz:-70, hw:1.5, hd:4.8},  // ROD left
-  {cx:58.2,  cz:-70, hw:1.5, hd:4.8},  // ROD right
-  {cx:-58.2, cz:-70, hw:1.5, hd:4.8},  // BAIT left
-  {cx:-41.8, cz:-70, hw:1.5, hd:4.8},  // BAIT right
-  {cx:91.8,  cz:-70, hw:1.5, hd:4.8},  // JETSKI left
-  {cx:108.2, cz:-70, hw:1.5, hd:4.8},  // JETSKI right
+  // ─ MAIN ISLAND: Shops at (0,-25),(30,-25),(-30,-25),(60,-25) scale=1.6 ─
+  {cx:0,   cz:-29.8, hw:8.5, hd:1.5},
+  {cx:30,  cz:-29.8, hw:8.5, hd:1.5},
+  {cx:-30, cz:-29.8, hw:8.5, hd:1.5},
+  {cx:60,  cz:-29.8, hw:8.5, hd:1.5},
+  {cx:-8.2,  cz:-25, hw:1.5, hd:4.8},
+  {cx:8.2,   cz:-25, hw:1.5, hd:4.8},
+  {cx:21.8,  cz:-25, hw:1.5, hd:4.8},
+  {cx:38.2,  cz:-25, hw:1.5, hd:4.8},
+  {cx:-38.2, cz:-25, hw:1.5, hd:4.8},
+  {cx:-21.8, cz:-25, hw:1.5, hd:4.8},
+  {cx:51.8,  cz:-25, hw:1.5, hd:4.8},
+  {cx:68.2,  cz:-25, hw:1.5, hd:4.8},
 
   // ─ VOLCANO ISLE center(-800,-600) grassR=60 ─
   // Volcano cone: ConeGeometry(grassR*0.45=27) — big circle blocker
@@ -1722,27 +1541,6 @@ function resolveCollisions(){
   const pr=1.2;
   for(const b of collisionBoxes){
     const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
-    // OBB — oriented bounding box (untuk rumah yang dirotasi)
-    if(b.type==="obb"){
-      const cos=Math.cos(-b.angle), sin=Math.sin(-b.angle);
-      // Transform player offset ke local space box
-      const lx= dx*cos - dz*sin;
-      const lz= dx*sin + dz*cos;
-      const ex=Math.max(0, Math.abs(lx)-(b.hw+pr));
-      const ez=Math.max(0, Math.abs(lz)-(b.hd+pr));
-      if(ex===0&&ez===0){
-        // Player di dalam box — dorong keluar lewat sisi terdekat
-        const ox=b.hw+pr-Math.abs(lx), oz=b.hd+pr-Math.abs(lz);
-        let pushLx=0, pushLz=0;
-        if(ox<oz){ pushLx=(lx>0?ox:-ox); }
-        else      { pushLz=(lz>0?oz:-oz); }
-        // Transform push kembali ke world space
-        const cosW=Math.cos(b.angle), sinW=Math.sin(b.angle);
-        player.position.x+=pushLx*cosW - pushLz*sinW;
-        player.position.z+=pushLx*sinW + pushLz*cosW;
-      }
-      continue;
-    }
     if(b.type==="circle"){
       const dist=Math.sqrt(dx*dx+dz*dz);
       const minDist=b.r+pr;
@@ -3556,3 +3354,168 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
 })();
 // ═══════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════
+// ── HUD EDITOR SYSTEM ──
+// ═══════════════════════════════════════════════════════
+let hudEditMode = false;
+
+// List elemen HUD yang bisa dipindah + posisi defaultnya
+const HUD_ELEMENTS = [
+  { id: 'joystick',       label: '🕹️ Joystick',      defLeft: '25px',  defBottom: '35px',  defRight: null, defTop: null },
+  { id: 'hotbar',         label: '🎣 Hotbar',         defLeft: null,    defBottom: '20px',  defRight: null, defTop: null },
+  { id: 'inventoryBtn',   label: '🎒 Inventory',      defLeft: null,    defBottom: '20px',  defRight: '12px', defTop: null },
+  { id: 'jumpBtn',        label: '⬆ Jump',            defLeft: null,    defBottom: '35px',  defRight: '25px', defTop: null },
+  { id: 'harbourBtn',     label: '🛥️ Harbour',        defLeft: '50%',   defBottom: '18px',  defRight: null, defTop: null },
+  { id: 'mpChatBtn',      label: '💬 Chat',           defLeft: null,    defBottom: null,    defRight: '104px', defTop: '14px' },
+  { id: 'fullscreenBtn',  label: '⛶ Fullscreen',     defLeft: null,    defBottom: null,    defRight: '58px',  defTop: '14px' },
+  { id: 'coinUI',         label: '💰 Coin',           defLeft: '12px',  defBottom: null,    defRight: null, defTop: null },
+  { id: 'weatherUI',      label: '☀️ Cuaca',          defLeft: null,    defBottom: null,    defRight: null, defTop: '8px' },
+];
+
+// Load saved positions from localStorage
+function loadHudPositions() {
+  HUD_ELEMENTS.forEach(e => {
+    const saved = localStorage.getItem('hud_' + e.id);
+    if (saved) {
+      try {
+        const pos = JSON.parse(saved);
+        const el = document.getElementById(e.id);
+        if (!el) return;
+        el.style.left   = pos.left   || '';
+        el.style.right  = pos.right  || '';
+        el.style.top    = pos.top    || '';
+        el.style.bottom = pos.bottom || '';
+        el.style.transform = pos.transform || '';
+      } catch(err) {}
+    }
+  });
+}
+
+function saveHudPosition(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const cs = window.getComputedStyle(el);
+  const rect = el.getBoundingClientRect();
+  const pos = {
+    left:   rect.left + 'px',
+    top:    rect.top  + 'px',
+    right:  '',
+    bottom: '',
+    transform: ''
+  };
+  localStorage.setItem('hud_' + id, JSON.stringify(pos));
+}
+
+function resetHudPositions() {
+  HUD_ELEMENTS.forEach(e => {
+    localStorage.removeItem('hud_' + e.id);
+    const el = document.getElementById(e.id);
+    if (!el) return;
+    el.style.left   = e.defLeft   || '';
+    el.style.right  = e.defRight  || '';
+    el.style.top    = e.defTop    || '';
+    el.style.bottom = e.defBottom || '';
+    el.style.transform = '';
+    // Re-apply center transform for hotbar & harbourBtn
+    if (id === 'hotbar' || id === 'harbourBtn') {
+      el.style.left = '50%';
+      el.style.transform = 'translateX(-50%)';
+    }
+  });
+  alert('Posisi HUD sudah direset ke default!');
+}
+
+function toggleHudEdit() {
+  hudEditMode = !hudEditMode;
+  const btn = document.getElementById('hudEditBtn');
+  const hint = document.getElementById('hudEditHint');
+  if (btn) btn.textContent = hudEditMode ? '✅ Selesai Edit' : '✏️ Edit HUD';
+  if (btn) btn.style.background = hudEditMode ? '#27ae60' : '#3498db';
+  if (hint) hint.style.display = hudEditMode ? 'block' : 'none';
+
+  HUD_ELEMENTS.forEach(e => {
+    const el = document.getElementById(e.id);
+    if (!el) return;
+    if (hudEditMode) {
+      enableHudDrag(el, e.id);
+    } else {
+      disableHudDrag(el);
+    }
+  });
+}
+
+function enableHudDrag(el, id) {
+  // Make sure element is position:fixed with left/top coords
+  const rect = el.getBoundingClientRect();
+  el.style.position = 'fixed';
+  el.style.left   = rect.left + 'px';
+  el.style.top    = rect.top  + 'px';
+  el.style.right  = '';
+  el.style.bottom = '';
+  el.style.transform = '';
+  el.style.outline = '2px dashed rgba(52,152,219,0.8)';
+  el.style.cursor  = 'grab';
+  el.style.zIndex  = '9990';
+  el.dataset.hudId = id;
+  el.dataset.hudDrag = '1';
+
+  let startX, startY, origLeft, origTop;
+
+  function onDown(ev) {
+    if (!el.dataset.hudDrag) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const touch = ev.touches ? ev.touches[0] : ev;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    origLeft = parseFloat(el.style.left) || 0;
+    origTop  = parseFloat(el.style.top)  || 0;
+    el.style.cursor = 'grabbing';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+    document.addEventListener('touchmove', onMove, {passive:false});
+    document.addEventListener('touchend',  onUp);
+  }
+  function onMove(ev) {
+    ev.preventDefault();
+    const touch = ev.touches ? ev.touches[0] : ev;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    let newLeft = origLeft + dx;
+    let newTop  = origTop  + dy;
+    // Clamp to screen
+    newLeft = Math.max(0, Math.min(window.innerWidth  - el.offsetWidth,  newLeft));
+    newTop  = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, newTop));
+    el.style.left = newLeft + 'px';
+    el.style.top  = newTop  + 'px';
+  }
+  function onUp() {
+    el.style.cursor = 'grab';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend',  onUp);
+    saveHudPosition(id);
+  }
+
+  el._hudDown = onDown;
+  el.addEventListener('mousedown',  onDown);
+  el.addEventListener('touchstart', onDown, {passive:false});
+}
+
+function disableHudDrag(el) {
+  el.style.outline = '';
+  el.style.cursor  = '';
+  el.style.zIndex  = '';
+  delete el.dataset.hudDrag;
+  if (el._hudDown) {
+    el.removeEventListener('mousedown',  el._hudDown);
+    el.removeEventListener('touchstart', el._hudDown);
+    delete el._hudDown;
+  }
+}
+
+// Load saved HUD positions on startup
+window.addEventListener('load', () => { setTimeout(loadHudPositions, 800); });
