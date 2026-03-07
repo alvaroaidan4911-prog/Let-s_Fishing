@@ -3445,26 +3445,26 @@ function updateWhales(delta){
   }
 }
 
-// ── Tampilkan whale model saat Cosmic Whale ditangkap ──
-// Ganti heldFishGroup dengan whale GLTF saat ikan = "Cosmic Whale"
+// ── Tampilkan whale model saat Cosmic Whale dipegang ──
 let heldWhaleModel = null;
 
 function updateHeldFishModel(fishName){
-  if(!whaleTemplate) return;
-  const isWhale = fishName === 'Cosmic Whale';
+  const isWhale = (fishName === 'Cosmic Whale');
 
-  // Sembunyikan model ikan default, tampilkan whale GLTF (atau sebaliknya)
-  heldFishGroup.visible = !isWhale;
-  if(isWhale){
+  if(isWhale && whaleTemplate){
+    // Buat whale model sekali, pasang ke leftHandAnchor
     if(!heldWhaleModel){
       heldWhaleModel = whaleTemplate.clone();
-      heldWhaleModel.scale.setScalar(0.018); // lebih kecil untuk held
+      heldWhaleModel.scale.setScalar(0.022);
       heldWhaleModel.rotation.set(0.1, 0, 0.3);
-      // Tambahkan ke leftHandAnchor (sama dengan heldFishGroup)
-      heldFishGroup.parent && heldFishGroup.parent.add(heldWhaleModel);
+      leftHandAnchor.add(heldWhaleModel);
     }
+    // Sembunyikan ikan default, tampilkan paus
+    heldFishGroup.visible = false;
+    heldJunkGroup.visible = false;
     heldWhaleModel.visible = true;
   } else {
+    // Sembunyikan paus, ikan default sudah diatur di tempat lain
     if(heldWhaleModel) heldWhaleModel.visible = false;
   }
 }
