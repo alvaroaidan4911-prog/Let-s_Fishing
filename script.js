@@ -2214,6 +2214,8 @@ function toggleHoldFish(i){
     document.getElementById("heldFishHUD").style.display="block";
     const wLabel=f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"";
     document.getElementById("heldFishHUD").textContent=f.emoji+" "+f.name+(wLabel?" ("+wLabel+")":"");
+    // Swap ke model GLTF paus jika Cosmic Whale
+    if(typeof updateHeldFishModel==="function") updateHeldFishModel(f.name);
   }
   renderTab("fish");
 }
@@ -2222,7 +2224,7 @@ function toggleHoldFish(i){
 function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
 function sellAllFish(){
   let total=0;inventory.fish.forEach(f=>total+=f.price);
-  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
+  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;if(heldWhaleModel)heldWhaleModel.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
   document.getElementById("coinUI").textContent="💰 "+coins;
   document.getElementById("heldFishHUD").style.display="none";
   showMessage("🐟 Sold all! +💰"+total);
@@ -2570,6 +2572,7 @@ function animate(time){
     updateWeather(dt);updateDayNight(dt);updateWake(dt);updateBubbles(dt);
     updatePerformance(dt,time);
     updateMultiplayerFrame(dt); // MP sync every frame
+    if(whales.length>0) updateWhales(dt);
   }
   if(window._cinActive){window._cinUpdateCamera&&window._cinUpdateCamera();}else{updateCamera();}
   animateWater(time);renderer.render(scene,camera);
@@ -3355,6 +3358,116 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 })();
 // ═══════════════════════════════════════════════════════════
 
+
+
+// ═══════════════════════════════════════════════════════
+// ── WHALE GLTF SYSTEM ──
+// Paus 3D berenang di laut sekitar pulau utama
+// ═══════════════════════════════════════════════════════
+const whales = [];
+let whaleTemplate = null;
+let whaleMixer = null; // AnimationMixer untuk animasi Idle
+let whaleClip = null;
+
+(function loadWhaleModel(){
+  if(typeof THREE.GLTFLoader === 'undefined'){
+    console.warn('GLTFLoader tidak tersedia');
+    return;
+  }
+  const gltfLoader = new THREE.GLTFLoader();
+  gltfLoader.load(
+    'models/whale.gltf',
+    function(gltf){
+      whaleTemplate = gltf.scene;
+      whaleClip = gltf.animations[0] || null; // animasi "Idle"
+
+      // Scale paus agar pas di dunia game
+      whaleTemplate.scale.setScalar(0.04);
+
+      // Spawn beberapa paus berenang di laut
+      spawnAmbientWhales();
+      console.log('🐋 Whale model loaded!');
+    },
+    undefined,
+    function(err){ console.warn('Whale load error:', err); }
+  );
+})();
+
+function spawnAmbientWhales(){
+  if(!whaleTemplate) return;
+  const count = 3; // jumlah paus di laut
+  for(let i = 0; i < count; i++){
+    const whale = whaleTemplate.clone();
+    // Posisi awal: radius 250-400 dari center, di laut
+    const angle = (i / count) * Math.PI * 2;
+    const radius = 250 + Math.random() * 150;
+    whale.position.set(
+      Math.cos(angle) * radius,
+      -0.5, // sedikit di bawah permukaan air
+      Math.sin(angle) * radius
+    );
+    whale.rotation.y = angle + Math.PI; // hadap ke arah berenang
+
+    // Setup AnimationMixer per paus
+    const mixer = new THREE.AnimationMixer(whale);
+    if(whaleClip){
+      const action = mixer.clipAction(whaleClip);
+      action.play();
+    }
+
+    scene.add(whale);
+    whales.push({
+      mesh: whale,
+      mixer: mixer,
+      angle: angle,
+      radius: radius,
+      speed: 0.0003 + Math.random() * 0.0002, // kecepatan berenang
+      bobOffset: Math.random() * Math.PI * 2,   // fase naik-turun
+    });
+  }
+}
+
+// Panggil di animate loop — updateWhales(delta)
+function updateWhales(delta){
+  const t = performance.now() * 0.001;
+  for(const w of whales){
+    // Update AnimationMixer
+    if(w.mixer) w.mixer.update(delta);
+
+    // Gerak melingkar di laut
+    w.angle += w.speed;
+    w.mesh.position.x = Math.cos(w.angle) * w.radius;
+    w.mesh.position.z = Math.sin(w.angle) * w.radius;
+    // Naik-turun gentle (efek berenang)
+    w.mesh.position.y = -0.5 + Math.sin(t * 0.8 + w.bobOffset) * 0.4;
+    // Arahkan ke arah gerak
+    w.mesh.rotation.y = -w.angle - Math.PI / 2;
+  }
+}
+
+// ── Tampilkan whale model saat Cosmic Whale ditangkap ──
+// Ganti heldFishGroup dengan whale GLTF saat ikan = "Cosmic Whale"
+let heldWhaleModel = null;
+
+function updateHeldFishModel(fishName){
+  if(!whaleTemplate) return;
+  const isWhale = fishName === 'Cosmic Whale';
+
+  // Sembunyikan model ikan default, tampilkan whale GLTF (atau sebaliknya)
+  heldFishGroup.visible = !isWhale;
+  if(isWhale){
+    if(!heldWhaleModel){
+      heldWhaleModel = whaleTemplate.clone();
+      heldWhaleModel.scale.setScalar(0.018); // lebih kecil untuk held
+      heldWhaleModel.rotation.set(0.1, 0, 0.3);
+      // Tambahkan ke leftHandAnchor (sama dengan heldFishGroup)
+      heldFishGroup.parent && heldFishGroup.parent.add(heldWhaleModel);
+    }
+    heldWhaleModel.visible = true;
+  } else {
+    if(heldWhaleModel) heldWhaleModel.visible = false;
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 // ── HUD EDITOR SYSTEM ──
