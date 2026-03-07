@@ -945,9 +945,18 @@ for(let i=0;i<treeCount;i++){
   const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
   const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
   for(let i=0;i<houseCount;i++){
-    const ha=(i/houseCount)*Math.PI*2+(Math.random()-0.5)*0.3;
-    const hd=grassR*0.40+Math.random()*grassR*0.32;
-    const hx=Math.cos(ha)*hd, hz=Math.sin(ha)*hd;
+    let ha,hd,hx,hz,hAttempts=0;
+    do{
+      ha=(i/houseCount)*Math.PI*2+(Math.random()-0.5)*0.6;
+      hd=grassR*0.40+Math.random()*grassR*0.32;
+      hx=Math.cos(ha)*hd; hz=Math.sin(ha)*hd;
+      hAttempts++;
+      let blocked=false;
+      for(const ex of buildingExclusions){
+        if(Math.abs(hx-ex.cx)<ex.hw+10&&Math.abs(hz-ex.cz)<ex.hd+10){blocked=true;break;}
+      }
+      if(!blocked)break;
+    }while(hAttempts<30);
     const hcolor=houseMats[i%houseMats.length];
     const rcolor=roofColors[Math.floor(Math.random()*roofColors.length)];
     const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
@@ -1046,13 +1055,9 @@ for(let i=0;i<treeCount;i++){
       chimney.position.set(W*0.2, H+roofH*0.6, 0); hg.add(chimney);
     }
     g.add(hg);
-    // ── Tambahkan collision untuk rumah ini ──
-    // hg.position = (hx,0,hz) lokal dalam g (island group)
-    // g.position = (x,-2.5,z) → world = (x+hx, -2.5, z+hz)
+    // ── Collision OBB untuk rumah (oriented, mengikuti rotasi) ──
     const worldHX=x+hx, worldHZ=z+hz;
-    const cosR=Math.cos(hg.rotation.y), sinR=Math.sin(hg.rotation.y);
-    // 4 sisi rumah sebagai AABB (approximate, ignoring rotation for simplicity)
-    collisionBoxes.push({cx:worldHX, cz:worldHZ, hw:9, hd:6}); // box utama
+    collisionBoxes.push({cx:worldHX, cz:worldHZ, hw:9, hd:6, angle:hg.rotation.y, type:"obb"});
   }
 
   // Lamps (placed around center, registered for night glow)
@@ -1333,10 +1338,10 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-73);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-73);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-73);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-73);
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-70);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-70);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-70);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-70);
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -1717,6 +1722,27 @@ function resolveCollisions(){
   const pr=1.2;
   for(const b of collisionBoxes){
     const dx=player.position.x-b.cx, dz=player.position.z-b.cz;
+    // OBB — oriented bounding box (untuk rumah yang dirotasi)
+    if(b.type==="obb"){
+      const cos=Math.cos(-b.angle), sin=Math.sin(-b.angle);
+      // Transform player offset ke local space box
+      const lx= dx*cos - dz*sin;
+      const lz= dx*sin + dz*cos;
+      const ex=Math.max(0, Math.abs(lx)-(b.hw+pr));
+      const ez=Math.max(0, Math.abs(lz)-(b.hd+pr));
+      if(ex===0&&ez===0){
+        // Player di dalam box — dorong keluar lewat sisi terdekat
+        const ox=b.hw+pr-Math.abs(lx), oz=b.hd+pr-Math.abs(lz);
+        let pushLx=0, pushLz=0;
+        if(ox<oz){ pushLx=(lx>0?ox:-ox); }
+        else      { pushLz=(lz>0?oz:-oz); }
+        // Transform push kembali ke world space
+        const cosW=Math.cos(b.angle), sinW=Math.sin(b.angle);
+        player.position.x+=pushLx*cosW - pushLz*sinW;
+        player.position.z+=pushLx*sinW + pushLz*cosW;
+      }
+      continue;
+    }
     if(b.type==="circle"){
       const dist=Math.sqrt(dx*dx+dz*dz);
       const minDist=b.r+pr;
