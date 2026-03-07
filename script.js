@@ -87,16 +87,14 @@ let jetskiSpawned=false,nearHarbour=false;
 const jetskiMaxSpeed=0.45;
 // Harbour positions: one per island (at sand edge)
 const HARBOUR_DEFS=[
-  {id:"main",    x:0,    z:85,   spawnX:0,    spawnZ:95,   label:"🚢 Pelabuhan Utama"},
-  {id:"mystic",  x:700,  z:57,   spawnX:700,  spawnZ:68,   label:"🔮 Dermaga Mystic"},
-  {id:"volcano", x:-800, z:-538, spawnX:-800, spawnZ:-528, label:"🌋 Dermaga Volcano"},
-  {id:"crystal", x:300,  z:1054, spawnX:300,  spawnZ:1065, label:"💎 Dermaga Crystal"},
-  {id:"aurora",  x:-400, z:1250, spawnX:-400, spawnZ:1260, label:"🌌 Dermaga Aurora"},
-  {id:"abyss",   x:1200, z:652,  spawnX:1200, spawnZ:662,  label:"🌊 Dermaga Abyss"},
-  {id:"sky",     x:0,    z:-1348,spawnX:0,    spawnZ:-1338,label:"⚡ Dermaga Sky"},
+  {id:"main",    x:0,     z:163,  spawnX:0,     spawnZ:188,  label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:900,   z:123,  spawnX:900,   spawnZ:143,  label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-1000, z:-568, spawnX:-1000, spawnZ:-548, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:400,   z:1419, spawnX:400,   spawnZ:1438, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-500,  z:1614, spawnX:-500,  spawnZ:1633, label:"🌌 Dermaga Aurora"},
 ];
-const HARBOUR_POS=new THREE.Vector3(0,0,85);
-const jetskiSpawnPos=new THREE.Vector3(0,0.1,95);
+const HARBOUR_POS=new THREE.Vector3(0,0,163);
+const jetskiSpawnPos=new THREE.Vector3(0,0.1,188);
 let currentHarbourId="main";
 
 // ═══ TENSION ═══
@@ -222,42 +220,6 @@ const fishDB={
     // Legendary (1)
     {name:"Frost Dragon",    rarity:"Legendary",price:1500,xp:500, color:"#eeffff",emoji:"🐲",diff:4.0,island:"Crystal Isle"},
   ],
-  // ── PULAU BARU 1: Deep Abyss (gelap, misterius, dalam laut) ──
-  abyss:[
-    {name:"Remah Kerang",    rarity:"Junk",     price:1,   xp:1,   color:"#223344",emoji:"🪸",diff:0.3,island:"Abyss Isle"},
-    {name:"Ikan Jurang",     rarity:"Common",   price:32,  xp:14,  color:"#001133",emoji:"🐟",diff:0.8,island:"Abyss Isle"},
-    {name:"Ikan Gelap",      rarity:"Common",   price:30,  xp:13,  color:"#112244",emoji:"🐠",diff:0.7,island:"Abyss Isle"},
-    {name:"Ikan Abyssal",    rarity:"Common",   price:35,  xp:15,  color:"#003366",emoji:"🐡",diff:0.8,island:"Abyss Isle"},
-    {name:"Ikan Malam",      rarity:"Common",   price:28,  xp:12,  color:"#221133",emoji:"🌑",diff:0.7,island:"Abyss Isle"},
-    {name:"Ikan Cumi Raksasa",rarity:"Uncommon", price:80,  xp:32,  color:"#440088",emoji:"🦑",diff:1.2,island:"Abyss Isle"},
-    {name:"Ikan Angler",     rarity:"Uncommon", price:90,  xp:36,  color:"#001155",emoji:"🐟",diff:1.2,island:"Abyss Isle"},
-    {name:"Ikan Vantablack", rarity:"Uncommon", price:85,  xp:34,  color:"#000011",emoji:"⚫",diff:1.3,island:"Abyss Isle"},
-    {name:"Ikan Phantom",    rarity:"Uncommon", price:88,  xp:35,  color:"#220044",emoji:"👁️",diff:1.2,island:"Abyss Isle"},
-    {name:"Ikan Void",       rarity:"Rare",     price:200, xp:75,  color:"#110022",emoji:"🌀",diff:1.9,island:"Abyss Isle"},
-    {name:"Ikan Abyss",      rarity:"Rare",     price:220, xp:80,  color:"#0000aa",emoji:"💜",diff:2.0,island:"Abyss Isle"},
-    {name:"Leviathan Jr",    rarity:"Rare",     price:240, xp:85,  color:"#003399",emoji:"🦕",diff:2.0,island:"Abyss Isle"},
-    {name:"Ikan Shadow",     rarity:"Epic",     price:500, xp:180, color:"#110033",emoji:"👤",diff:2.6,island:"Abyss Isle"},
-    {name:"Kraken Jr",       rarity:"Epic",     price:550, xp:200, color:"#440066",emoji:"🐙",diff:2.7,island:"Abyss Isle"},
-    {name:"Leviathan",       rarity:"Legendary",price:5000,xp:1500,color:"#000066",emoji:"🌊",diff:6.0,island:"Abyss Isle"},
-  ],
-  // ── PULAU BARU 2: Sky Island (pulau terapung, ikan langit) ──
-  sky:[
-    {name:"Bulu Awan",       rarity:"Junk",     price:1,   xp:1,   color:"#eeeeff",emoji:"☁️",diff:0.2,island:"Sky Isle"},
-    {name:"Ikan Awan",       rarity:"Common",   price:38,  xp:16,  color:"#ddeeff",emoji:"🌤️",diff:0.8,island:"Sky Isle"},
-    {name:"Ikan Angin",      rarity:"Common",   price:35,  xp:15,  color:"#aaccff",emoji:"💨",diff:0.7,island:"Sky Isle"},
-    {name:"Ikan Langit Biru",rarity:"Common",   price:40,  xp:17,  color:"#88bbff",emoji:"🔵",diff:0.8,island:"Sky Isle"},
-    {name:"Ikan Petir",      rarity:"Common",   price:36,  xp:15,  color:"#ffff44",emoji:"⚡",diff:0.8,island:"Sky Isle"},
-    {name:"Ikan Cirrus",     rarity:"Uncommon", price:100, xp:40,  color:"#ccddff",emoji:"🌥️",diff:1.3,island:"Sky Isle"},
-    {name:"Ikan Stratosfer", rarity:"Uncommon", price:110, xp:44,  color:"#aabbee",emoji:"🌈",diff:1.3,island:"Sky Isle"},
-    {name:"Ikan Nimbus",     rarity:"Uncommon", price:105, xp:42,  color:"#8899cc",emoji:"🌩️",diff:1.4,island:"Sky Isle"},
-    {name:"Ikan Zephyr",     rarity:"Uncommon", price:108, xp:43,  color:"#99aadd",emoji:"🌬️",diff:1.3,island:"Sky Isle"},
-    {name:"Ikan Tornado",    rarity:"Rare",     price:280, xp:100, color:"#778899",emoji:"🌪️",diff:2.1,island:"Sky Isle"},
-    {name:"Ikan Ionosfer",   rarity:"Rare",     price:300, xp:110, color:"#5566aa",emoji:"🔹",diff:2.2,island:"Sky Isle"},
-    {name:"Storm Rider",     rarity:"Rare",     price:320, xp:115, color:"#334488",emoji:"⛈️",diff:2.2,island:"Sky Isle"},
-    {name:"Ikan Celestial",  rarity:"Epic",     price:700, xp:250, color:"#bbccff",emoji:"✨",diff:2.8,island:"Sky Isle"},
-    {name:"Phoenix Koi",     rarity:"Epic",     price:750, xp:270, color:"#ff8833",emoji:"🦅",diff:2.9,island:"Sky Isle"},
-    {name:"Sky God",         rarity:"Legendary",price:8000,xp:2500,color:"#ffffff",emoji:"⚡",diff:7.0,island:"Sky Isle"},
-  ],
   aurora:[
     // Junk (1)
     {name:"Sampah Antariksa", rarity:"Junk",    price:2,   xp:1,   color:"#555577",emoji:"🛸",diff:0.3,island:"Aurora Isle"},
@@ -367,6 +329,8 @@ function renderFishIndexTabs(){
     {key:"volcano",label:"🌋 Volcano", color:"#e74c3c"},
     {key:"crystal",label:"💎 Crystal", color:"#00bcd4"},
     {key:"aurora", label:"🌌 Aurora",  color:"#4455bb"},
+    {key:"abyss",  label:"🌊 Abyss",   color:"#0055cc"},
+    {key:"sky",    label:"⚡ Sky",      color:"#aaccff"},
     {key:"all",    label:"📋 All",     color:"#f39c12"},
   ];
   tabs.innerHTML=islandInfo.map(t=>{
@@ -399,6 +363,8 @@ function renderFishIndex(tabKey){
     volcano:{label:"🌋 Volcano Isle",color:"#e74c3c"},
     crystal:{label:"💎 Crystal Isle",color:"#00bcd4"},
     aurora:{label:"🌌 Aurora Isle",color:"#4455bb"},
+    abyss:{label:"🌊 Abyss Isle",color:"#0055cc"},
+    sky:{label:"⚡ Sky Isle",color:"#aaccff"},
   };
 
   // Total progress
@@ -486,13 +452,10 @@ const baitTypes=[
 
 // ═══ RODS ═══
 const rodDatabase={
-  FishingRod: {name:"Wood Rod",     icon:"🪵",price:0,     luckMult:1,   speedMult:1,   color:0x8b5a2b, desc:"Starter rod. Gratis."},
-  LuckRod:    {name:"Luck Rod",     icon:"🍀",price:800,   luckMult:2.5, speedMult:1,   color:0xaaaaaa, desc:"Ikan langka lebih sering muncul."},
-  MediumRod:  {name:"Medium Rod",   icon:"⚡",price:2500,  luckMult:3,   speedMult:2,   color:0xffd700, desc:"Kecepatan & keberuntungan."},
-  GoldenRod:  {name:"Golden Rod",   icon:"✨",price:8000,  luckMult:5,   speedMult:2,   color:0xFFD700, desc:"Joran terbaik di toko."},
-  AbyssRod:   {name:"Abyss Rod",    icon:"🌊",price:0,     luckMult:6,   speedMult:2.5, color:0x003399, desc:"🏆 Reward Quest: \"Petualang Abyssal\"",questOnly:true},
-  SkyRod:     {name:"Sky Rod",      icon:"⚡",price:0,     luckMult:7,   speedMult:3,   color:0xaaccff, desc:"🏆 Reward Quest: \"Penguasa Langit\"",questOnly:true},
-  CosmicRod:  {name:"Cosmic Rod",   icon:"🌌",price:0,     luckMult:10,  speedMult:3,   color:0x8800ff, desc:"🏆 Reward Quest: \"Legenda Laut\"",questOnly:true},
+  FishingRod:{name:"Wood Rod",  icon:"🪵",price:0,    luckMult:1,  speedMult:1,  color:0x8b5a2b,desc:"Starter rod."},
+  LuckRod:   {name:"Luck Rod",  icon:"🍀",price:150,  luckMult:2.5,speedMult:1,  color:0xaaaaaa,desc:"More rare fish."},
+  MediumRod: {name:"Medium Rod",icon:"⚡",price:500,  luckMult:3,  speedMult:2,  color:0xffd700,desc:"Faster & luckier."},
+  GoldenRod: {name:"Golden Rod",icon:"✨",price:2000, luckMult:5,  speedMult:2,  color:0xFFD700,desc:"Max luck rod."},
 };
 
 // ═══ INVENTORY DATA ═══
@@ -750,13 +713,11 @@ water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
 
 // ═══ ISLAND DEFS ═══
 const islandDefs=[
-  {id:"main",   x:0,    z:0,    sandR:90, grassR:78, label:"🏝️ Main Island",  fishKey:"main"},
-  {id:"mystic", x:700,  z:0,    sandR:65, grassR:55, label:"🔮 Mystic Isle",   fishKey:"mystic"},
-  {id:"volcano",x:-800, z:-600, sandR:70, grassR:60, label:"🌋 Volcano Isle",  fishKey:"volcano"},
-  {id:"crystal",x:300,  z:1000, sandR:62, grassR:52, label:"💎 Crystal Isle",  fishKey:"crystal"},
-  {id:"aurora", x:-400, z:1200, sandR:58, grassR:48, label:"🌌 Aurora Isle",   fishKey:"aurora"},
-  {id:"abyss",  x:1200, z:600,  sandR:68, grassR:58, label:"🌊 Abyss Isle",    fishKey:"abyss"},
-  {id:"sky",    x:0,    z:-1400,sandR:60, grassR:50, label:"⚡ Sky Isle",      fishKey:"sky"},
+  {id:"main",   x:0,    z:0,    sandR:200, grassR:185, label:"🏝️ Main Island",  fishKey:"main"},
+  {id:"mystic", x:900,  z:0,    sandR:155, grassR:140, label:"🔮 Mystic Isle",   fishKey:"mystic"},
+  {id:"volcano",x:-1000,z:-700, sandR:165, grassR:150, label:"🌋 Volcano Isle",  fishKey:"volcano"},
+  {id:"crystal",x:400,  z:1300, sandR:150, grassR:135, label:"💎 Crystal Isle",  fishKey:"crystal"},
+  {id:"aurora", x:-500, z:1500, sandR:145, grassR:130, label:"🌌 Aurora Isle",   fishKey:"aurora"},
 ];
 
 // ═══ FLOATING ORBS ═══
@@ -831,9 +792,6 @@ function addPathStone(g,tx,tz){
   s.position.set(tx,0.06,tz);s.rotation.y=Math.random()*Math.PI;g.add(s);
 }
 
-// collisionBoxes declared early so buildIsland can push to it
-if(typeof collisionBoxes==="undefined")var collisionBoxes=[];
-
 function buildIsland(def,options){
   const {x,z,sandR,grassR,label}=def;
   const opt=options||{};
@@ -904,26 +862,173 @@ for(let i=0;i<treeCount;i++){
     addFlower(g,Math.cos(a)*d,Math.sin(a)*d,flowerColors[Math.floor(Math.random()*flowerColors.length)]);
   }
 
-  // Path stones from center toward shore (2 directions)
+  // ── Jalan aspal: 4 arah dari center ke tepi, lebar 3 unit ──
   if(opt.paths!==false){
-    for(let p=0;p<2;p++){
-      const pAngle=p*Math.PI+(opt.pathAngle||0);
-      for(let s=0;s<8;s++){
-        const pd=5+s*4.5;
-        const jx=(Math.random()-0.5)*1.2,jz=(Math.random()-0.5)*1.2;
-        addPathStone(g,Math.cos(pAngle)*pd+jx,Math.sin(pAngle)*pd+jz);
+    const roadDirs=4;
+    const roadMat=new THREE.MeshStandardMaterial({color:0x444444,roughness:0.95});
+    for(let p=0;p<roadDirs;p++){
+      const pAngle=p*(Math.PI/2)+(opt.pathAngle||0.3);
+      const roadLen=grassR*0.85;
+      const segments=Math.floor(roadLen/4);
+      for(let s=0;s<segments;s++){
+        const pd=4+s*4;
+        // Aspal lebar
+        const tile=new THREE.Mesh(
+          new THREE.BoxGeometry(3.2,0.08,4.5),
+          roadMat
+        );
+        tile.position.set(Math.cos(pAngle)*pd,0.05,Math.sin(pAngle)*pd);
+        tile.rotation.y=pAngle;
+        g.add(tile);
+        // Garis putih tengah jalan (setiap 2 tile)
+        if(s%2===0){
+          const line=new THREE.Mesh(
+            new THREE.BoxGeometry(0.22,0.09,1.8),
+            new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xffffff,emissiveIntensity:0.08})
+          );
+          line.position.set(Math.cos(pAngle)*pd,0.07,Math.sin(pAngle)*pd);
+          line.rotation.y=pAngle;
+          g.add(line);
+        }
       }
+    }
+    // Roundabout di tengah
+    const rbMat=new THREE.MeshStandardMaterial({color:0x555555,roughness:0.9});
+    const rb=new THREE.Mesh(new THREE.CylinderGeometry(9,9,0.1,24),rbMat);
+    rb.position.y=0.06;g.add(rb);
+    // Taman kecil di roundabout
+    const rbGrass=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.5,0.12,20),
+      new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.9}));
+    rbGrass.position.y=0.1;g.add(rbGrass);
+    // Tugu di tengah roundabout
+    const tugu=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.7,5,8),
+      new THREE.MeshStandardMaterial({color:0xcccccc,roughness:0.6}));
+    tugu.position.y=2.5;g.add(tugu);
+    const tugutop=new THREE.Mesh(new THREE.ConeGeometry(1.2,2,8),
+      new THREE.MeshStandardMaterial({color:0xffd700,emissive:0xffaa00,emissiveIntensity:0.2}));
+    tugutop.position.y=6.5;g.add(tugutop);
+  }
+
+  // ── Hills: bukit-bukit kecil tersebar di pulau ──
+  const hillCount=opt.hills||6;
+  const hillMat=new THREE.MeshStandardMaterial({color:opt.grassColor||0x2d9e2d,roughness:0.95});
+  for(let i=0;i<hillCount;i++){
+    const ha=Math.random()*Math.PI*2;
+    const hd=grassR*0.25+Math.random()*grassR*0.45;
+    const hr=8+Math.random()*14;
+    const hh=3+Math.random()*8;
+    // Bukit elipsoid
+    const hill=new THREE.Mesh(
+      new THREE.SphereGeometry(hr,12,8),
+      hillMat
+    );
+    hill.scale.y=hh/hr*0.5;
+    hill.position.set(Math.cos(ha)*hd,-hr*0.3,Math.sin(ha)*hd);
+    g.add(hill);
+    // Pohon di atas bukit
+    if(Math.random()<0.6){
+      const hh2=4+Math.random()*4;
+      addTree(g,Math.cos(ha)*hd,Math.sin(ha)*hd,hh2,opt.trunkColor,opt.leafColor);
     }
   }
 
+  // Benches (8 di sepanjang jalan)
   if(opt.benches!==false){
-    for(let i=0;i<4;i++){
-      const ba=i*(Math.PI/2)+(opt.benchAngle||0.4);
-      const bd=grassR*0.28;
+    for(let i=0;i<8;i++){
+      const ba=i*(Math.PI/4)+(opt.benchAngle||0.2);
+      const bd=grassR*0.22+Math.random()*grassR*0.2;
       addBench(g,Math.cos(ba)*bd,Math.sin(ba)*bd,ba+Math.PI/2);
     }
   }
 
+  // ── Rumah-rumah sederhana di sepanjang jalan ──
+  // ── Rumah besar seukuran toko (efektif ~16x11x10 unit, sama dgn shop scale 1.6×base) ──
+  const houseCount=opt.houses||(Math.floor(grassR/30));
+  const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
+  const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
+  for(let i=0;i<houseCount;i++){
+    const ha=(i/houseCount)*Math.PI*2+(Math.random()-0.5)*0.3;
+    const hd=grassR*0.40+Math.random()*grassR*0.32;
+    const hx=Math.cos(ha)*hd, hz=Math.sin(ha)*hd;
+    const hcolor=houseMats[i%houseMats.length];
+    const rcolor=roofColors[Math.floor(Math.random()*roofColors.length)];
+    // Ukuran seukuran toko: 16 wide, 11 tall, 10 deep (world units)
+    const HW=16, HH=11, HD=10;
+    const hg=new THREE.Group();
+    hg.position.set(hx,0,hz);
+    hg.rotation.y=ha+Math.random()*0.4-0.2;
+    // Lantai
+    const floor=new THREE.Mesh(
+      new THREE.BoxGeometry(HW+1,0.4,HD+1),
+      new THREE.MeshStandardMaterial({color:0xccbbaa,roughness:1})
+    );
+    floor.position.y=0.2; hg.add(floor);
+    // Dinding utama (depan terbuka)
+    const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:hcolor,roughness:0.8});
+    // Belakang
+    const wb=new THREE.Mesh(new THREE.BoxGeometry(HW,HH,0.5),wallMat);
+    wb.position.set(0,HH/2,-HD/2); hg.add(wb);
+    // Kiri
+    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,HH,HD),wallMat);
+    wl.position.set(-HW/2,HH/2,0); hg.add(wl);
+    // Kanan
+    const wr=wl.clone(); wr.position.x=HW/2; hg.add(wr);
+    // Depan dengan celah pintu
+    const wft=new THREE.Mesh(new THREE.BoxGeometry(HW,HH*0.38,0.5),wallMat);
+    wft.position.set(0,HH*0.81,HD/2); hg.add(wft);
+    const wfL=new THREE.Mesh(new THREE.BoxGeometry(HW*0.3,HH,0.5),wallMat);
+    wfL.position.set(-HW*0.35,HH/2,HD/2); hg.add(wfL);
+    const wfR=wfL.clone(); wfR.position.x=HW*0.35; hg.add(wfR);
+    // Pintu kayu
+    const door=new THREE.Mesh(
+      new THREE.BoxGeometry(HW*0.22,HH*0.55,0.4),
+      new THREE.MeshStandardMaterial({color:0x5C4A1E,roughness:0.9})
+    );
+    door.position.set(0,HH*0.275,HD/2+0.1); hg.add(door);
+    // Ambang pintu
+    const doorTop=new THREE.Mesh(
+      new THREE.BoxGeometry(HW*0.28,0.5,0.5),
+      new THREE.MeshStandardMaterial({color:0x3e2200})
+    );
+    doorTop.position.set(0,HH*0.58,HD/2); hg.add(doorTop);
+    // Jendela x2 (kiri & kanan pintu)
+    [-1,1].forEach(side=>{
+      const win=new THREE.Mesh(
+        new THREE.BoxGeometry(HW*0.18,HH*0.28,0.4),
+        new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88bbdd,emissiveIntensity:0.15,transparent:true,opacity:0.88})
+      );
+      win.position.set(side*HW*0.3,HH*0.58,HD/2+0.1); hg.add(win);
+      // Kusen jendela
+      const frame=new THREE.Mesh(
+        new THREE.BoxGeometry(HW*0.21,HH*0.31,0.35),
+        new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.7})
+      );
+      frame.position.set(side*HW*0.3,HH*0.58,HD/2); hg.add(frame);
+    });
+    // Atap pelana besar
+    const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:rcolor,roughness:0.9});
+    const roof=new THREE.Mesh(new THREE.BoxGeometry(HW+2,0.4,HD+2),roofMat);
+    roof.position.y=HH+0.2; hg.add(roof);
+    // Puncak atap (ridge)
+    const ridgeL=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.35,0.4),roofMat);
+    ridgeL.position.set(0,HH+4.5,0); hg.add(ridgeL);
+    // Panel atap miring kiri-kanan
+    [-1,1].forEach(side=>{
+      const rp=new THREE.Mesh(new THREE.BoxGeometry(HW+2.5,0.3,(HD/2+1.5)),roofMat);
+      rp.position.set(0,HH+2.5,side*(HD/4+0.5));
+      rp.rotation.x=side*0.55;
+      hg.add(rp);
+    });
+    // Cerobong asap
+    if(Math.random()<0.5){
+      const chimney=new THREE.Mesh(
+        new THREE.BoxGeometry(1.8,4,1.8),
+        new THREE.MeshStandardMaterial({color:0x888888,roughness:1})
+      );
+      chimney.position.set(HW*0.3,HH+2,0); hg.add(chimney);
+    }
+    g.add(hg);
+  }
 
   // Lamps (placed around center, registered for night glow)
   if(opt.lamps!==false){
@@ -1074,22 +1179,17 @@ for(let i=0;i<treeCount;i++){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
+buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true,grassColor:0xaaffaa,
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
-  lamps:true,lampCount:5,labelColor:"#ffdd88",
+  lamps:true,lampCount:10,labelColor:"#ffdd88",
   buildingExclusions:[
-    {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
-    {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
+    {cx:0,   cz:-70,hw:14,hd:10},{cx:50,  cz:-70,hw:14,hd:10},
+    {cx:-50, cz:-70,hw:14,hd:10},{cx:100, cz:-70,hw:14,hd:10}
   ]});
-buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
-buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true,
-  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
-buildIsland(islandDefs[5],{trees:4,rocks:20,flowers:5,grassColor:0x001122,trunkColor:0x002244,leafColor:0x003366,lampColor:0x0044ff,lampCount:4,labelColor:"#0088ff",paths:true,benches:true,lamps:true,
-  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
-buildIsland(islandDefs[6],{trees:10,rocks:3,flowers:40,grassColor:0xaabbdd,trunkColor:0x8899bb,leafColor:0xbbccff,lampColor:0xffffff,lampCount:5,labelColor:"#ffffff",paths:true,benches:true,lamps:true,
-  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
+buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:22,rocks:14,flowers:20,hills:6,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:8,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:25,rocks:10,flowers:70,hills:7,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:10,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
 
 // ═══ SHOP BUILDER ═══
 function makeShop(px,pz,label){
@@ -1115,38 +1215,10 @@ function makeShop(px,pz,label){
   sg.position.set(0,8.2,2.9);g.add(sg);
   return{counter:ctr};
 }
-const {counter}=makeShop(0,-25,"🐟 SELL FISH");
-const {counter:rodShopCounter}=makeShop(30,-25,"🎣 ROD SHOP");
-const {counter:baitShopCounter}=makeShop(-30,-25,"🪱 BAIT SHOP");
-const {counter:jetskiShopCounter}=makeShop(60,-25,"🛥️ JETSKI");
-
-// ── Sell Fish shops di pulau lain ──
-function makeSellShopAt(ix,iz){
-  const {counter:sc}=makeShop(ix,iz,"🐟 SELL FISH");
-  return sc;
-}
-// Mystic Isle
-const {counter:mysticSellCounter}=makeShop(700,-50,"🐟 SELL FISH");
-const {counter:mysticBaitCounter}=makeShop(730,-50,"🪱 BAIT SHOP");
-// Volcano Isle
-const {counter:volcanoSellCounter}=makeShop(-800,-625,"🐟 SELL FISH");
-const {counter:volcanoBaitCounter}=makeShop(-770,-625,"🪱 BAIT SHOP");
-// Crystal Isle
-const {counter:crystalSellCounter}=makeShop(300,975,"🐟 SELL FISH");
-const {counter:crystalBaitCounter}=makeShop(330,975,"🪱 BAIT SHOP");
-// Aurora Isle
-const {counter:auroraSellCounter}=makeShop(-400,1175,"🐟 SELL FISH");
-const {counter:auroraBaitCounter}=makeShop(-370,1175,"🪱 BAIT SHOP");
-// Abyss Isle
-const {counter:abyssSellCounter}=makeShop(1200,575,"🐟 SELL FISH");
-const {counter:abyssBaitCounter}=makeShop(1230,575,"🪱 BAIT SHOP");
-// Sky Isle
-const {counter:skySellCounter}=makeShop(0,-1425,"🐟 SELL FISH");
-const {counter:skyBaitCounter}=makeShop(30,-1425,"🪱 BAIT SHOP");
-
-// All sell counters (for proximity check)
-const allSellCounters=[counter,mysticSellCounter,volcanoSellCounter,crystalSellCounter,auroraSellCounter,abyssSellCounter,skySellCounter];
-const allBaitCounters=[baitShopCounter,mysticBaitCounter,volcanoBaitCounter,crystalBaitCounter,auroraBaitCounter,abyssBaitCounter,skyBaitCounter];
+const {counter}=makeShop(0,-70,"🐟 SELL FISH");
+const {counter:rodShopCounter}=makeShop(50,-70,"🎣 ROD SHOP");
+const {counter:baitShopCounter}=makeShop(-50,-70,"🪱 BAIT SHOP");
+const {counter:jetskiShopCounter}=makeShop(100,-70,"🛥️ JETSKI");
 
 // ═══ HARBOUR ═══
 function buildHarbour(hdef){
@@ -1235,10 +1307,10 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-22);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,30,-22);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-30,-22);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,60,-22);
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-64);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-64);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-64);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-64);
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -1363,77 +1435,18 @@ const fishingLine=new THREE.Line(
 );
 scene.add(fishingLine);
 
-// ── JETSKI (model yang lebih bagus) ──
+// JETSKI
 const jetski=new THREE.Group();
-
-// Badan utama — lebih aerodinamis
-const hullMat=new THREE.MeshStandardMaterial({color:0xe74c3c,metalness:0.5,roughness:0.25});
-const hullBot=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.7,3.8,12,1,false,0,Math.PI*2),hullMat);
-hullBot.scale.set(1,0.45,1);hullBot.rotation.z=Math.PI/2;hullBot.position.set(0,0,0);jetski.add(hullBot);
-
-// Deck atas
-const deckMat=new THREE.MeshStandardMaterial({color:0xc0392b,metalness:0.3,roughness:0.3});
-const deck=new THREE.Mesh(new THREE.BoxGeometry(3.6,0.22,1.3),deckMat);
-deck.position.set(0,0.42,0);jetski.add(deck);
-
-// Hidung tajam
-const noseMat=new THREE.MeshStandardMaterial({color:0xff6633,metalness:0.5,roughness:0.2});
-const nose=new THREE.Mesh(new THREE.ConeGeometry(0.38,1.4,10),noseMat);
-nose.rotation.z=-Math.PI/2;nose.position.set(2.3,0.28,0);jetski.add(nose);
-
-// Ekor
-const tail=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.5,1.1),deckMat);
-tail.position.set(-2.0,0.3,0);jetski.add(tail);
-const tailFin=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.6,0.4),deckMat);
-tailFin.position.set(-2.2,0.6,0);jetski.add(tailFin);
-
-// Stripe aksen putih
-const stripeMat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.1});
-const stripeL=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.06,0.08),stripeMat);
-stripeL.position.set(0,0.54,-0.55);jetski.add(stripeL);
-const stripeR=stripeL.clone();stripeR.position.z=0.55;jetski.add(stripeR);
-
-// Windshield kaca (transparan cyan)
-const wsMat=new THREE.MeshStandardMaterial({color:0x00ddff,transparent:true,opacity:0.45,metalness:0.8,roughness:0.1});
-const ws=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.7,1.1),wsMat);
-ws.position.set(0.9,0.9,0);ws.rotation.y=0;jetski.add(ws);
-
-// Kursi sadel
-const seatMat=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.85});
-const seatBase=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.22,0.88),seatMat);
-seatBase.position.set(-0.2,0.6,0);jetski.add(seatBase);
-const seatTop=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.45,0.16,12),seatMat);
-seatTop.scale.set(1,1,0.85);seatTop.position.set(-0.2,0.72,0);jetski.add(seatTop);
-
-// Footrest kiri & kanan
-const footMat=new THREE.MeshStandardMaterial({color:0x333333,roughness:0.9});
-const footL=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.1,0.18),footMat);
-footL.position.set(-0.1,0.44,-0.72);jetski.add(footL);
-const footR=footL.clone();footR.position.z=0.72;jetski.add(footR);
-
-// Handlebar (stang)
-const hbarMat=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.8,roughness:0.2});
-const hbarCenter=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,0.5,8),hbarMat);
-hbarCenter.position.set(0.8,1.0,0);jetski.add(hbarCenter);
-const hbarCross=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,1.2,8),hbarMat);
-hbarCross.rotation.x=Math.PI/2;hbarCross.position.set(0.8,1.25,0);jetski.add(hbarCross);
-// Grip kiri & kanan
-const gripMat=new THREE.MeshStandardMaterial({color:0x222222,roughness:0.95});
-const gripL=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.25,8),gripMat);
-gripL.rotation.x=Math.PI/2;gripL.position.set(0.8,1.25,-0.62);jetski.add(gripL);
-const gripR=gripL.clone();gripR.position.z=0.62;jetski.add(gripR);
-
-// Lampu depan
-const lightMat=new THREE.MeshStandardMaterial({color:0xffffaa,emissive:0xffff44,emissiveIntensity:0.8});
-const headlight=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),lightMat);
-headlight.position.set(2.0,0.55,0);jetski.add(headlight);
-
-// Exhaust belakang
-const exhMat=new THREE.MeshStandardMaterial({color:0x555555,metalness:0.9});
-const exhL=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,0.3,8),exhMat);
-exhL.rotation.z=Math.PI/2;exhL.position.set(-2.1,0.3,-0.3);jetski.add(exhL);
-const exhR=exhL.clone();exhR.position.z=0.3;jetski.add(exhR);
-
+const hull=new THREE.Mesh(new THREE.BoxGeometry(3,0.8,1.4),new THREE.MeshStandardMaterial({color:0xe74c3c,metalness:0.4,roughness:0.3}));
+jetski.add(hull);
+const nose=new THREE.Mesh(new THREE.ConeGeometry(0.5,1.2,8),new THREE.MeshStandardMaterial({color:0xc0392b}));
+nose.rotation.z=-Math.PI/2;nose.position.set(2,0.1,0);jetski.add(nose);
+const shield=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.6,1.2),new THREE.MeshStandardMaterial({color:0x00aaff,transparent:true,opacity:0.5}));
+shield.position.set(0.5,0.7,0);jetski.add(shield);
+const jseat=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.3,1),new THREE.MeshStandardMaterial({color:0x222222}));
+jseat.position.set(-0.3,0.55,0);jetski.add(jseat);
+const hbar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,8),new THREE.MeshStandardMaterial({color:0x888888}));
+hbar.rotation.x=Math.PI/2;hbar.position.set(0.6,0.9,0);jetski.add(hbar);
 jetski.position.copy(jetskiSpawnPos);jetski.visible=false;scene.add(jetski);
 
 // WAKE PARTICLES
@@ -1619,21 +1632,23 @@ function checkOnLand(){
 // Mystic: runic ring TorusGeometry(grassR*0.28=15.4) at (700,0)
 // Crystal: snow mound SphereGeometry(grassR*0.22=11.4) at (300,1000)
 // Shops: scale=1.6 → world floor 16x9.6, back wall at z=-4.8 from shop center
-// collisionBoxes already declared above — now populate it
-collisionBoxes.push(...[
-  // ─ MAIN ISLAND: Shops at (0,-25),(30,-25),(-30,-25),(60,-25) scale=1.6 ─
-  {cx:0,   cz:-29.8, hw:8.5, hd:1.5},
-  {cx:30,  cz:-29.8, hw:8.5, hd:1.5},
-  {cx:-30, cz:-29.8, hw:8.5, hd:1.5},
-  {cx:60,  cz:-29.8, hw:8.5, hd:1.5},
-  {cx:-8.2,  cz:-25, hw:1.5, hd:4.8},
-  {cx:8.2,   cz:-25, hw:1.5, hd:4.8},
-  {cx:21.8,  cz:-25, hw:1.5, hd:4.8},
-  {cx:38.2,  cz:-25, hw:1.5, hd:4.8},
-  {cx:-38.2, cz:-25, hw:1.5, hd:4.8},
-  {cx:-21.8, cz:-25, hw:1.5, hd:4.8},
-  {cx:51.8,  cz:-25, hw:1.5, hd:4.8},
-  {cx:68.2,  cz:-25, hw:1.5, hd:4.8},
+const collisionBoxes=[
+  // ─ MAIN ISLAND: Shops (px,pz center, scale=1.6) ─
+  // Back wall only — open front so player can enter
+  {cx:0,   cz:-29.8, hw:8.5, hd:1.5},  // SELL FISH — back wall
+  {cx:0,   cz:-20.2, hw:8.5, hd:1.5},  // SELL FISH — NOT blocking (removed)
+  {cx:30,  cz:-29.8, hw:8.5, hd:1.5},  // ROD SHOP — back wall
+  {cx:-30, cz:-29.8, hw:8.5, hd:1.5},  // BAIT SHOP — back wall
+  {cx:60,  cz:-29.8, hw:8.5, hd:1.5},  // JETSKI — back wall
+  // Side walls (left/right of each shop)
+  {cx:-8.8, cz:-25, hw:1.5, hd:4.8},   // SELL FISH — left wall
+  {cx:8.8,  cz:-25, hw:1.5, hd:4.8},   // SELL FISH — right wall
+  {cx:21.2, cz:-25, hw:1.5, hd:4.8},   // ROD SHOP — left wall
+  {cx:38.8, cz:-25, hw:1.5, hd:4.8},   // ROD SHOP — right wall
+  {cx:-38.8,cz:-25, hw:1.5, hd:4.8},   // BAIT SHOP — left wall
+  {cx:-21.2,cz:-25, hw:1.5, hd:4.8},   // BAIT SHOP — right wall
+  {cx:51.2, cz:-25, hw:1.5, hd:4.8},   // JETSKI — left wall
+  {cx:68.8, cz:-25, hw:1.5, hd:4.8},   // JETSKI — right wall
 
   // ─ VOLCANO ISLE center(-800,-600) grassR=60 ─
   // Volcano cone: ConeGeometry(grassR*0.45=27) — big circle blocker
@@ -1669,7 +1684,7 @@ collisionBoxes.push(...[
 
   // ─ AURORA ISLE center(-400,1200) grassR=48 ─
   // No big static obstacles — only floating orbs (no collision)
-]);
+];
 
 function resolveCollisions(){
   if(onJetski||isSwimming)return;
@@ -1911,30 +1926,19 @@ function mountJetski(){
   if(!jetskiSpawned){showMessage("🛥️ Spawn jetski dulu di Pelabuhan!");return;}
   onJetski=true;isSwimming=false;uwDiv.style.display="none";
   scene.remove(player);jetski.add(player);
-  // Posisi duduk di atas sadel
-  player.position.set(-0.2,0.88,0);
-  player.rotation.set(0,0,0);
-  // Badan sedikit condong ke depan
-  torso.rotation.x=0.18;
-  // Kaki direntangkan ke samping, lutut sedikit ke atas (posisi naik jetski)
-  legL.rotation.x=0.85;legR.rotation.x=0.85;
-  legL.rotation.z=0.55;legR.rotation.z=-0.55;
-  // Tangan ke depan atas memegang stang
-  armL.rotation.x=-0.72;armR.rotation.x=-0.72;
-  armL.rotation.z=0.3;armR.rotation.z=-0.3;
-  // Lengan sedikit ke depan
-  armL.rotation.y=0.15;armR.rotation.y=-0.15;
+  player.position.set(-0.3,0.75,0);player.rotation.set(0,0,0);
+  torso.rotation.x=0.05;legL.rotation.x=1.4;legR.rotation.x=1.4;
+  legL.rotation.z=0.15;legR.rotation.z=-0.15;
+  armL.rotation.x=-0.5;armR.rotation.x=-0.5;armL.rotation.z=0.4;armR.rotation.z=-0.4;
   document.getElementById("jetskiUI").style.display="block";
   if(window.MP&&window.MP.isActive())window.MP.sendEvent("mountJetski",{});
   showMessage("🛥️ Naik! [WASD] kemudi · [E] turun");
 }
 function dismountJetski(){
   onJetski=false;jetskiSpeed=0;
-  if(player.parent===jetski){jetski.remove(player);scene.add(player);player.position.set(jetski.position.x+2.5,0,jetski.position.z+1.5);player.rotation.set(0,0,0);}
-  // Reset semua rotasi badan ke default
-  torso.rotation.set(0,0,0);
-  legL.rotation.set(0,0,0);legR.rotation.set(0,0,0);
-  armL.rotation.set(0,0,0);armR.rotation.set(0,0,0);
+  if(player.parent===jetski){jetski.remove(player);scene.add(player);player.position.set(jetski.position.x+3,0,jetski.position.z);player.rotation.set(0,0,0);}
+  torso.rotation.x=0;legL.rotation.x=0;legR.rotation.x=0;legL.rotation.z=0;legR.rotation.z=0;
+  armL.rotation.x=0;armR.rotation.x=0;armL.rotation.z=0;armR.rotation.z=0;
   document.getElementById("jetskiUI").style.display="none";
   if(window.MP&&window.MP.isActive())window.MP.sendEvent("dismountJetski",{});
   showMessage("Turun dari jetski.");
@@ -2227,40 +2231,30 @@ function renderTab(tab){
 }
 function renderRodsTab(el){
   const allRods=[
-    {id:"FishingRod", ...rodDatabase.FishingRod},
-    {id:"LuckRod",    ...rodDatabase.LuckRod},
-    {id:"MediumRod",  ...rodDatabase.MediumRod},
-    {id:"GoldenRod",  ...rodDatabase.GoldenRod},
-    {id:"AbyssRod",   ...rodDatabase.AbyssRod},
-    {id:"SkyRod",     ...rodDatabase.SkyRod},
-    {id:"CosmicRod",  ...rodDatabase.CosmicRod},
+    {id:"FishingRod",...rodDatabase.FishingRod},
+    {id:"LuckRod",  ...rodDatabase.LuckRod},
+    {id:"MediumRod",...rodDatabase.MediumRod},
+    {id:"GoldenRod",...rodDatabase.GoldenRod},
   ];
-  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">🎣 Beli joran di <b style='color:#fff'>Rod Shop</b> (Main Island). Joran 🏆 didapat dari Quest.</div>`
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to equip.</div>`
     +allRods.map(r=>{
       const owned=inventory.rods.includes(r.id),eq=inventory.equipped===r.id;
-      const isQuest=r.questOnly===true;
-      return`<div class="rodRow${eq?" equipped":""}" style="opacity:${owned?1:0.6};cursor:${owned?'pointer':'default'}" onclick="${owned?`equipRod('${r.id}')`:''}">
+      return`<div class="rodRow${eq?" equipped":""}" onclick="${owned?`equipRod('${r.id}')`:`buyRod('${r.id}')`}">
         <div class="rodIcon">${r.icon}</div>
-        <div class="rodInfo">
-          <h4>${r.name}${eq?" <span style='color:#f1c40f'>✓ Equipped</span>":""}</h4>
-          <p style="font-size:10px;color:${isQuest?'#f1c40f':'#aaa'}">${r.desc}</p>
-          <div class="rodStats">⚡${r.speedMult}x 🍀${r.luckMult}x${!owned&&!isQuest?" · 💰"+r.price:""}</div>
-        </div>
-        ${owned?`<button class="rodEquipBtn ${eq?"eq":"neq"}">${eq?"Equipped":"Equip"}</button>`
-          :isQuest?`<span style="color:#f1c40f;font-size:10px;text-align:center">🏆<br>Quest</span>`
-          :`<span style="color:#666;font-size:10px;text-align:center">🔒<br>Beli</span>`}
+        <div class="rodInfo"><h4>${r.name}${eq?" <span style='color:#f1c40f'>✓</span>":""}</h4>
+        <p>${r.desc}</p><div class="rodStats">⚡${r.speedMult}x 🍀${r.luckMult}x${!owned?" 💰"+r.price:""}</div></div>
+        <button class="rodEquipBtn ${eq?"eq":"neq"}">${eq?"Equipped":owned?"Equip":"Buy 💰"+r.price}</button>
       </div>`;
     }).join("");
 }
 function renderBaitTab(el){
-  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">🪱 Beli umpan di <b style='color:#fff'>Bait Shop</b> di pulau manapun. Tap untuk pilih.</div><div class="baitGrid">`
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to select.</div><div class="baitGrid">`
     +baitTypes.map(b=>{
       const count=b.infinite?"∞":inventory.bait[b.id]||0,eq=inventory.equippedBait===b.id;
-      const hasStock=b.infinite||(count>0);
-      return`<div class="baitCard${eq?" selected":""}${!hasStock?" locked":""}" onclick="${hasStock?`selectBait('${b.id}')`:''}" style="${!hasStock?'opacity:0.5;cursor:not-allowed':''}">
+      return`<div class="baitCard${eq?" selected":""}" onclick="selectBait('${b.id}')">
         <div class="baitIcon">${b.icon}</div><h4>${b.name}</h4><p>${b.desc}</p>
-        <div class="baitCount" style="color:${count===0&&!b.infinite?'#e74c3c':'#2ecc71'}">×${count}</div>
-        ${!hasStock?`<div style="color:#888;font-size:10px;margin-top:4px">🏪 Beli di Bait Shop</div>`:""}
+        <div class="baitCount">×${count}</div>
+        ${b.id!=="none"&&count===0?`<button class="buyRodBtn" style="margin-top:6px" onclick="event.stopPropagation();buyBait('${b.id}')">Buy 💰${b.price}</button>`:""}
       </div>`;
     }).join("")+"</div>";
 }
@@ -2370,8 +2364,6 @@ function toggleHoldFish(i){
     document.getElementById("heldFishHUD").style.display="block";
     const wLabel=f.weight?(f.weight>=1000?(f.weight/1000).toFixed(2)+"kg":f.weight+"g"):"";
     document.getElementById("heldFishHUD").textContent=f.emoji+" "+f.name+(wLabel?" ("+wLabel+")":"");
-    // Swap ke model GLTF paus jika Cosmic Whale
-    if(typeof updateHeldFishModel==="function") updateHeldFishModel(f.name);
   }
   renderTab("fish");
 }
@@ -2380,7 +2372,7 @@ function toggleHoldFish(i){
 function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
 function sellAllFish(){
   let total=0;inventory.fish.forEach(f=>total+=f.price);
-  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;if(heldWhaleModel)heldWhaleModel.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
+  coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
   document.getElementById("coinUI").textContent="💰 "+coins;
   document.getElementById("heldFishHUD").style.display="none";
   showMessage("🐟 Sold all! +💰"+total);
@@ -2389,13 +2381,10 @@ function sellAllFish(){
 function buyRod(name){
   if(inventory.rods.includes(name)){showMessage("Already owned!");return;}
   const rd=rodDatabase[name];if(!rd)return;
-  if(rd.questOnly){showMessage("🏆 "+rd.name+" hanya bisa didapat dari Quest!");return;}
   if(coins<rd.price){showMessage("❌ Need 💰"+rd.price);return;}
-  // Must be near Rod Shop on Main Island
-  if(!document.getElementById("openRodShopBtn")._nearShop){showMessage("🎣 Pergi ke Rod Shop untuk membeli!");return;}
   coins-=rd.price;inventory.rods.push(name);
   document.getElementById("coinUI").textContent="💰 "+coins;
-  showMessage("✅ "+rd.name+" dibeli!");renderTab("rods");saveProgress();
+  showMessage("✅ "+rd.name+" purchased!");renderTab("rods");saveProgress();
 }
 function buyJetski(){
   if(jetskiOwned){showMessage("Already own Jetski!");return;}
@@ -2475,44 +2464,26 @@ function updateWeather(dt){
 
 // ═══ NPC INTERACTION ═══
 function updateNPCInteraction(){
-  const rodPos=new THREE.Vector3(),baitPos=new THREE.Vector3(),jsPos=new THREE.Vector3();
-  rodShopCounter.getWorldPosition(rodPos);
+  const fishPos=new THREE.Vector3(),rodPos=new THREE.Vector3(),baitPos=new THREE.Vector3(),jsPos=new THREE.Vector3();
+  counter.getWorldPosition(fishPos);rodShopCounter.getWorldPosition(rodPos);
   baitShopCounter.getWorldPosition(baitPos);jetskiShopCounter.getWorldPosition(jsPos);
   const pwp=new THREE.Vector3();player.getWorldPosition(pwp);
   const sellBtn=document.getElementById("sellBtn"),rodBtn=document.getElementById("openRodShopBtn");
   const baitBtn=document.getElementById("openJetskiShopBtn"),mountBtn=document.getElementById("mountJetskiBtn");
   const harbBtn=document.getElementById("harbourBtn");
-
-  // Check ALL sell counters (main + other islands)
-  let nearestSellPos=null,nearestSellDist=99999;
-  allSellCounters.forEach(sc=>{
-    const sp=new THREE.Vector3();sc.getWorldPosition(sp);
-    const d=pwp.distanceTo(sp);
-    if(d<nearestSellDist){nearestSellDist=d;nearestSellPos=sp;}
-  });
-  const nearAnySell=nearestSellDist<12;
-  if(nearAnySell){
+  if(pwp.distanceTo(fishPos)<12){
     nearSeller=true;sellBtn.style.display="block";
-    const v=nearestSellPos.clone().project(camera);
+    const v=fishPos.clone().project(camera);
     sellBtn.style.left=((v.x+1)/2*window.innerWidth-sellBtn.offsetWidth/2)+"px";
     sellBtn.style.top=((-v.y+1)/2*window.innerHeight-55)+"px";
   } else{nearSeller=false;sellBtn.style.display="none";}
-
-  // Check ALL bait counters
-  let nearAnyBait=false;
-  allBaitCounters.forEach(bc=>{
-    const bp=new THREE.Vector3();bc.getWorldPosition(bp);
-    if(pwp.distanceTo(bp)<12)nearAnyBait=true;
-  });
-
   if(pwp.distanceTo(rodPos)<12){
     rodBtn.style.display="block";
-    rodBtn._nearShop=true;
     const v=rodPos.clone().project(camera);
     rodBtn.style.left=((v.x*.5+.5)*window.innerWidth)+"px";
     rodBtn.style.top=((-v.y*.5+.5)*window.innerHeight)+"px";
-  } else{rodBtn.style.display="none";rodBtn._nearShop=false;}
-  if(nearAnyBait||pwp.distanceTo(jsPos)<12)baitBtn.style.display="block";
+  } else rodBtn.style.display="none";
+  if(pwp.distanceTo(baitPos)<12||pwp.distanceTo(jsPos)<12)baitBtn.style.display="block";
   else baitBtn.style.display="none";
   const distToJetski=pwp.distanceTo(jetski.position);
   nearJetski=jetskiSpawned&&distToJetski<7;
@@ -2543,9 +2514,9 @@ function updateNPCInteraction(){
   const hint=document.getElementById("interactHint");
   if(nearHarbour&&jetskiOwned&&!onJetski)hint.textContent=jetskiSpawned?"🛥️ [E] Despawn Jetski":"🛥️ [E] Spawn Jetski";
   else if(nearJetski&&!onJetski)hint.textContent="🛥️ Tekan [E] naik jetski";
-  else if(nearAnySell)hint.textContent="🐟 Sell Fish — tekan Sell";
-  else if(pwp.distanceTo(rodPos)<12)hint.textContent="🎣 Rod Shop — beli & equip joran";
-  else if(nearAnyBait)hint.textContent="🪱 Bait Shop — beli umpan";
+  else if(pwp.distanceTo(fishPos)<12)hint.textContent="🐟 Sell Shop — tekan Sell";
+  else if(pwp.distanceTo(rodPos)<12)hint.textContent="🎣 Rod Shop [E]";
+  else if(pwp.distanceTo(baitPos)<12)hint.textContent="🪱 Baits Shop";
   else{hint.textContent="";hint.style.display="none";return;}
   hint.style.display="block";
 }
@@ -2783,7 +2754,7 @@ function adaptUI(){
 
 
     if(fibtn){Object.assign(fibtn.style,{top:"4px",left:"calc(50% + 90px)",width:"32px",height:"32px",fontSize:"14px"});}
-    if(runbtn){Object.assign(runbtn.style,{bottom:"115px",left:"37px",width:"46px",height:"46px",fontSize:"10px"});}
+    if(runbtn){Object.assign(runbtn.style,{bottom:"10px",left:"120px",width:"46px",height:"46px",fontSize:"10px"});}
     if(dnui){Object.assign(dnui.style,{top:"4px",fontSize:"11px",padding:"2px 10px"});}
     if(fps){Object.assign(fps.style,{bottom:"2px",fontSize:"9px"});}
   } else {
@@ -2792,7 +2763,7 @@ function adaptUI(){
 
 
     if(fibtn){Object.assign(fibtn.style,{top:"8px",left:"calc(50% + 125px)",width:"40px",height:"40px",fontSize:"18px"});}
-    if(runbtn){Object.assign(runbtn.style,{bottom:"168px",left:"55px",width:"58px",height:"58px",fontSize:"11px"});}
+    if(runbtn){Object.assign(runbtn.style,{bottom:"28px",left:"148px",width:"58px",height:"58px",fontSize:"11px"});}
     if(dnui){Object.assign(dnui.style,{top:"8px",fontSize:"13px",padding:"4px 16px"});}
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
@@ -3533,320 +3504,3 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
 
 })();
 // ═══════════════════════════════════════════════════════════
-
-
-
-// ═══════════════════════════════════════════════════════
-// ── WHALE GLTF SYSTEM ──
-// Hanya untuk held model Cosmic Whale
-// ═══════════════════════════════════════════════════════
-let whaleTemplate = null;
-let heldWhaleModel = null;
-
-(function loadWhaleModel(){
-  if(typeof THREE.GLTFLoader === 'undefined'){
-    console.warn('GLTFLoader tidak tersedia');
-    return;
-  }
-  const gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.load(
-    'models/whale.gltf',
-    function(gltf){
-      whaleTemplate = gltf.scene;
-      console.log('🐋 Whale model loaded!');
-    },
-    undefined,
-    function(err){ console.warn('Whale load error:', err); }
-  );
-})();
-
-function updateHeldFishModel(fishName){
-  const isWhale = (fishName === 'Cosmic Whale');
-
-  if(isWhale && whaleTemplate){
-    // Buat whale model sekali, pasang ke leftHandAnchor
-    if(!heldWhaleModel){
-      heldWhaleModel = whaleTemplate.clone();
-      heldWhaleModel.scale.setScalar(0.022);
-      heldWhaleModel.rotation.set(0.1, 0, 0.3);
-      leftHandAnchor.add(heldWhaleModel);
-    }
-    // Sembunyikan ikan default, tampilkan paus
-    heldFishGroup.visible = false;
-    heldJunkGroup.visible = false;
-    heldWhaleModel.visible = true;
-  } else {
-    // Sembunyikan paus, ikan default sudah diatur di tempat lain
-    if(heldWhaleModel) heldWhaleModel.visible = false;
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// ── HUD EDITOR SYSTEM ──
-// ═══════════════════════════════════════════════════════
-let hudEditMode = false;
-
-// List elemen HUD yang bisa dipindah + posisi defaultnya
-const HUD_ELEMENTS = [
-  // Kontrol gerak
-  { id: 'joystick',        label: '🕹️ Joystick',       defLeft: '25px',   defBottom: '35px',  defRight: null,    defTop: null   },
-  { id: 'runBtn',          label: '🏃 Run',             defLeft: '55px',   defBottom: '168px', defRight: null,    defTop: null   },
-  { id: 'jumpBtn',         label: '⬆️ Jump',            defLeft: null,     defBottom: '35px',  defRight: '25px',  defTop: null   },
-  // Inventory & aksi
-  { id: 'hotbar',          label: '🎣 Hotbar',          defLeft: null,     defBottom: '18px',  defRight: null,    defTop: null   },
-  { id: 'inventoryBtn',    label: '🎒 Inventory',       defLeft: null,     defBottom: '18px',  defRight: '12px',  defTop: null   },
-  { id: 'harbourBtn',      label: '🛥️ Harbour',         defLeft: '50%',    defBottom: '18px',  defRight: null,    defTop: null   },
-  // Info panel
-  { id: 'coinUI',          label: '💰 Koin',            defLeft: '12px',   defBottom: null,    defRight: null,    defTop: '14px' },
-  { id: 'levelUI',         label: '⭐ Level',           defLeft: '12px',   defBottom: null,    defRight: null,    defTop: '56px' },
-  { id: 'weatherUI',       label: '☀️ Cuaca',           defLeft: null,     defBottom: null,    defRight: null,    defTop: '8px'  },
-  { id: 'dayNightUI',      label: '🕐 Jam',             defLeft: '50%',    defBottom: null,    defRight: null,    defTop: '8px'  },
-  { id: 'islandBadge',     label: '🏝️ Nama Pulau',      defLeft: '50%',    defBottom: null,    defRight: null,    defTop: '42px' },
-  // Tombol atas
-  { id: 'openMenuBtn',     label: '☰ Menu',             defLeft: null,     defBottom: null,    defRight: '12px',  defTop: '14px' },
-  { id: 'fullscreenBtn',   label: '⛶ Fullscreen',      defLeft: null,     defBottom: null,    defRight: '58px',  defTop: '14px' },
-  { id: 'mpChatBtn',       label: '💬 Chat',            defLeft: null,     defBottom: null,    defRight: '104px', defTop: '14px' },
-  { id: 'fishIndexBtn',    label: '📖 Fish Index',      defLeft: null,     defBottom: null,    defRight: '148px', defTop: '14px' },
-  { id: 'fpsCounter',      label: '📊 FPS Counter',     defLeft: null,     defBottom: null,    defRight: null,    defTop: null   },
-];
-
-// Load saved positions from localStorage
-function loadHudPositions() {
-  HUD_ELEMENTS.forEach(e => {
-    const saved = localStorage.getItem('hud_' + e.id);
-    if (saved) {
-      try {
-        const pos = JSON.parse(saved);
-        const el = document.getElementById(e.id);
-        if (!el) return;
-        el.style.left   = pos.left   || '';
-        el.style.right  = pos.right  || '';
-        el.style.top    = pos.top    || '';
-        el.style.bottom = pos.bottom || '';
-        el.style.transform = pos.transform || '';
-      } catch(err) {}
-    }
-  });
-}
-
-function saveHudPosition(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const cs = window.getComputedStyle(el);
-  const rect = el.getBoundingClientRect();
-  const pos = {
-    left:   rect.left + 'px',
-    top:    rect.top  + 'px',
-    right:  '',
-    bottom: '',
-    transform: ''
-  };
-  localStorage.setItem('hud_' + id, JSON.stringify(pos));
-}
-
-function resetHudPositions() {
-  HUD_ELEMENTS.forEach(e => {
-    localStorage.removeItem('hud_' + e.id);
-    const el = document.getElementById(e.id);
-    if (!el) return;
-    el.style.left   = e.defLeft   || '';
-    el.style.right  = e.defRight  || '';
-    el.style.top    = e.defTop    || '';
-    el.style.bottom = e.defBottom || '';
-    el.style.transform = '';
-    // Re-apply center transform for hotbar & harbourBtn
-    if (e.id === 'hotbar' || e.id === 'harbourBtn' || e.id === 'dayNightUI' || e.id === 'islandBadge') {
-      el.style.left = '50%';
-      el.style.transform = 'translateX(-50%)';
-    }
-  });
-  alert('Posisi HUD sudah direset ke default!');
-}
-
-function toggleHudEdit() {
-  hudEditMode = !hudEditMode;
-  const btn = document.getElementById('hudEditBtn');
-  const hint = document.getElementById('hudEditHint');
-  if (btn) btn.textContent = hudEditMode ? '✅ Selesai Edit' : '✏️ Edit HUD';
-  if (btn) btn.style.background = hudEditMode ? '#27ae60' : '#3498db';
-  if (hint) hint.style.display = hudEditMode ? 'block' : 'none';
-
-  if (hudEditMode) {
-    // Freeze semua input game saat edit HUD
-    freezeInput = true;
-    freezePlayer = true;
-    gamePaused = true;
-
-    // Tutup settings agar user lihat layar penuh
-    const sm = document.getElementById('settingsMenu');
-    if (sm) { sm.style.display='none'; sm.classList.remove('show'); }
-
-    // Tampilkan tombol Save di layar utama
-    showHudSaveButton();
-    showHudEditToast('✏️ Mode Edit HUD — drag tombol sesukamu!');
-  } else {
-    // Unfreeze saat selesai edit
-    freezeInput = false;
-    freezePlayer = false;
-    gamePaused = false;
-
-    // Sembunyikan tombol Save
-    hideHudSaveButton();
-    showHudEditToast('✅ Posisi HUD disimpan!');
-  }
-
-  HUD_ELEMENTS.forEach(e => {
-    const el = document.getElementById(e.id);
-    if (!el) return;
-    if (hudEditMode) {
-      enableHudDrag(el, e.id);
-    } else {
-      disableHudDrag(el);
-    }
-  });
-}
-
-function showHudSaveButton(){
-  let sb = document.getElementById('hudSaveBtn');
-  if(!sb){
-    sb = document.createElement('div');
-    sb.id = 'hudSaveBtn';
-    sb.style.cssText = [
-      'position:fixed',
-      'bottom:30px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:linear-gradient(135deg,#27ae60,#1e8449)',
-      'color:#fff',
-      'font-size:16px',
-      'font-weight:700',
-      'padding:14px 36px',
-      'border-radius:16px',
-      'z-index:99998',
-      'cursor:pointer',
-      'border:2px solid rgba(255,255,255,0.25)',
-      'box-shadow:0 4px 20px rgba(39,174,96,0.5)',
-      'user-select:none',
-      'letter-spacing:0.5px'
-    ].join(';');
-    sb.textContent = '💾 Simpan Posisi HUD';
-    sb.addEventListener('click', function(){
-      // Simpan semua posisi
-      HUD_ELEMENTS.forEach(e => saveHudPosition(e.id));
-      // Selesai edit
-      toggleHudEdit();
-    });
-    document.body.appendChild(sb);
-  }
-  sb.style.display = 'block';
-}
-
-function hideHudSaveButton(){
-  const sb = document.getElementById('hudSaveBtn');
-  if(sb) sb.style.display = 'none';
-}
-
-function showHudEditToast(msg) {
-  let t = document.getElementById('hudToast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'hudToast';
-    t.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'+
-      'background:rgba(0,0,0,0.88);color:#fff;padding:12px 22px;border-radius:12px;'+
-      'font-size:14px;font-weight:600;z-index:99999;pointer-events:none;border:1px solid rgba(255,255,255,0.2);'+
-      'transition:opacity 0.4s;text-align:center;';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(t._to);
-  t._to = setTimeout(()=>{ t.style.opacity='0'; }, 2200);
-}
-
-function enableHudDrag(el, id) {
-  // Snapshot ke left/top absolute agar bisa di-drag
-  const rect = el.getBoundingClientRect();
-  el.style.position = 'fixed';
-  el.style.left   = rect.left + 'px';
-  el.style.top    = rect.top  + 'px';
-  el.style.right  = '';
-  el.style.bottom = '';
-  el.style.transform = '';
-  el.style.outline = '2px dashed rgba(52,152,219,0.85)';
-  el.style.boxShadow = '0 0 0 4px rgba(52,152,219,0.18)';
-  el.style.cursor  = 'grab';
-  el.style.zIndex  = '9990';
-  el.dataset.hudId = id;
-  el.dataset.hudDrag = '1';
-  // Tambah label overlay kecil
-  const info = HUD_ELEMENTS.find(e=>e.id===id);
-  const lbl = document.createElement('div');
-  lbl.className = 'hud-drag-label';
-  lbl.textContent = info ? info.label : id;
-  lbl.style.cssText = 'position:absolute;top:-22px;left:0;background:rgba(52,152,219,0.92);color:#fff;'+
-    'font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:9999;font-weight:600;';
-  el.style.position = 'fixed'; // ensure
-  // Wrap element in relative container only if not already
-  el.appendChild(lbl);
-  el._hudLabel = lbl;
-
-  let startX, startY, origLeft, origTop;
-
-  function onDown(ev) {
-    if (!el.dataset.hudDrag) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    const touch = ev.touches ? ev.touches[0] : ev;
-    startX = touch.clientX;
-    startY = touch.clientY;
-    origLeft = parseFloat(el.style.left) || 0;
-    origTop  = parseFloat(el.style.top)  || 0;
-    el.style.cursor = 'grabbing';
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup',   onUp);
-    document.addEventListener('touchmove', onMove, {passive:false});
-    document.addEventListener('touchend',  onUp);
-  }
-  function onMove(ev) {
-    ev.preventDefault();
-    const touch = ev.touches ? ev.touches[0] : ev;
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    let newLeft = origLeft + dx;
-    let newTop  = origTop  + dy;
-    // Clamp to screen
-    newLeft = Math.max(0, Math.min(window.innerWidth  - el.offsetWidth,  newLeft));
-    newTop  = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, newTop));
-    el.style.left = newLeft + 'px';
-    el.style.top  = newTop  + 'px';
-  }
-  function onUp() {
-    el.style.cursor = 'grab';
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup',   onUp);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('touchend',  onUp);
-    saveHudPosition(id);
-  }
-
-  el._hudDown = onDown;
-  el.addEventListener('mousedown',  onDown);
-  el.addEventListener('touchstart', onDown, {passive:false});
-}
-
-function disableHudDrag(el) {
-  el.style.outline    = '';
-  el.style.boxShadow  = '';
-  el.style.cursor     = '';
-  el.style.zIndex     = '';
-  delete el.dataset.hudDrag;
-  if (el._hudLabel) { el._hudLabel.remove(); delete el._hudLabel; }
-  if (el._hudDown) {
-    el.removeEventListener('mousedown',  el._hudDown);
-    el.removeEventListener('touchstart', el._hudDown);
-    delete el._hudDown;
-  }
-}
-
-// Load saved HUD positions on startup
-window.addEventListener('load', () => { setTimeout(loadHudPositions, 800); });

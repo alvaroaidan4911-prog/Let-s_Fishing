@@ -631,7 +631,9 @@ function renderWorldTab(el) {
         <button onclick="ownerTeleportSelf(700,-30)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
         <button onclick="ownerTeleportSelf(-800,-550)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
         <button onclick="ownerTeleportSelf(300,970)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
-        <button onclick="ownerTeleportSelf(-400,1170)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
+        <button onclick="ownerTeleportSelf(-500,1550)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
+        <button onclick="ownerTeleportSelf(1200,600)" style="${ownerTeleportBtnStyle()}">🌊 Abyss Isle</button>
+        <button onclick="ownerTeleportSelf(0,-1400)" style="${ownerTeleportBtnStyle()}">⚡ Sky Isle</button>
       </div>
     </div>
 
