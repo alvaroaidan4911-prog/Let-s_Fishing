@@ -87,14 +87,14 @@ let jetskiSpawned=false,nearHarbour=false;
 const jetskiMaxSpeed=0.45;
 // Harbour positions: one per island (at sand edge)
 const HARBOUR_DEFS=[
-  {id:"main",    x:0,     z:163,  spawnX:0,     spawnZ:188,  label:"🚢 Pelabuhan Utama"},
-  {id:"mystic",  x:900,   z:123,  spawnX:900,   spawnZ:143,  label:"🔮 Dermaga Mystic"},
-  {id:"volcano", x:-1000, z:-568, spawnX:-1000, spawnZ:-548, label:"🌋 Dermaga Volcano"},
-  {id:"crystal", x:400,   z:1419, spawnX:400,   spawnZ:1438, label:"💎 Dermaga Crystal"},
-  {id:"aurora",  x:-500,  z:1614, spawnX:-500,  spawnZ:1633, label:"🌌 Dermaga Aurora"},
+  {id:"main",    x:0,     z:178,  spawnX:0,     spawnZ:195,  label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:900,   z:133,  spawnX:900,   spawnZ:150,  label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-1000, z:-562, spawnX:-1000, spawnZ:-547, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:400,   z:1428, spawnX:400,   spawnZ:1443, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-500,  z:1623, spawnX:-500,  spawnZ:1638, label:"🌌 Dermaga Aurora"},
 ];
-const HARBOUR_POS=new THREE.Vector3(0,0,163);
-const jetskiSpawnPos=new THREE.Vector3(0,0.1,188);
+const HARBOUR_POS=new THREE.Vector3(0,0,178);
+const jetskiSpawnPos=new THREE.Vector3(0,0.1,195);
 let currentHarbourId="main";
 
 // ═══ TENSION ═══
@@ -1043,6 +1043,13 @@ for(let i=0;i<treeCount;i++){
       chimney.position.set(W*0.2, H+roofH*0.6, 0); hg.add(chimney);
     }
     g.add(hg);
+    // ── Tambahkan collision untuk rumah ini ──
+    // hg.position = (hx,0,hz) lokal dalam g (island group)
+    // g.position = (x,-2.5,z) → world = (x+hx, -2.5, z+hz)
+    const worldHX=x+hx, worldHZ=z+hz;
+    const cosR=Math.cos(hg.rotation.y), sinR=Math.sin(hg.rotation.y);
+    // 4 sisi rumah sebagai AABB (approximate, ignoring rotation for simplicity)
+    collisionBoxes.push({cx:worldHX, cz:worldHZ, hw:9, hd:6}); // box utama
   }
 
   // Lamps (placed around center, registered for night glow)
@@ -1198,8 +1205,9 @@ buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
   lamps:true,lampCount:10,labelColor:"#ffdd88",
   buildingExclusions:[
-    {cx:0,   cz:-70,hw:14,hd:10},{cx:50,  cz:-70,hw:14,hd:10},
-    {cx:-50, cz:-70,hw:14,hd:10},{cx:100, cz:-70,hw:14,hd:10}
+    {cx:0,   cz:-70,hw:28,hd:25},{cx:50,  cz:-70,hw:28,hd:25},
+    {cx:-50, cz:-70,hw:28,hd:25},{cx:100, cz:-70,hw:28,hd:25},
+    {cx:50,  cz:-70,hw:180,hd:12}
   ]});
 buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
 buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
@@ -1322,10 +1330,10 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-64);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-64);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-64);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-64);
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-73);
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-73);
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-73);
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-73);
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -1648,22 +1656,21 @@ function checkOnLand(){
 // Crystal: snow mound SphereGeometry(grassR*0.22=11.4) at (300,1000)
 // Shops: scale=1.6 → world floor 16x9.6, back wall at z=-4.8 from shop center
 const collisionBoxes=[
-  // ─ MAIN ISLAND: Shops (px,pz center, scale=1.6) ─
-  // Back wall only — open front so player can enter
-  {cx:0,   cz:-29.8, hw:8.5, hd:1.5},  // SELL FISH — back wall
-  {cx:0,   cz:-20.2, hw:8.5, hd:1.5},  // SELL FISH — NOT blocking (removed)
-  {cx:30,  cz:-29.8, hw:8.5, hd:1.5},  // ROD SHOP — back wall
-  {cx:-30, cz:-29.8, hw:8.5, hd:1.5},  // BAIT SHOP — back wall
-  {cx:60,  cz:-29.8, hw:8.5, hd:1.5},  // JETSKI — back wall
-  // Side walls (left/right of each shop)
-  {cx:-8.8, cz:-25, hw:1.5, hd:4.8},   // SELL FISH — left wall
-  {cx:8.8,  cz:-25, hw:1.5, hd:4.8},   // SELL FISH — right wall
-  {cx:21.2, cz:-25, hw:1.5, hd:4.8},   // ROD SHOP — left wall
-  {cx:38.8, cz:-25, hw:1.5, hd:4.8},   // ROD SHOP — right wall
-  {cx:-38.8,cz:-25, hw:1.5, hd:4.8},   // BAIT SHOP — left wall
-  {cx:-21.2,cz:-25, hw:1.5, hd:4.8},   // BAIT SHOP — right wall
-  {cx:51.2, cz:-25, hw:1.5, hd:4.8},   // JETSKI — left wall
-  {cx:68.8, cz:-25, hw:1.5, hd:4.8},   // JETSKI — right wall
+  // ─ MAIN ISLAND: Shops at (0,-70),(50,-70),(-50,-70),(100,-70) scale=1.6 ─
+  // Back walls (z = pz - 4.8)
+  {cx:0,   cz:-74.8, hw:8.5, hd:1.5},  // SELL FISH — back
+  {cx:50,  cz:-74.8, hw:8.5, hd:1.5},  // ROD SHOP — back
+  {cx:-50, cz:-74.8, hw:8.5, hd:1.5},  // BAIT SHOP — back
+  {cx:100, cz:-74.8, hw:8.5, hd:1.5},  // JETSKI — back
+  // Side walls (x = px ± 8, z center = pz)
+  {cx:-8.2,  cz:-70, hw:1.5, hd:4.8},  // SELL left
+  {cx:8.2,   cz:-70, hw:1.5, hd:4.8},  // SELL right
+  {cx:41.8,  cz:-70, hw:1.5, hd:4.8},  // ROD left
+  {cx:58.2,  cz:-70, hw:1.5, hd:4.8},  // ROD right
+  {cx:-58.2, cz:-70, hw:1.5, hd:4.8},  // BAIT left
+  {cx:-41.8, cz:-70, hw:1.5, hd:4.8},  // BAIT right
+  {cx:91.8,  cz:-70, hw:1.5, hd:4.8},  // JETSKI left
+  {cx:108.2, cz:-70, hw:1.5, hd:4.8},  // JETSKI right
 
   // ─ VOLCANO ISLE center(-800,-600) grassR=60 ─
   // Volcano cone: ConeGeometry(grassR*0.45=27) — big circle blocker

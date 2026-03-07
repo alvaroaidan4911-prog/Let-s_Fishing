@@ -627,11 +627,11 @@ function renderWorldTab(el) {
     <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
       <div style="color:#7ecfff;font-size:12px;font-weight:bold;margin-bottom:8px">📍 Teleport Diri Sendiri</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button onclick="ownerTeleportSelf(0,0)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
-        <button onclick="ownerTeleportSelf(900,0)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
-        <button onclick="ownerTeleportSelf(-1000,-700)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
-        <button onclick="ownerTeleportSelf(400,1300)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
-        <button onclick="ownerTeleportSelf(-500,1500)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
+        <button onclick="ownerTeleportSelf(0,-50)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
+        <button onclick="ownerTeleportSelf(700,-30)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
+        <button onclick="ownerTeleportSelf(-800,-550)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
+        <button onclick="ownerTeleportSelf(300,970)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
+        <button onclick="ownerTeleportSelf(-400,1170)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
       </div>
     </div>
 
@@ -1789,12 +1789,12 @@ function addOwnerCrownToNameTag(nameCanvas) {
     const btn = document.createElement("div");
     btn.id = "mpChatBtn";
     Object.assign(btn.style, {
-      position: "fixed", right: "12px", bottom: "18px",
-      width: "46px", height: "46px",
-      background: "rgba(0,0,0,0.7)", border: "2px solid rgba(255,255,255,0.22)",
-      borderRadius: "12px", display: "flex", alignItems: "center",
-      justifyContent: "center", cursor: "pointer", zIndex: "21",
-      fontSize: "20px", userSelect: "none"
+      position: "fixed", right: "104px", top: "14px",
+      width: "38px", height: "38px",
+      background: "rgba(0,0,0,0.62)", border: "1px solid rgba(255,255,255,0.18)",
+      borderRadius: "10px", display: "flex", alignItems: "center",
+      justifyContent: "center", cursor: "pointer", zIndex: "1000",
+      fontSize: "16px", userSelect: "none"
     });
     btn.textContent = "💬";
     btn.title = "Chat [T]";
@@ -1962,8 +1962,9 @@ function addOwnerCrownToNameTag(nameCanvas) {
     const el = document.createElement("div");
     el.id = "mpStatusBadge";
     Object.assign(el.style, {
-      position: "fixed", right: "12px", bottom: "12px",
-      background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.12)",
+      position: "fixed", left: "12px", top: "106px",
+      background: "rgba(0,0,0,0.62)", border: "1px solid rgba(255,255,255,0.1)",
+      backdropFilter: "blur(6px)",
       borderRadius: "9px", padding: "5px 11px",
       color: "#888", fontSize: "11px", zIndex: "20", pointerEvents: "none"
     });
