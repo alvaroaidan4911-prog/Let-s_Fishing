@@ -3363,15 +3363,26 @@ let hudEditMode = false;
 
 // List elemen HUD yang bisa dipindah + posisi defaultnya
 const HUD_ELEMENTS = [
-  { id: 'joystick',       label: '🕹️ Joystick',      defLeft: '25px',  defBottom: '35px',  defRight: null, defTop: null },
-  { id: 'hotbar',         label: '🎣 Hotbar',         defLeft: null,    defBottom: '20px',  defRight: null, defTop: null },
-  { id: 'inventoryBtn',   label: '🎒 Inventory',      defLeft: null,    defBottom: '20px',  defRight: '12px', defTop: null },
-  { id: 'jumpBtn',        label: '⬆ Jump',            defLeft: null,    defBottom: '35px',  defRight: '25px', defTop: null },
-  { id: 'harbourBtn',     label: '🛥️ Harbour',        defLeft: '50%',   defBottom: '18px',  defRight: null, defTop: null },
-  { id: 'mpChatBtn',      label: '💬 Chat',           defLeft: null,    defBottom: null,    defRight: '104px', defTop: '14px' },
-  { id: 'fullscreenBtn',  label: '⛶ Fullscreen',     defLeft: null,    defBottom: null,    defRight: '58px',  defTop: '14px' },
-  { id: 'coinUI',         label: '💰 Coin',           defLeft: '12px',  defBottom: null,    defRight: null, defTop: null },
-  { id: 'weatherUI',      label: '☀️ Cuaca',          defLeft: null,    defBottom: null,    defRight: null, defTop: '8px' },
+  // Kontrol gerak
+  { id: 'joystick',        label: '🕹️ Joystick',       defLeft: '25px',   defBottom: '35px',  defRight: null,    defTop: null   },
+  { id: 'runBtn',          label: '🏃 Run',             defLeft: '55px',   defBottom: '168px', defRight: null,    defTop: null   },
+  { id: 'jumpBtn',         label: '⬆️ Jump',            defLeft: null,     defBottom: '35px',  defRight: '25px',  defTop: null   },
+  // Inventory & aksi
+  { id: 'hotbar',          label: '🎣 Hotbar',          defLeft: null,     defBottom: '18px',  defRight: null,    defTop: null   },
+  { id: 'inventoryBtn',    label: '🎒 Inventory',       defLeft: null,     defBottom: '18px',  defRight: '12px',  defTop: null   },
+  { id: 'harbourBtn',      label: '🛥️ Harbour',         defLeft: '50%',    defBottom: '18px',  defRight: null,    defTop: null   },
+  // Info panel
+  { id: 'coinUI',          label: '💰 Koin',            defLeft: '12px',   defBottom: null,    defRight: null,    defTop: '14px' },
+  { id: 'levelUI',         label: '⭐ Level',           defLeft: '12px',   defBottom: null,    defRight: null,    defTop: '56px' },
+  { id: 'weatherUI',       label: '☀️ Cuaca',           defLeft: null,     defBottom: null,    defRight: null,    defTop: '8px'  },
+  { id: 'dayNightUI',      label: '🕐 Jam',             defLeft: '50%',    defBottom: null,    defRight: null,    defTop: '8px'  },
+  { id: 'islandBadge',     label: '🏝️ Nama Pulau',      defLeft: '50%',    defBottom: null,    defRight: null,    defTop: '42px' },
+  // Tombol atas
+  { id: 'openMenuBtn',     label: '☰ Menu',             defLeft: null,     defBottom: null,    defRight: '12px',  defTop: '14px' },
+  { id: 'fullscreenBtn',   label: '⛶ Fullscreen',      defLeft: null,     defBottom: null,    defRight: '58px',  defTop: '14px' },
+  { id: 'mpChatBtn',       label: '💬 Chat',            defLeft: null,     defBottom: null,    defRight: '104px', defTop: '14px' },
+  { id: 'fishIndexBtn',    label: '📖 Fish Index',      defLeft: null,     defBottom: null,    defRight: '148px', defTop: '14px' },
+  { id: 'fpsCounter',      label: '📊 FPS Counter',     defLeft: null,     defBottom: null,    defRight: null,    defTop: null   },
 ];
 
 // Load saved positions from localStorage
@@ -3419,7 +3430,7 @@ function resetHudPositions() {
     el.style.bottom = e.defBottom || '';
     el.style.transform = '';
     // Re-apply center transform for hotbar & harbourBtn
-    if (id === 'hotbar' || id === 'harbourBtn') {
+    if (e.id === 'hotbar' || e.id === 'harbourBtn' || e.id === 'dayNightUI' || e.id === 'islandBadge') {
       el.style.left = '50%';
       el.style.transform = 'translateX(-50%)';
     }
@@ -3435,6 +3446,16 @@ function toggleHudEdit() {
   if (btn) btn.style.background = hudEditMode ? '#27ae60' : '#3498db';
   if (hint) hint.style.display = hudEditMode ? 'block' : 'none';
 
+  // Tutup settings agar user bisa lihat layar penuh
+  if (hudEditMode) {
+    const sm = document.getElementById('settingsMenu');
+    if (sm) { sm.style.display='none'; sm.classList.remove('show'); }
+    // Toast notif
+    showHudEditToast('✏️ Mode Edit HUD — drag tombol sesukamu!');
+  } else {
+    showHudEditToast('✅ Posisi HUD disimpan!');
+  }
+
   HUD_ELEMENTS.forEach(e => {
     const el = document.getElementById(e.id);
     if (!el) return;
@@ -3446,8 +3467,25 @@ function toggleHudEdit() {
   });
 }
 
+function showHudEditToast(msg) {
+  let t = document.getElementById('hudToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'hudToast';
+    t.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'+
+      'background:rgba(0,0,0,0.88);color:#fff;padding:12px 22px;border-radius:12px;'+
+      'font-size:14px;font-weight:600;z-index:99999;pointer-events:none;border:1px solid rgba(255,255,255,0.2);'+
+      'transition:opacity 0.4s;text-align:center;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(()=>{ t.style.opacity='0'; }, 2200);
+}
+
 function enableHudDrag(el, id) {
-  // Make sure element is position:fixed with left/top coords
+  // Snapshot ke left/top absolute agar bisa di-drag
   const rect = el.getBoundingClientRect();
   el.style.position = 'fixed';
   el.style.left   = rect.left + 'px';
@@ -3455,11 +3493,23 @@ function enableHudDrag(el, id) {
   el.style.right  = '';
   el.style.bottom = '';
   el.style.transform = '';
-  el.style.outline = '2px dashed rgba(52,152,219,0.8)';
+  el.style.outline = '2px dashed rgba(52,152,219,0.85)';
+  el.style.boxShadow = '0 0 0 4px rgba(52,152,219,0.18)';
   el.style.cursor  = 'grab';
   el.style.zIndex  = '9990';
   el.dataset.hudId = id;
   el.dataset.hudDrag = '1';
+  // Tambah label overlay kecil
+  const info = HUD_ELEMENTS.find(e=>e.id===id);
+  const lbl = document.createElement('div');
+  lbl.className = 'hud-drag-label';
+  lbl.textContent = info ? info.label : id;
+  lbl.style.cssText = 'position:absolute;top:-22px;left:0;background:rgba(52,152,219,0.92);color:#fff;'+
+    'font-size:10px;padding:2px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:9999;font-weight:600;';
+  el.style.position = 'fixed'; // ensure
+  // Wrap element in relative container only if not already
+  el.appendChild(lbl);
+  el._hudLabel = lbl;
 
   let startX, startY, origLeft, origTop;
 
@@ -3506,10 +3556,12 @@ function enableHudDrag(el, id) {
 }
 
 function disableHudDrag(el) {
-  el.style.outline = '';
-  el.style.cursor  = '';
-  el.style.zIndex  = '';
+  el.style.outline    = '';
+  el.style.boxShadow  = '';
+  el.style.cursor     = '';
+  el.style.zIndex     = '';
   delete el.dataset.hudDrag;
+  if (el._hudLabel) { el._hudLabel.remove(); delete el._hudLabel; }
   if (el._hudDown) {
     el.removeEventListener('mousedown',  el._hudDown);
     el.removeEventListener('touchstart', el._hudDown);
