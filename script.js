@@ -87,11 +87,13 @@ let jetskiSpawned=false,nearHarbour=false;
 const jetskiMaxSpeed=0.45;
 // Harbour positions: one per island (at sand edge)
 const HARBOUR_DEFS=[
-  {id:"main",    x:0,     z:163,  spawnX:0,     spawnZ:188,  label:"🚢 Pelabuhan Utama"},
-  {id:"mystic",  x:900,   z:123,  spawnX:900,   spawnZ:143,  label:"🔮 Dermaga Mystic"},
-  {id:"volcano", x:-1000, z:-568, spawnX:-1000, spawnZ:-548, label:"🌋 Dermaga Volcano"},
-  {id:"crystal", x:400,   z:1419, spawnX:400,   spawnZ:1438, label:"💎 Dermaga Crystal"},
-  {id:"aurora",  x:-500,  z:1614, spawnX:-500,  spawnZ:1633, label:"🌌 Dermaga Aurora"},
+  {id:"main",    x:0,    z:85,   spawnX:0,    spawnZ:95,   label:"🚢 Pelabuhan Utama"},
+  {id:"mystic",  x:700,  z:57,   spawnX:700,  spawnZ:68,   label:"🔮 Dermaga Mystic"},
+  {id:"volcano", x:-800, z:-538, spawnX:-800, spawnZ:-528, label:"🌋 Dermaga Volcano"},
+  {id:"crystal", x:300,  z:1054, spawnX:300,  spawnZ:1065, label:"💎 Dermaga Crystal"},
+  {id:"aurora",  x:-400, z:1250, spawnX:-400, spawnZ:1260, label:"🌌 Dermaga Aurora"},
+  {id:"abyss",   x:1200, z:652,  spawnX:1200, spawnZ:662,  label:"🌊 Dermaga Abyss"},
+  {id:"sky",     x:0,    z:-1348,spawnX:0,    spawnZ:-1338,label:"⚡ Dermaga Sky"},
 ];
 const HARBOUR_POS=new THREE.Vector3(0,0,163);
 const jetskiSpawnPos=new THREE.Vector3(0,0.1,188);
@@ -242,6 +244,40 @@ const fishDB={
     {name:"Mythic Koi",      rarity:"Epic",     price:420, xp:155, color:"#ff00ff",emoji:"🔮",diff:2.3,island:"Aurora Isle"},
     // Legendary (1)
     {name:"Cosmic Whale",    rarity:"Legendary",price:3000,xp:1000,color:"#0044ff",emoji:"🐋",diff:5.0,island:"Aurora Isle"},
+  ],
+  abyss:[
+    {name:"Remah Kerang",     rarity:"Junk",     price:1,   xp:1,   color:"#223344",emoji:"🪸", diff:0.3,island:"Abyss Isle"},
+    {name:"Ikan Jurang",      rarity:"Common",   price:32,  xp:14,  color:"#001133",emoji:"🐟", diff:0.8,island:"Abyss Isle"},
+    {name:"Ikan Gelap",       rarity:"Common",   price:30,  xp:13,  color:"#112244",emoji:"🐠", diff:0.7,island:"Abyss Isle"},
+    {name:"Ikan Abyssal",     rarity:"Common",   price:35,  xp:15,  color:"#003366",emoji:"🐡", diff:0.8,island:"Abyss Isle"},
+    {name:"Ikan Malam",       rarity:"Common",   price:28,  xp:12,  color:"#221133",emoji:"🌑", diff:0.7,island:"Abyss Isle"},
+    {name:"Ikan Cumi Raksasa",rarity:"Uncommon", price:80,  xp:32,  color:"#440088",emoji:"🦑", diff:1.2,island:"Abyss Isle"},
+    {name:"Ikan Angler",      rarity:"Uncommon", price:90,  xp:36,  color:"#001155",emoji:"🐟", diff:1.2,island:"Abyss Isle"},
+    {name:"Ikan Vantablack",  rarity:"Uncommon", price:85,  xp:34,  color:"#000011",emoji:"⚫", diff:1.3,island:"Abyss Isle"},
+    {name:"Ikan Phantom",     rarity:"Uncommon", price:88,  xp:35,  color:"#220044",emoji:"👁️",diff:1.2,island:"Abyss Isle"},
+    {name:"Ikan Void",        rarity:"Rare",     price:200, xp:75,  color:"#110022",emoji:"🌀", diff:1.9,island:"Abyss Isle"},
+    {name:"Ikan Abyss",       rarity:"Rare",     price:220, xp:80,  color:"#0000aa",emoji:"💜", diff:2.0,island:"Abyss Isle"},
+    {name:"Leviathan Jr",     rarity:"Rare",     price:240, xp:85,  color:"#003399",emoji:"🦕", diff:2.0,island:"Abyss Isle"},
+    {name:"Ikan Shadow",      rarity:"Epic",     price:500, xp:180, color:"#110033",emoji:"👤", diff:2.6,island:"Abyss Isle"},
+    {name:"Kraken Jr",        rarity:"Epic",     price:550, xp:200, color:"#440066",emoji:"🐙", diff:2.7,island:"Abyss Isle"},
+    {name:"Leviathan",        rarity:"Legendary",price:5000,xp:1500,color:"#000066",emoji:"🌊", diff:6.0,island:"Abyss Isle"},
+  ],
+  sky:[
+    {name:"Bulu Awan",        rarity:"Junk",     price:1,   xp:1,   color:"#eeeeff",emoji:"☁️", diff:0.2,island:"Sky Isle"},
+    {name:"Ikan Awan",        rarity:"Common",   price:38,  xp:16,  color:"#ddeeff",emoji:"🌤️",diff:0.8,island:"Sky Isle"},
+    {name:"Ikan Angin",       rarity:"Common",   price:35,  xp:15,  color:"#aaccff",emoji:"💨", diff:0.7,island:"Sky Isle"},
+    {name:"Ikan Langit Biru", rarity:"Common",   price:40,  xp:17,  color:"#88bbff",emoji:"🔵", diff:0.8,island:"Sky Isle"},
+    {name:"Ikan Petir",       rarity:"Common",   price:36,  xp:15,  color:"#ffff44",emoji:"⚡", diff:0.8,island:"Sky Isle"},
+    {name:"Ikan Cirrus",      rarity:"Uncommon", price:100, xp:40,  color:"#ccddff",emoji:"🌥️",diff:1.3,island:"Sky Isle"},
+    {name:"Ikan Stratosfer",  rarity:"Uncommon", price:110, xp:44,  color:"#aabbee",emoji:"🌈", diff:1.3,island:"Sky Isle"},
+    {name:"Ikan Nimbus",      rarity:"Uncommon", price:105, xp:42,  color:"#8899cc",emoji:"🌩️",diff:1.4,island:"Sky Isle"},
+    {name:"Ikan Zephyr",      rarity:"Uncommon", price:108, xp:43,  color:"#99aadd",emoji:"🌬️",diff:1.3,island:"Sky Isle"},
+    {name:"Ikan Tornado",     rarity:"Rare",     price:280, xp:100, color:"#778899",emoji:"🌪️",diff:2.1,island:"Sky Isle"},
+    {name:"Ikan Ionosfer",    rarity:"Rare",     price:300, xp:110, color:"#5566aa",emoji:"🔹", diff:2.2,island:"Sky Isle"},
+    {name:"Storm Rider",      rarity:"Rare",     price:320, xp:115, color:"#334488",emoji:"⛈️", diff:2.2,island:"Sky Isle"},
+    {name:"Ikan Celestial",   rarity:"Epic",     price:700, xp:250, color:"#bbccff",emoji:"✨", diff:2.8,island:"Sky Isle"},
+    {name:"Phoenix Koi",      rarity:"Epic",     price:750, xp:270, color:"#ff8833",emoji:"🦅", diff:2.9,island:"Sky Isle"},
+    {name:"Sky God",          rarity:"Legendary",price:8000,xp:2500,color:"#ffffff",emoji:"⚡", diff:7.0,island:"Sky Isle"},
   ],
 };
 const fishTypes=Object.values(fishDB).flat();
@@ -713,11 +749,13 @@ water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
 
 // ═══ ISLAND DEFS ═══
 const islandDefs=[
-  {id:"main",   x:0,    z:0,    sandR:200, grassR:185, label:"🏝️ Main Island",  fishKey:"main"},
-  {id:"mystic", x:900,  z:0,    sandR:155, grassR:140, label:"🔮 Mystic Isle",   fishKey:"mystic"},
-  {id:"volcano",x:-1000,z:-700, sandR:165, grassR:150, label:"🌋 Volcano Isle",  fishKey:"volcano"},
-  {id:"crystal",x:400,  z:1300, sandR:150, grassR:135, label:"💎 Crystal Isle",  fishKey:"crystal"},
-  {id:"aurora", x:-500, z:1500, sandR:145, grassR:130, label:"🌌 Aurora Isle",   fishKey:"aurora"},
+  {id:"main",   x:0,    z:0,    sandR:90,  grassR:78,  label:"🏝️ Main Island",  fishKey:"main"},
+  {id:"mystic", x:700,  z:0,    sandR:65,  grassR:55,  label:"🔮 Mystic Isle",   fishKey:"mystic"},
+  {id:"volcano",x:-800, z:-600, sandR:70,  grassR:60,  label:"🌋 Volcano Isle",  fishKey:"volcano"},
+  {id:"crystal",x:300,  z:1000, sandR:62,  grassR:52,  label:"💎 Crystal Isle",  fishKey:"crystal"},
+  {id:"aurora", x:-400, z:1200, sandR:58,  grassR:48,  label:"🌌 Aurora Isle",   fishKey:"aurora"},
+  {id:"abyss",  x:1200, z:600,  sandR:68,  grassR:58,  label:"🌊 Abyss Isle",    fishKey:"abyss"},
+  {id:"sky",    x:0,    z:-1400,sandR:60,  grassR:50,  label:"⚡ Sky Isle",      fishKey:"sky"},
 ];
 
 // ═══ FLOATING ORBS ═══
@@ -1179,17 +1217,22 @@ for(let i=0;i<treeCount;i++){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:40,rocks:16,flowers:60,hills:8,useGrassTex:true,grassColor:0xaaffaa,
+buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
-  lamps:true,lampCount:10,labelColor:"#ffdd88",
+  lamps:true,lampCount:5,labelColor:"#ffdd88",
   buildingExclusions:[
-    {cx:0,   cz:-70,hw:14,hd:10},{cx:50,  cz:-70,hw:14,hd:10},
-    {cx:-50, cz:-70,hw:14,hd:10},{cx:100, cz:-70,hw:14,hd:10}
+    {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
+    {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
   ]});
-buildIsland(islandDefs[1],{trees:28,rocks:12,flowers:50,hills:7,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:8,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[2],{trees:14,rocks:40,flowers:12,hills:5,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:8,labelColor:"#ff6644",paths:true,benches:false,lamps:true});
-buildIsland(islandDefs[3],{trees:22,rocks:14,flowers:20,hills:6,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:8,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[4],{trees:25,rocks:10,flowers:70,hills:7,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:10,labelColor:"#88ffcc",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true,
+  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
+buildIsland(islandDefs[5],{trees:4,rocks:20,flowers:5,grassColor:0x001122,trunkColor:0x002244,leafColor:0x003366,lampColor:0x0044ff,lampCount:4,labelColor:"#0088ff",paths:true,benches:true,lamps:true,
+  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
+buildIsland(islandDefs[6],{trees:10,rocks:3,flowers:40,grassColor:0xaabbdd,trunkColor:0x8899bb,leafColor:0xbbccff,lampColor:0xffffff,lampCount:5,labelColor:"#ffffff",paths:true,benches:true,lamps:true,
+  buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
 
 // ═══ SHOP BUILDER ═══
 function makeShop(px,pz,label){
@@ -1215,10 +1258,27 @@ function makeShop(px,pz,label){
   sg.position.set(0,8.2,2.9);g.add(sg);
   return{counter:ctr};
 }
-const {counter}=makeShop(0,-70,"🐟 SELL FISH");
-const {counter:rodShopCounter}=makeShop(50,-70,"🎣 ROD SHOP");
-const {counter:baitShopCounter}=makeShop(-50,-70,"🪱 BAIT SHOP");
-const {counter:jetskiShopCounter}=makeShop(100,-70,"🛥️ JETSKI");
+const {counter}=makeShop(0,-25,"🐟 SELL FISH");
+const {counter:rodShopCounter}=makeShop(30,-25,"🎣 ROD SHOP");
+const {counter:baitShopCounter}=makeShop(-30,-25,"🪱 BAIT SHOP");
+const {counter:jetskiShopCounter}=makeShop(60,-25,"🛥️ JETSKI");
+
+// ── Sell Fish + Bait shops di pulau lain ──
+const {counter:mysticSellCounter}=makeShop(700,-50,"🐟 SELL FISH");
+const {counter:mysticBaitCounter}=makeShop(730,-50,"🪱 BAIT SHOP");
+const {counter:volcanoSellCounter}=makeShop(-800,-625,"🐟 SELL FISH");
+const {counter:volcanoBaitCounter}=makeShop(-770,-625,"🪱 BAIT SHOP");
+const {counter:crystalSellCounter}=makeShop(300,975,"🐟 SELL FISH");
+const {counter:crystalBaitCounter}=makeShop(330,975,"🪱 BAIT SHOP");
+const {counter:auroraSellCounter}=makeShop(-400,1175,"🐟 SELL FISH");
+const {counter:auroraBaitCounter}=makeShop(-370,1175,"🪱 BAIT SHOP");
+const {counter:abyssSellCounter}=makeShop(1200,575,"🐟 SELL FISH");
+const {counter:abyssBaitCounter}=makeShop(1230,575,"🪱 BAIT SHOP");
+const {counter:skySellCounter}=makeShop(0,-1425,"🐟 SELL FISH");
+const {counter:skyBaitCounter}=makeShop(30,-1425,"🪱 BAIT SHOP");
+
+const allSellCounters=[counter,mysticSellCounter,volcanoSellCounter,crystalSellCounter,auroraSellCounter,abyssSellCounter,skySellCounter];
+const allBaitCounters=[baitShopCounter,mysticBaitCounter,volcanoBaitCounter,crystalBaitCounter,auroraBaitCounter,abyssBaitCounter,skyBaitCounter];
 
 // ═══ HARBOUR ═══
 function buildHarbour(hdef){

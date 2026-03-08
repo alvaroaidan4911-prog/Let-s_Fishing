@@ -627,13 +627,13 @@ function renderWorldTab(el) {
     <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
       <div style="color:#7ecfff;font-size:12px;font-weight:bold;margin-bottom:8px">📍 Teleport Diri Sendiri</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <button onclick="ownerTeleportSelf(0,-50)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
-        <button onclick="ownerTeleportSelf(700,-30)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
-        <button onclick="ownerTeleportSelf(-800,-550)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
-        <button onclick="ownerTeleportSelf(300,970)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
-        <button onclick="ownerTeleportSelf(-500,1550)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
-        <button onclick="ownerTeleportSelf(1200,600)" style="${ownerTeleportBtnStyle()}">🌊 Abyss Isle</button>
-        <button onclick="ownerTeleportSelf(0,-1400)" style="${ownerTeleportBtnStyle()}">⚡ Sky Isle</button>
+        <button onclick="ownerTeleportSelf(0,-30)" style="${ownerTeleportBtnStyle()}">🏝️ Main Island</button>
+        <button onclick="ownerTeleportSelf(700,-20)" style="${ownerTeleportBtnStyle()}">🔮 Mystic Isle</button>
+        <button onclick="ownerTeleportSelf(-800,-580)" style="${ownerTeleportBtnStyle()}">🌋 Volcano Isle</button>
+        <button onclick="ownerTeleportSelf(300,1010)" style="${ownerTeleportBtnStyle()}">💎 Crystal Isle</button>
+        <button onclick="ownerTeleportSelf(-400,1210)" style="${ownerTeleportBtnStyle()}">🌌 Aurora Isle</button>
+        <button onclick="ownerTeleportSelf(1200,610)" style="${ownerTeleportBtnStyle()}">🌊 Abyss Isle</button>
+        <button onclick="ownerTeleportSelf(0,-1390)" style="${ownerTeleportBtnStyle()}">⚡ Sky Isle</button>
       </div>
     </div>
 
