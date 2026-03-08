@@ -513,56 +513,58 @@ function refreshOwnerPanel() {
 // ── TAB: Players ──
 function renderPlayersTab(el) {
   const players = Object.entries(otherPlayers || {});
-  let html = `
-    <div style="color:#aaa;font-size:11px;margin-bottom:12px">
-      ${players.length} player online (selain kamu)
-    </div>`;
+  let html = '<div style="color:#aaa;font-size:11px;margin-bottom:12px">'
+    + players.length + ' player online (selain kamu)</div>';
 
   if (players.length === 0) {
-    html += `<div style="text-align:center;color:#555;padding:24px;font-size:13px">
-      Belum ada player lain online.</div>`;
+    html += '<div style="text-align:center;color:#555;padding:24px;font-size:13px">Belum ada player lain online.</div>';
   } else {
-    players.forEach(([id, op]) => {
+    players.forEach(function([id, op]) {
       const d = op.latestData || {};
-      const name = d.name || "Player";
-      const pos = `x:${(d.x||0).toFixed(0)} z:${(d.z||0).toFixed(0)}`;
-      const status = d.isSwimming ? "🏊 Berenang" : d.isFishing ? "🎣 Mancing" : d.onJetski ? "🛥️ Jetski" : "🚶 Berjalan";
+      const name = d.name || 'Player';
+      const pos = 'x:' + (d.x||0).toFixed(0) + ' z:' + (d.z||0).toFixed(0);
+      const status = d.isSwimming ? '🏊 Berenang' : d.isFishing ? '🎣 Mancing' : d.onJetski ? '🛥️ Jetski' : '🚶 Berjalan';
+      const isThisOwner = (name === OWNER_NAME);
+      const premList = getPremiumList();
+      const hasPrem = premList.includes(id);
 
-      html += `
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
-                    border-radius:12px;padding:12px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div>
-              <div style="color:#fff;font-size:14px;font-weight:bold">${name}</div>
-              <div style="color:#888;font-size:11px">${status} · ${pos}</div>
-            </div>
-            <div style="width:10px;height:10px;background:#2ecc71;border-radius:50%;box-shadow:0 0 6px #2ecc71"></div>
-          </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">
-            \${name !== OWNER_NAME ? \`
-            <button onclick="kickPlayer('\${id}','\${name}')"
-              style="padding:6px 13px;background:linear-gradient(135deg,#e67e22,#d35400);
-                     border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">
-              🦵 Kick
-            </button>
-            <button onclick="banPlayer('\${id}','\${name}')"
-              style="padding:6px 13px;background:linear-gradient(135deg,#c0392b,#e74c3c);
-                     border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">
-              🚫 Ban
-            </button>\` : '<span style="color:#f39c12;font-size:11px;font-weight:bold;padding:4px 8px;background:rgba(243,156,18,0.15);border-radius:6px">👑 Owner</span>'}
-            <button onclick="ownerTeleportTo('${id}')"
-              style="padding:6px 13px;background:rgba(255,255,255,0.1);
-                     border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;cursor:pointer;font-size:11px">
-              📍 Teleport ke dia
-            </button>
-            <button onclick="switchOwnerTab('gift')"
-              style="padding:6px 13px;background:rgba(243,156,18,0.15);
-                     border:1px solid rgba(243,156,18,0.3);border-radius:8px;color:#f39c12;cursor:pointer;font-size:11px">
-              🎁 Gift
-            </button>
-            ${isOwner() ? '<button onclick="togglePremiumPlayer(\'"+id+"\',\'"+name+"\')" style="padding:6px 13px;background:'+(getPremiumList().includes(id)?'rgba(243,156,18,0.25)':'rgba(255,255,255,0.07)')+';border:1px solid '+(getPremiumList().includes(id)?'rgba(243,156,18,0.6)':'rgba(255,255,255,0.15)')+';border-radius:8px;color:'+(getPremiumList().includes(id)?'#f1c40f':'#aaa')+';cursor:pointer;font-size:11px;font-weight:bold">'+(getPremiumList().includes(id)?'👑 Premium ✓':'👑 Beri Premium')+'</button>' : ''}
-          </div>
-        </div>`;
+      // Kick/Ban or Owner badge
+      let modBtns = '';
+      if (!isThisOwner) {
+        modBtns = '<button onclick="kickPlayer(\'' + id + '\',\'' + name + '\')" '
+          + 'style="padding:6px 13px;background:linear-gradient(135deg,#e67e22,#d35400);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">🦵 Kick</button> '
+          + '<button onclick="banPlayer(\'' + id + '\',\'' + name + '\')" '
+          + 'style="padding:6px 13px;background:linear-gradient(135deg,#c0392b,#e74c3c);border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:bold">🚫 Ban</button>';
+      } else {
+        modBtns = '<span style="color:#f39c12;font-size:11px;font-weight:bold;padding:4px 8px;background:rgba(243,156,18,0.15);border-radius:6px">👑 Owner</span>';
+      }
+
+      // Premium button (owner only)
+      let premBtn = '';
+      if (isOwner() && !isThisOwner) {
+        premBtn = '<button onclick="togglePremiumPlayer(\'' + id + '\',\'' + name + '\')" '
+          + 'style="padding:6px 13px;background:' + (hasPrem ? 'rgba(243,156,18,0.25)' : 'rgba(255,255,255,0.07)') + ';'
+          + 'border:1px solid ' + (hasPrem ? 'rgba(243,156,18,0.6)' : 'rgba(255,255,255,0.15)') + ';'
+          + 'border-radius:8px;color:' + (hasPrem ? '#f1c40f' : '#aaa') + ';cursor:pointer;font-size:11px;font-weight:bold">'
+          + (hasPrem ? '👑 Premium ✓' : '👑 Beri Premium') + '</button>';
+      }
+
+      html += '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        + '<div>'
+        + '<div style="color:#fff;font-size:14px;font-weight:bold">' + name + '</div>'
+        + '<div style="color:#888;font-size:11px">' + status + ' · ' + pos + '</div>'
+        + '</div>'
+        + '<div style="width:10px;height:10px;background:#2ecc71;border-radius:50%;box-shadow:0 0 6px #2ecc71"></div>'
+        + '</div>'
+        + '<div style="display:flex;gap:7px;flex-wrap:wrap">'
+        + modBtns
+        + '<button onclick="ownerTeleportTo(\'' + id + '\')" '
+        + 'style="padding:6px 13px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;cursor:pointer;font-size:11px">📍 Teleport ke dia</button>'
+        + '<button onclick="switchOwnerTab(\'gift\')" '
+        + 'style="padding:6px 13px;background:rgba(243,156,18,0.15);border:1px solid rgba(243,156,18,0.3);border-radius:8px;color:#f39c12;cursor:pointer;font-size:11px">🎁 Gift</button>'
+        + premBtn
+        + '</div></div>';
     });
   }
 
@@ -1809,7 +1811,8 @@ function addOwnerCrownToNameTag(nameCanvas) {
         if (!msg || msg.senderId === myId) return;
         const displayName = getDisplayName(msg.name);
         appendChatMsg(displayName, msg.text, false);
-        showFloatingBubble(msg.senderId, displayName, msg.text);
+        // Tampilkan notif badge di tombol chat (bukan floating bubble)
+        if (!chatOpen) showChatNotifBadge();
       });
 
       // ── Listen for game events (weather sync, jetski, dll) ──
@@ -1919,6 +1922,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
 
   function toggleChat() {
     chatOpen = !chatOpen;
+    if (chatOpen) clearChatNotifBadge();
     const box = document.getElementById("mpChatBox");
     box.style.display = chatOpen ? "flex" : "none";
     if (chatOpen) {
@@ -2041,33 +2045,41 @@ function addOwnerCrownToNameTag(nameCanvas) {
     }, 4000);
   }
 
-  function showFloatingBubble(senderId, name, text) {
-    const op = otherPlayers[senderId];
-    if (!op || !op.meshes) return;
-    const worldPos = op.meshes.group.position.clone(); worldPos.y += 6;
-    const v = worldPos.project(window.camera);
-    if (Math.abs(v.z) > 1) return; // behind camera
-
-    const el = document.createElement("div");
-    // Determine name color by role
-    const isOwnerMsg = name.startsWith("👑");
-    const isAdminMsg = name.startsWith("🛡");
-    const nameColor = isOwnerMsg ? "#f39c12" : isAdminMsg ? "#3498db" : "#7ecfff";
-    el.innerHTML = `<div style="font-size:10px;color:${nameColor};font-weight:bold;margin-bottom:3px">${name}</div><div>${text}</div>`;
-    Object.assign(el.style, {
-      position: "fixed",
-      left: ((v.x * 0.5 + 0.5) * window.innerWidth) + "px",
-      top: ((-v.y * 0.5 + 0.5) * window.innerHeight - 60) + "px",
-      transform: "translateX(-50%)",
-      background: "rgba(0,0,0,0.82)", color: "#fff",
-      padding: "6px 12px", borderRadius: "10px",
-      fontSize: "12px", zIndex: "1000",
-      pointerEvents: "none", maxWidth: "200px",
-      border: "1px solid rgba(255,255,255,0.2)",
-      textAlign: "center", lineHeight: "1.4"
-    });
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 3500);
+  // ── Chat notif badge (bukan floating bubble) ──
+  let _chatUnread = 0;
+  function showChatNotifBadge() {
+    _chatUnread++;
+    const btn = document.getElementById("mpChatBtn");
+    if (!btn) return;
+    // Buat badge kalau belum ada
+    let badge = document.getElementById("chatUnreadBadge");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.id = "chatUnreadBadge";
+      Object.assign(badge.style, {
+        position: "absolute", top: "-5px", right: "-5px",
+        background: "#e74c3c", color: "#fff",
+        borderRadius: "50%", width: "16px", height: "16px",
+        fontSize: "10px", fontWeight: "bold",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        pointerEvents: "none", zIndex: "1001",
+        border: "2px solid rgba(0,0,0,0.5)"
+      });
+      btn.style.position = "relative";
+      btn.appendChild(badge);
+    }
+    badge.style.display = "flex";
+    badge.textContent = _chatUnread > 9 ? "9+" : String(_chatUnread);
+    // Animasi ping
+    btn.style.boxShadow = "0 0 0 3px rgba(231,76,60,0.5)";
+    setTimeout(() => { if(btn) btn.style.boxShadow = ""; }, 600);
+  }
+  function clearChatNotifBadge() {
+    _chatUnread = 0;
+    const badge = document.getElementById("chatUnreadBadge");
+    if (badge) badge.style.display = "none";
+    const btn = document.getElementById("mpChatBtn");
+    if (btn) btn.style.boxShadow = "";
   }
 
   // ═══════════════════════════════════════════════
