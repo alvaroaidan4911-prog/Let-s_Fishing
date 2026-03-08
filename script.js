@@ -2142,7 +2142,23 @@ function startTension(fish){
   tensionProgress=25;tensionReeling=false;tensionGrace=1.5;
   tensionDifficulty=fish.diff||1;tensionFishSpeed=0;
   tensionDir=Math.random()<0.5?1:-1;tensionTimeout=20;freezePlayer=true;pendingFish=fish;
-  document.getElementById("biteIcon").style.display="block";
+  // Tanda seru berbeda per rarity
+  const biteEl = document.getElementById("biteIcon");
+  const rarityBiteMap = {
+    Junk:      {emoji:"❕", color:"#888888", shadow:"none",           size:"44px"},
+    Common:    {emoji:"❗", color:"#dddddd", shadow:"none",           size:"52px"},
+    Uncommon:  {emoji:"❗", color:"#2ecc71", shadow:"0 0 12px #2ecc71",size:"56px"},
+    Rare:      {emoji:"‼️", color:"#3498db", shadow:"0 0 16px #3498db",size:"60px"},
+    Epic:      {emoji:"‼️", color:"#9b59b6", shadow:"0 0 20px #9b59b6",size:"64px"},
+    Legendary: {emoji:"⚡", color:"#f39c12", shadow:"0 0 28px #f39c12",size:"72px"},
+  };
+  const bm = rarityBiteMap[fish.rarity] || rarityBiteMap.Common;
+  biteEl.textContent = bm.emoji;
+  biteEl.style.color = bm.color;
+  biteEl.style.fontSize = bm.size;
+  biteEl.style.textShadow = bm.shadow;
+  biteEl.style.filter = bm.shadow !== "none" ? "drop-shadow(" + bm.shadow + ")" : "none";
+  biteEl.style.display = "block";
   biteSound.play().catch(()=>{});
   setTimeout(()=>{
     document.getElementById("biteIcon").style.display="none";
@@ -2517,6 +2533,12 @@ function closeJetskiShop(){document.getElementById("jetskiShopUI").style.display
 
 // ═══ PREMIUM MODAL ═══
 let premiumActive=JSON.parse(localStorage.getItem('premiumActive')||'false');
+// Sync premiumActive dengan window agar bisa diubah oleh multiplayer.js
+Object.defineProperty(window,'premiumActive',{
+  get:()=>premiumActive,
+  set:(v)=>{premiumActive=v;if(inventoryOpen)renderTab('fish');},
+  configurable:true
+});
 function showPremiumModal(){
   freezeInput=true;
   const existing=document.getElementById('premiumModal');
@@ -2564,19 +2586,8 @@ function closePremiumModal(){
   freezeInput=false;
 }
 function activatePremiumCode(){
-  const code=prompt('Masukkan kode aktivasi Premium:');
-  if(!code)return;
-  // Kode valid bisa di-set dari server/admin
-  const validCodes=['PREMIUM2024','VARZ_PREMIUM','FISHPRO99'];
-  if(validCodes.includes(code.trim().toUpperCase())){
-    premiumActive=true;
-    localStorage.setItem('premiumActive','true');
-    closePremiumModal();
-    showMessage('👑 Premium Aktif! Kamu bisa jual ikan dari mana saja!');
-    renderTab('fish');
-  } else {
-    showMessage('❌ Kode tidak valid. Hubungi admin.');
-  }
+  // Premium sekarang hanya bisa diaktifkan oleh Owner melalui Owner Panel
+  showMessage('📩 Hubungi Owner untuk mengaktifkan Premium!');
 }
 function sellAllFishRemote(){
   if(!premiumActive){showPremiumModal();return;}

@@ -330,6 +330,22 @@ function listenServerCommands() {
       showBroadcastToast(cmd.ownerName || "Owner", cmd.message);
       addSystemMsg(`📢 ${cmd.ownerLabel||cmd.ownerName||"Owner"}: ${cmd.message}`);
     }
+    // ── PREMIUM GRANT/REVOKE ──
+    if (cmd.cmd === "setPremium" && cmd.targetId === myId) {
+      if (cmd.grant) {
+        localStorage.setItem("premiumActive", "true");
+        window.premiumActive = true;
+        if (typeof window.showMessage === "function") window.showMessage("👑 Premium diaktifkan oleh Owner!");
+        if (typeof window.renderTab === "function") window.renderTab("fish");
+        addSystemMsg("👑 Kamu mendapat akses Premium!");
+      } else {
+        localStorage.setItem("premiumActive", "false");
+        window.premiumActive = false;
+        if (typeof window.showMessage === "function") window.showMessage("👑 Premium dicabut oleh Owner.");
+        if (typeof window.renderTab === "function") window.renderTab("fish");
+        addSystemMsg("👑 Akses Premium dicabut.");
+      }
+    }
   }); // end cmdRef listener
 }
 
@@ -424,7 +440,7 @@ function buildOwnerPanel() {
     WebkitOverflowScrolling: "touch", scrollbarWidth: "none"
   });
   // Admin hanya dapat tab terbatas
-  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 FreeCam"]];
+  const allTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["fish","🐟 Fish"],["gift","🎁 Gift"],["premium","👑 Premium"],["banned","🚫 Banned"],["admins","🛡️ Admins"],["cinematic","🎬 FreeCam"]];
   const adminTabNames = [["players","👥 Players"],["broadcast","📢 Broadcast"],["world","🌍 World"],["banned","🚫 Banned"]];
   const tabNames = isAdminOnly() ? adminTabNames : allTabNames;
   tabNames.forEach(([id, label]) => {
@@ -490,6 +506,7 @@ function refreshOwnerPanel() {
   else if (currentOwnerTab === "banned") renderBannedTab(content);
   else if (currentOwnerTab === "fish") renderFishGiveTab(content);
   else if (currentOwnerTab === "admins") renderAdminsTab(content);
+  else if (currentOwnerTab === "premium") renderPremiumTab(content);
   else if (currentOwnerTab === "cinematic") renderCinematicTab(content);
 }
 
@@ -543,6 +560,7 @@ function renderPlayersTab(el) {
                      border:1px solid rgba(243,156,18,0.3);border-radius:8px;color:#f39c12;cursor:pointer;font-size:11px">
               🎁 Gift
             </button>
+            ${isOwner() ? '<button onclick="togglePremiumPlayer(\'"+id+"\',\'"+name+"\')" style="padding:6px 13px;background:'+(getPremiumList().includes(id)?'rgba(243,156,18,0.25)':'rgba(255,255,255,0.07)')+';border:1px solid '+(getPremiumList().includes(id)?'rgba(243,156,18,0.6)':'rgba(255,255,255,0.15)')+';border-radius:8px;color:'+(getPremiumList().includes(id)?'#f1c40f':'#aaa')+';cursor:pointer;font-size:11px;font-weight:bold">'+(getPremiumList().includes(id)?'👑 Premium ✓':'👑 Beri Premium')+'</button>' : ''}
           </div>
         </div>`;
     });
@@ -693,6 +711,41 @@ function renderWorldTab(el) {
   `;
   // stop key propagation on inputs inside world tab
   el.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>e.stopPropagation()));
+}
+
+// ── Premium Management ──
+function ownerSetPremium(playerId, playerName, grant) {
+  if (!db || !roomId) return;
+  db.ref(`rooms/${roomId}/serverCommands`).push({
+    cmd: "setPremium",
+    targetId: playerId,
+    grant: grant,
+    by: localStorage.getItem("playerName") || OWNER_NAME,
+    ts: Date.now()
+  });
+  addSystemMsg(`👑 ${grant ? "Memberi" : "Mencabut"} Premium dari ${playerName}`);
+  // Refresh owner panel
+  if (typeof switchOwnerTab === "function") switchOwnerTab("players");
+}
+
+// Track who has premium (stored locally by owner for display)
+function getPremiumList() {
+  try { return JSON.parse(localStorage.getItem("premiumList_owner") || "[]"); } catch { return []; }
+}
+function setPremiumList(list) {
+  localStorage.setItem("premiumList_owner", JSON.stringify(list));
+}
+function togglePremiumPlayer(playerId, playerName) {
+  const list = getPremiumList();
+  const idx = list.indexOf(playerId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    ownerSetPremium(playerId, playerName, false);
+  } else {
+    list.push(playerId);
+    ownerSetPremium(playerId, playerName, true);
+  }
+  setPremiumList(list);
 }
 
 function ownerTeleportBtnStyle() {
@@ -1065,6 +1118,66 @@ function renderGiftTab(el) {
 }
 
 // ── TAB: Banned ──
+// ── TAB: Premium (Owner only) ──
+function renderPremiumTab(el) {
+  const players = Object.entries(otherPlayers || {});
+  const premList = getPremiumList();
+
+  let html = `
+    <div style="color:#aaa;font-size:12px;margin-bottom:14px">
+      👑 Kelola akses <b style="color:#f1c40f">Premium</b> untuk setiap player.<br>
+      <span style="font-size:11px;color:#666">Premium = bisa Remote Sell ikan dari Inventory.</span>
+    </div>
+
+    <div style="background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.25);border-radius:10px;padding:10px 14px;margin-bottom:14px">
+      <div style="color:#f1c40f;font-size:12px;font-weight:bold;margin-bottom:8px">👑 Player Premium Aktif (${premList.length})</div>
+      ${premList.length === 0
+        ? `<div style="color:#555;font-size:12px">Belum ada player premium.</div>`
+        : premList.map(pid => {
+            const op = otherPlayers[pid];
+            const name = op?.latestData?.name || pid;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+              <span style="color:#f1c40f;font-size:13px">👑 ${name}</span>
+              <button onclick="togglePremiumPlayer('${pid}','${name}')"
+                style="padding:4px 10px;background:rgba(231,76,60,0.2);border:1px solid rgba(231,76,60,0.4);border-radius:6px;color:#e74c3c;cursor:pointer;font-size:11px">
+                ✕ Cabut
+              </button>
+            </div>`;
+          }).join("")
+      }
+    </div>
+
+    <div style="color:#7ecfff;font-size:12px;font-weight:bold;margin-bottom:10px">🎮 Player Online</div>`;
+
+  if (players.length === 0) {
+    html += `<div style="text-align:center;color:#555;padding:16px;font-size:13px">Belum ada player lain online.</div>`;
+  } else {
+    players.forEach(([id, op]) => {
+      const d = op.latestData || {};
+      const name = d.name || "Player";
+      const hasPrem = premList.includes(id);
+      html += `
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
+                    border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="color:#fff;font-size:13px;font-weight:bold">${name}
+              ${hasPrem ? '<span style="color:#f1c40f;font-size:10px;margin-left:6px">👑 Premium</span>' : ''}
+            </div>
+            <div style="color:#666;font-size:11px">${d.isSwimming?"🏊":"🎣"} online</div>
+          </div>
+          <button onclick="togglePremiumPlayer('${id}','${name}')"
+            style="padding:6px 14px;background:${hasPrem?'rgba(231,76,60,0.2)':'rgba(243,156,18,0.18)'};
+                   border:1px solid ${hasPrem?'rgba(231,76,60,0.4)':'rgba(243,156,18,0.4)'};
+                   border-radius:8px;color:${hasPrem?'#e74c3c':'#f1c40f'};cursor:pointer;font-size:12px;font-weight:bold">
+            ${hasPrem ? '✕ Cabut Premium' : '👑 Beri Premium'}
+          </button>
+        </div>`;
+    });
+  }
+
+  el.innerHTML = html;
+}
+
 function renderBannedTab(el) {
   if (!db) { el.innerHTML = `<div style="color:#555;text-align:center;padding:20px">DB tidak aktif</div>`; return; }
   el.innerHTML = `<div style="color:#aaa;font-size:12px;margin-bottom:10px">Memuat list ban...</div>`;
@@ -2171,6 +2284,10 @@ function addOwnerCrownToNameTag(nameCanvas) {
   window.toggleCinAccess      = toggleCinAccess;
   window.renderGiftTab        = renderGiftTab;
   window.renderBannedTab      = renderBannedTab;
+  window.renderPremiumTab     = renderPremiumTab;
+  window.ownerSetPremium      = ownerSetPremium;
+  window.togglePremiumPlayer  = togglePremiumPlayer;
+  window.getPremiumList       = getPremiumList;
   window.addAdmin             = addAdmin;
   window.addAdminByInput      = addAdminByInput;
   window.removeAdmin          = removeAdmin;
