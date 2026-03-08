@@ -2857,15 +2857,20 @@ let gameSettings={shadows:true,waterAnim:true,volume:80,minimap:true,fps:false};
 function openSettings(){
   settingsOpen=true;
   const el=document.getElementById("settingsMenu");
-  if(el){el.style.display="flex";}
+  if(el){el.style.display="flex";el.classList.add("show");}
+  // Sync warna baju
   const sc=document.getElementById("settingsShirtColor");
-  var _sc2=document.getElementById("shirtColor");if(sc)sc.value=(_sc2&&_sc2.value)||"#2ecc71";
+  const _sc2=document.getElementById("shirtColor2")||document.getElementById("shirtColor");
+  if(sc&&_sc2)sc.value=_sc2.value;
+  // Sync volume
   const sv=document.getElementById("settingsVolume");if(sv)sv.value=gameSettings.volume;
   const svl=document.getElementById("settingsVolumeLabel");if(svl)svl.textContent=gameSettings.volume+"%";
-  document.getElementById("settingsShadows").checked=gameSettings.shadows;
-  document.getElementById("settingsWaterAnim").checked=gameSettings.waterAnim;
-  document.getElementById("settingsMinimap").checked=gameSettings.minimap;
-  document.getElementById("settingsFPS").checked=gameSettings.fps;
+  // Sync toggles (safe — elemen mungkin tidak ada di HTML baru)
+  const safeCheck=(id,val)=>{const e=document.getElementById(id);if(e&&'checked' in e)e.checked=val;};
+  safeCheck("settingsShadows",gameSettings.shadows);
+  safeCheck("settingsWaterAnim",gameSettings.waterAnim);
+  safeCheck("settingsMinimap",gameSettings.minimap);
+  safeCheck("settingsFPS",gameSettings.fps);
   freezeInput=true;
 }
 function closeSettings(){
@@ -2874,6 +2879,86 @@ function closeSettings(){
   if(el){el.style.display="none";el.classList.remove("show");}
   freezeInput=false;
 }
+
+// ─── HUD EDITOR ───────────────────────────────────────────
+let _hudEditActive=false;
+const _hudDraggables=['castBtn','reelBtn','jumpBtn','sellBtn','fishIndexBtn','openRodShopBtn','invBtn'];
+function toggleHudEdit(){
+  _hudEditActive=!_hudEditActive;
+  const hint=document.getElementById('hudEditHint');
+  const btn=document.getElementById('hudEditBtn');
+  if(btn)btn.textContent=_hudEditActive?'✅ Selesai Edit':'✏️ Edit HUD';
+  if(hint)hint.style.display=_hudEditActive?'block':'none';
+  _hudDraggables.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(_hudEditActive){
+      el.style.outline='2px dashed #3498db';
+      el.style.cursor='move';
+      _makeDraggable(el);
+    } else {
+      el.style.outline='';
+      el.style.cursor='';
+      _saveHudPos(id,el);
+    }
+  });
+  // Close settings so user can drag
+  if(_hudEditActive){
+    const sm=document.getElementById('settingsMenu');
+    if(sm){sm.style.display='none';sm.classList.remove('show');}
+    settingsOpen=false;freezeInput=false;
+  }
+}
+function resetHudPositions(){
+  _hudDraggables.forEach(id=>{
+    localStorage.removeItem('hudPos_'+id);
+    const el=document.getElementById(id);
+    if(el){el.style.position='';el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';}
+  });
+  showMessage('↺ HUD direset ke default');
+}
+function _saveHudPos(id,el){
+  const r=el.getBoundingClientRect();
+  localStorage.setItem('hudPos_'+id,JSON.stringify({x:r.left,y:r.top}));
+}
+function _loadHudPositions(){
+  _hudDraggables.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const raw=localStorage.getItem('hudPos_'+id);if(!raw)return;
+    try{
+      const {x,y}=JSON.parse(raw);
+      el.style.position='fixed';el.style.left=x+'px';el.style.top=y+'px';
+      el.style.right='auto';el.style.bottom='auto';
+    }catch(e){}
+  });
+}
+function _makeDraggable(el){
+  if(el._dragBound)return;el._dragBound=true;
+  let ox,oy,sx,sy;
+  function onDown(e){
+    const t=e.touches?e.touches[0]:e;
+    sx=t.clientX;sy=t.clientY;
+    const r=el.getBoundingClientRect();ox=r.left;oy=r.top;
+    el.style.position='fixed';el.style.right='auto';el.style.bottom='auto';
+    document.addEventListener('mousemove',onMove);document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp);
+    e.preventDefault();e.stopPropagation();
+  }
+  function onMove(e){
+    if(!_hudEditActive)return;
+    const t=e.touches?e.touches[0]:e;
+    el.style.left=(ox+t.clientX-sx)+'px';el.style.top=(oy+t.clientY-sy)+'px';
+    e.preventDefault();
+  }
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('mouseup',onUp);document.removeEventListener('touchend',onUp);
+    if(_hudEditActive)_saveHudPos(el.id,el);
+  }
+  el.addEventListener('mousedown',onDown);el.addEventListener('touchstart',onDown,{passive:false});
+}
+// Load saved HUD positions on start
+setTimeout(_loadHudPositions,500);
 function settingsBack(){ closeSettings(); }
 // Expose ke window agar bisa dipanggil dari inline HTML
 window.closeSettings = closeSettings;
@@ -3013,6 +3098,24 @@ window.showPremiumModal=showPremiumModal;
 window.closePremiumModal=closePremiumModal;
 window.activatePremiumCode=activatePremiumCode;
 window.sellAllFishRemote=sellAllFishRemote;
+window.openSettings=openSettings;
+window.closeSettings=closeSettings;
+window.toggleHudEdit=toggleHudEdit;
+window.resetHudPositions=resetHudPositions;
+window.equipRod=equipRod;
+window.selectBait=selectBait;
+window.buyBait=buyBait;
+window.buyRod=buyRod;
+window.buyJetski=buyJetski;
+window.closeJetskiShop=closeJetskiShop;
+window.toggleInventory=toggleInventory;
+window.toggleHoldFish=toggleHoldFish;
+window.sellFish=sellFish;
+window.sellAllFish=sellAllFish;
+window.renderTab=renderTab;
+window.switchTab=switchTab;
+window.toggleFishIndex=toggleFishIndex;
+window.renderFishIndexTabs=renderFishIndexTabs;
 Object.defineProperty(window,"coins",{get:()=>coins,set:v=>{coins=v;}});
 Object.defineProperty(window,"playerXP",{get:()=>playerXP,set:v=>{playerXP=v;}});
 Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLevel=v;}});
@@ -3384,7 +3487,7 @@ Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLe
     "hotbar","runBtn","jumpBtn","inventoryBtn","fishIndexBtn","dayNightUI",
     "fpsCounter","islandBadge","openMenuBtn","fullscreenBtn",
     "tensionContainer","biteIcon","fishNotify","eventNotify",
-    "mpStatusBadge","ownerPanelBtn","broadcastNotif","interactHint",
+    "mpStatusBadge","mpChatBtn","ownerPanelBtn","broadcastNotif","interactHint",
     "harbourBtn","mountJetskiBtn","jetskiUI","heldFishHUD"];
 
   function hideGameUI(){
