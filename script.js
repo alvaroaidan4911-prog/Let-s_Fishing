@@ -981,7 +981,7 @@ for(let i=0;i<treeCount;i++){
 
   // ── Rumah-rumah sederhana di sepanjang jalan ──
   // ── Rumah besar seukuran toko (efektif ~16x11x10 unit, sama dgn shop scale 1.6×base) ──
-  const houseCount=opt.houses||(Math.floor(grassR/30));
+  const houseCount=(opt.houses===0)?0:(opt.houses||(Math.floor(grassR/30)));
   const houseMats=[0xf5deb3,0xdeb887,0xffa07a,0x98fb98,0x87ceeb,0xdda0dd,0xffe4b5,0xe8d5b7];
   const roofColors=[0x8B4513,0x6B3410,0xA0522D,0x5C3317,0x704214];
   for(let i=0;i<houseCount;i++){
@@ -1217,21 +1217,21 @@ for(let i=0;i<treeCount;i++){
 }
 
 // Build all islands
-buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,useGrassTex:true,grassColor:0xaaffaa,
+buildIsland(islandDefs[0],{trees:16,rocks:8,flowers:24,houses:0,useGrassTex:true,grassColor:0xaaffaa,
   trunkColor:0x8B6914,leafColor:0x1a8a1a,lampColor:0xffdd88,paths:true,benches:true,
   lamps:true,lampCount:5,labelColor:"#ffdd88",
   buildingExclusions:[
     {cx:0,  cz:-25,hw:10,hd:7},{cx:30, cz:-25,hw:10,hd:7},
     {cx:-30,cz:-25,hw:10,hd:7},{cx:60, cz:-25,hw:10,hd:7}
   ]});
-buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
-buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
-buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true,
+buildIsland(islandDefs[1],{trees:10,rocks:5,flowers:20,houses:0,grassColor:0x2d1060,trunkColor:0x9b59b6,leafColor:0x6600cc,crystals:true,crystalColor:0xcc88ff,mystic:true,lampColor:0xcc44ff,lampCount:4,labelColor:"#cc88ff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[2],{trees:5,rocks:18,flowers:6,houses:0,grassColor:0x6a1a00,trunkColor:0x444444,leafColor:0x556b2f,lava:true,rockColor:0x444444,lampColor:0xff4400,lampCount:4,labelColor:"#ff6644",paths:false,benches:false,lamps:true});
+buildIsland(islandDefs[3],{trees:7,rocks:6,flowers:8,houses:0,grassColor:0x005a70,trunkColor:0x5599aa,leafColor:0x00aacc,crystals:true,crystalColor:0x88ddff,lampColor:0x88ffff,lampCount:4,labelColor:"#88ffff",paths:true,benches:true,lamps:true});
+buildIsland(islandDefs[4],{trees:8,rocks:4,flowers:30,houses:0,grassColor:0x0a0a2a,trunkColor:0x334466,leafColor:0x003366,aurora:true,lampColor:0x88ffcc,lampCount:5,labelColor:"#88ffcc",paths:true,benches:true,lamps:true,
   buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
-buildIsland(islandDefs[5],{trees:4,rocks:20,flowers:5,grassColor:0x001122,trunkColor:0x002244,leafColor:0x003366,lampColor:0x0044ff,lampCount:4,labelColor:"#0088ff",paths:true,benches:true,lamps:true,
+buildIsland(islandDefs[5],{trees:4,rocks:20,flowers:5,houses:0,grassColor:0x001122,trunkColor:0x002244,leafColor:0x003366,lampColor:0x0044ff,lampCount:4,labelColor:"#0088ff",paths:true,benches:true,lamps:true,
   buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
-buildIsland(islandDefs[6],{trees:10,rocks:3,flowers:40,grassColor:0xaabbdd,trunkColor:0x8899bb,leafColor:0xbbccff,lampColor:0xffffff,lampCount:5,labelColor:"#ffffff",paths:true,benches:true,lamps:true,
+buildIsland(islandDefs[6],{trees:10,rocks:3,flowers:40,houses:0,grassColor:0xaabbdd,trunkColor:0x8899bb,leafColor:0xbbccff,lampColor:0xffffff,lampCount:5,labelColor:"#ffffff",paths:true,benches:true,lamps:true,
   buildingExclusions:[{cx:0,cz:-25,hw:12,hd:8}]});
 
 // ═══ SHOP BUILDER ═══
@@ -1367,10 +1367,45 @@ function makeNPC(color,px,pz){
   g.scale.set(0.6,0.6,0.6);g.position.set(px,0,pz);scene.add(g);
   return{group:g,root};
 }
-const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-64);
-const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,50,-64);
-const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-50,-64);
-const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,100,-64);
+// ── NPC Main Island (di depan counter setiap toko) ──
+const {group:npcGroup,root:npcRoot}=makeNPC(0x3498db,0,-23);         // Sell Fish
+const {group:rodNpcGroup,root:rodNpcRoot}=makeNPC(0xe74c3c,30,-23);   // Rod Shop
+const {group:baitNpcGroup,root:baitNpcRoot}=makeNPC(0x27ae60,-30,-23);// Bait Shop
+const {group:jsNpcGroup,root:jsNpcRoot}=makeNPC(0xf39c12,60,-23);     // Jetski
+
+// ── NPC Mystic Isle ──
+const {group:mysticSellNpc,root:mysticSellNpcR}=makeNPC(0x9b59b6,700,-48);
+const {group:mysticBaitNpc,root:mysticBaitNpcR}=makeNPC(0xcc44ff,730,-48);
+
+// ── NPC Volcano Isle ──
+const {group:volcanoSellNpc,root:volcanoSellNpcR}=makeNPC(0xe74c3c,-800,-623);
+const {group:volcanoBaitNpc,root:volcanoBaitNpcR}=makeNPC(0xff6600,-770,-623);
+
+// ── NPC Crystal Isle ──
+const {group:crystalSellNpc,root:crystalSellNpcR}=makeNPC(0x00bcd4,300,977);
+const {group:crystalBaitNpc,root:crystalBaitNpcR}=makeNPC(0x88ffff,330,977);
+
+// ── NPC Aurora Isle ──
+const {group:auroraSellNpc,root:auroraSellNpcR}=makeNPC(0x4455bb,-400,1177);
+const {group:auroraBaitNpc,root:auroraBaitNpcR}=makeNPC(0x88ffcc,-370,1177);
+
+// ── NPC Abyss Isle ──
+const {group:abyssSellNpc,root:abyssSellNpcR}=makeNPC(0x0055cc,1200,577);
+const {group:abyssBaitNpc,root:abyssBaitNpcR}=makeNPC(0x0044aa,1230,577);
+
+// ── NPC Sky Isle ──
+const {group:skySellNpc,root:skySellNpcR}=makeNPC(0xaaccff,0,-1423);
+const {group:skyBaitNpc,root:skyBaitNpcR}=makeNPC(0xffffff,30,-1423);
+
+// All island NPCs for animateNPCs
+const allIslandNpcs=[
+  {g:mysticSellNpc,r:mysticSellNpcR},{g:mysticBaitNpc,r:mysticBaitNpcR},
+  {g:volcanoSellNpc,r:volcanoSellNpcR},{g:volcanoBaitNpc,r:volcanoBaitNpcR},
+  {g:crystalSellNpc,r:crystalSellNpcR},{g:crystalBaitNpc,r:crystalBaitNpcR},
+  {g:auroraSellNpc,r:auroraSellNpcR},{g:auroraBaitNpc,r:auroraBaitNpcR},
+  {g:abyssSellNpc,r:abyssSellNpcR},{g:abyssBaitNpc,r:abyssBaitNpcR},
+  {g:skySellNpc,r:skySellNpcR},{g:skyBaitNpc,r:skyBaitNpcR},
+];
 
 // ═══ PLAYER ═══
 const player=new THREE.Group();scene.add(player);
@@ -2583,6 +2618,7 @@ function updateNPCInteraction(){
 
 // ═══ NPC ANIMATION ═══
 function animateNPCs(time){
+  // Main island NPCs
   npcRoot.rotation.y=Math.sin(time*.002)*.1;
   rodNpcRoot.rotation.y=Math.sin(time*.0022+1)*.1;
   baitNpcRoot.rotation.y=Math.sin(time*.0018+2)*.1;
@@ -2592,6 +2628,11 @@ function animateNPCs(time){
   rodNpcGroup.lookAt(pp.x,rodNpcGroup.position.y,pp.z);
   baitNpcGroup.lookAt(pp.x,baitNpcGroup.position.y,pp.z);
   jsNpcGroup.lookAt(pp.x,jsNpcGroup.position.y,pp.z);
+  // Other island NPCs — lookAt player + idle bob
+  allIslandNpcs.forEach(({g,r},i)=>{
+    r.rotation.y=Math.sin(time*.002+i*0.7)*.12;
+    g.lookAt(pp.x,g.position.y,pp.z);
+  });
 }
 
 // ═══ SAVE/LOAD ═══
