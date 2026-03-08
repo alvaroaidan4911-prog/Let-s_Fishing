@@ -2325,41 +2325,64 @@ function renderTab(tab){
   else renderFishTab(content);
 }
 function renderRodsTab(el){
-  const allRods=[
-    {id:"FishingRod",...rodDatabase.FishingRod},
-    {id:"LuckRod",  ...rodDatabase.LuckRod},
-    {id:"MediumRod",...rodDatabase.MediumRod},
-    {id:"GoldenRod",...rodDatabase.GoldenRod},
-  ];
-  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to equip.</div>`
+  const allRods=Object.entries(rodDatabase).map(([id,r])=>({id,...r}));
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:10px;">🎣 Beli joran langsung di <b style='color:#ffdd88'>Rod Shop</b> di Main Island.</div>`
     +allRods.map(r=>{
       const owned=inventory.rods.includes(r.id),eq=inventory.equipped===r.id;
-      return`<div class="rodRow${eq?" equipped":""}" onclick="${owned?`equipRod('${r.id}')`:`buyRod('${r.id}')`}">
+      return`<div class="rodRow${eq?" equipped":""}"        style="opacity:${owned?1:0.45};cursor:${owned?'pointer':'default'}"        onclick="${owned?`equipRod('${r.id}')`:''}">
         <div class="rodIcon">${r.icon}</div>
-        <div class="rodInfo"><h4>${r.name}${eq?" <span style='color:#f1c40f'>✓</span>":""}</h4>
-        <p>${r.desc}</p><div class="rodStats">⚡${r.speedMult}x 🍀${r.luckMult}x${!owned?" 💰"+r.price:""}</div></div>
-        <button class="rodEquipBtn ${eq?"eq":"neq"}">${eq?"Equipped":owned?"Equip":"Buy 💰"+r.price}</button>
+        <div class="rodInfo">
+          <h4>${r.name}${eq?" <span style='color:#f1c40f'>✓ Equipped</span>":""}</h4>
+          <p style="font-size:10px;color:${r.questOnly?'#f1c40f':'#999'}">${r.desc}</p>
+          <div class="rodStats">⚡${r.speedMult}x 🍀${r.luckMult}x</div>
+        </div>
+        ${owned
+          ? `<button class="rodEquipBtn ${eq?'eq':'neq'}">${eq?'Equipped':'Equip'}</button>`
+          : r.questOnly
+            ? `<span style="color:#f1c40f;font-size:10px;text-align:center;padding:4px">🏆<br>Quest</span>`
+            : `<span style="color:#666;font-size:10px;text-align:center;padding:4px">🔒<br>Rod Shop</span>`
+        }
       </div>`;
     }).join("");
 }
 function renderBaitTab(el){
-  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:12px;">Tap to select.</div><div class="baitGrid">`
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:10px;">🪱 Beli umpan di <b style='color:#ffdd88'>Bait Shop</b> di pulau manapun. Tap untuk pilih.</div><div class="baitGrid">`
     +baitTypes.map(b=>{
       const count=b.infinite?"∞":inventory.bait[b.id]||0,eq=inventory.equippedBait===b.id;
-      return`<div class="baitCard${eq?" selected":""}" onclick="selectBait('${b.id}')">
-        <div class="baitIcon">${b.icon}</div><h4>${b.name}</h4><p>${b.desc}</p>
-        <div class="baitCount">×${count}</div>
-        ${b.id!=="none"&&count===0?`<button class="buyRodBtn" style="margin-top:6px" onclick="event.stopPropagation();buyBait('${b.id}')">Buy 💰${b.price}</button>`:""}
+      const canSelect=b.infinite||(count>0);
+      return`<div class="baitCard${eq?" selected":""}${!canSelect?" locked":""}"
+        style="opacity:${canSelect?1:0.4};cursor:${canSelect?'pointer':'default'}"
+        onclick="${canSelect?`selectBait('${b.id}')`:``}">
+        <div class="baitIcon">${b.icon}</div>
+        <h4>${b.name}</h4>
+        <p>${b.desc}</p>
+        <div class="baitCount" style="color:${count===0&&!b.infinite?'#e74c3c':'#2ecc71'}">×${count}</div>
+        ${!canSelect?`<div style="font-size:9px;color:#888;margin-top:3px">🏪 Beli di Bait Shop</div>`:""}
       </div>`;
     }).join("")+"</div>";
 }
 function renderFishTab(el){
   if(inventory.fish.length===0){
-    el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;font-size:14px;">🐟 No fish!<br><span style="font-size:12px">Go catch some.</span></div>`;
+    el.innerHTML=`<div style="text-align:center;color:#aaa;padding:40px;font-size:14px;">🐟 No fish!<br><span style="font-size:12px">Pergi mancing dulu.</span></div>`;
     return;
   }
   const rc={Common:"#aaa",Uncommon:"#2ecc71",Rare:"#3498db",Epic:"#9b59b6",Legendary:"#f39c12",Junk:"#666"};
-  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:10px;">${inventory.fish.length} fish</div><div class="fishBagGrid">`
+  const totalVal=inventory.fish.reduce((s,f)=>s+f.price,0);
+
+  // Banner info jual — beda tampilan kalau premium aktif atau tidak
+  const sellBanner=premiumActive
+    ? `<div style="background:rgba(243,156,18,0.1);border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:11px;color:#f1c40f;font-weight:bold;margin-bottom:6px">👑 PREMIUM AKTIF</div>
+        <button onclick="sellAllFishRemote()" style="width:100%;padding:9px;background:linear-gradient(135deg,#f39c12,#e67e22);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:bold;cursor:pointer">💰 Remote Sell All (+💰${totalVal})</button>
+      </div>`
+    : `<div style="background:rgba(46,204,113,0.07);border:1px solid rgba(46,204,113,0.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#aaa;line-height:1.7">
+        🏪 <b style="color:#2ecc71">Jual di Sell Fish Shop</b> — toko tersedia di semua pulau<br>
+        <button onclick="showPremiumModal()" style="display:block;width:100%;margin-top:8px;padding:8px;background:linear-gradient(135deg,#f39c12,#e67e22);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:bold;cursor:pointer">👑 Aktifkan Premium — Jual dari Mana Saja</button>
+      </div>`;
+
+  el.innerHTML=`<div style="color:#aaa;font-size:12px;margin-bottom:6px;">${inventory.fish.length} ikan · nilai total: <b style="color:#f1c40f">💰${totalVal}</b></div>`
+    +sellBanner
+    +`<div class="fishBagGrid">`
     +inventory.fish.map((f,i)=>`
       <div class="fishCard${heldFishIndex===i?" holding":""}">
         <div class="fishIcon">${f.emoji}</div><h4>${f.name}</h4>
@@ -2369,9 +2392,8 @@ function renderFishTab(el){
         <div class="fishPrice">💰${f.price}</div>
         <button class="holdBtn ${heldFishIndex===i?"unhold":"hold"}" onclick="toggleHoldFish(${i})">${heldFishIndex===i?"Put down":"Hold 🤚"}</button>
       </div>`).join("")
-    +`</div><button id="invSellAllBtn" onclick="sellAllFish()">💰 Sell All (+💰${inventory.fish.reduce((s,f)=>s+f.price,0)})</button>`;
+    +`</div>`;
 }
-
 function equipRod(name){
   if(!inventory.rods.includes(name)){showMessage("You don't own this rod!");return;}
   inventory.equipped=name;inventory._lastSelected=name;
@@ -2492,6 +2514,82 @@ function buyJetski(){
   saveProgress();
 }
 function closeJetskiShop(){document.getElementById("jetskiShopUI").style.display="none";freezeInput=false;}
+
+// ═══ PREMIUM MODAL ═══
+let premiumActive=JSON.parse(localStorage.getItem('premiumActive')||'false');
+function showPremiumModal(){
+  freezeInput=true;
+  const existing=document.getElementById('premiumModal');
+  if(existing)existing.remove();
+  const m=document.createElement('div');
+  m.id='premiumModal';
+  Object.assign(m.style,{
+    position:'fixed',top:'0',left:'0',width:'100%',height:'100%',
+    background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',
+    justifyContent:'center',zIndex:'99999',fontFamily:'Arial'
+  });
+  m.innerHTML=`
+    <div style="background:linear-gradient(145deg,#1a1a2e,#16213e);border:2px solid #f39c12;border-radius:18px;padding:28px;max-width:340px;width:90%;text-align:center;color:#fff">
+      <div style="font-size:32px;margin-bottom:8px">👑</div>
+      <h2 style="color:#f1c40f;margin:0 0 6px">PREMIUM</h2>
+      <p style="color:#aaa;font-size:13px;margin:0 0 18px">Jual ikan dari mana saja tanpa perlu ke toko!</p>
+      <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:14px;margin-bottom:18px;text-align:left">
+        <div style="font-size:12px;color:#2ecc71;margin-bottom:8px;font-weight:bold">✅ Fitur Premium:</div>
+        <div style="font-size:12px;color:#ddd;line-height:2">
+          💰 Remote Sell — jual ikan langsung dari Inventory<br>
+          🚀 Lebih efisien, hemat waktu<br>
+          ♾️ Berlaku selamanya (satu akun)
+        </div>
+      </div>
+      <div style="background:rgba(243,156,18,0.12);border:1px solid rgba(243,156,18,0.3);border-radius:10px;padding:12px;margin-bottom:18px">
+        <div style="font-size:11px;color:#aaa;margin-bottom:4px">Harga</div>
+        <div style="font-size:26px;font-weight:bold;color:#f1c40f">Rp 15.000</div>
+        <div style="font-size:11px;color:#888">Bayar sekali, selamanya</div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-bottom:16px">
+        📩 Hubungi admin untuk aktivasi:<br>
+        <b style="color:#aaa">Discord / WA yang tersedia</b>
+      </div>
+      ${premiumActive
+        ? `<div style="background:rgba(46,204,113,0.15);border:1px solid #2ecc71;border-radius:10px;padding:12px;margin-bottom:14px;color:#2ecc71;font-weight:bold">✅ Premium Aktif!</div>`
+        : `<button onclick="activatePremiumCode()" style="width:100%;padding:12px;background:linear-gradient(135deg,#f39c12,#e67e22);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:10px">🔑 Masukkan Kode Aktivasi</button>`
+      }
+      <button onclick="closePremiumModal()" style="width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#aaa;font-size:13px;cursor:pointer">Tutup</button>
+    </div>`;
+  document.body.appendChild(m);
+}
+function closePremiumModal(){
+  const m=document.getElementById('premiumModal');
+  if(m)m.remove();
+  freezeInput=false;
+}
+function activatePremiumCode(){
+  const code=prompt('Masukkan kode aktivasi Premium:');
+  if(!code)return;
+  // Kode valid bisa di-set dari server/admin
+  const validCodes=['PREMIUM2024','VARZ_PREMIUM','FISHPRO99'];
+  if(validCodes.includes(code.trim().toUpperCase())){
+    premiumActive=true;
+    localStorage.setItem('premiumActive','true');
+    closePremiumModal();
+    showMessage('👑 Premium Aktif! Kamu bisa jual ikan dari mana saja!');
+    renderTab('fish');
+  } else {
+    showMessage('❌ Kode tidak valid. Hubungi admin.');
+  }
+}
+function sellAllFishRemote(){
+  if(!premiumActive){showPremiumModal();return;}
+  if(inventory.fish.length===0){showMessage('🚫 No fish!');return;}
+  let total=0;inventory.fish.forEach(f=>total+=f.price);
+  coins+=total;inventory.fish=[];heldFishIndex=-1;
+  heldFishGroup.visible=false;heldJunkGroup.visible=false;
+  heldFishOverhead.visible=false;window._heldFishPose=null;
+  document.getElementById('coinUI').textContent='💰 '+coins;
+  document.getElementById('heldFishHUD').style.display='none';
+  showMessage('👑 Remote Sell! +💰'+total);
+  if(inventoryOpen)renderTab('fish');saveProgress();
+}
 
 // ═══ NOTIFICATIONS ═══
 function showFishNotification(fish){
@@ -2900,6 +2998,10 @@ window.applyDayTimeSync=function(t){
   dayTime=t;
 };
 window.renderFishIndex=renderFishIndex;
+window.showPremiumModal=showPremiumModal;
+window.closePremiumModal=closePremiumModal;
+window.activatePremiumCode=activatePremiumCode;
+window.sellAllFishRemote=sellAllFishRemote;
 Object.defineProperty(window,"coins",{get:()=>coins,set:v=>{coins=v;}});
 Object.defineProperty(window,"playerXP",{get:()=>playerXP,set:v=>{playerXP=v;}});
 Object.defineProperty(window,"playerLevel",{get:()=>playerLevel,set:v=>{playerLevel=v;}});
