@@ -1811,8 +1811,7 @@ function addOwnerCrownToNameTag(nameCanvas) {
         if (!msg || msg.senderId === myId) return;
         const displayName = getDisplayName(msg.name);
         appendChatMsg(displayName, msg.text, false);
-        // Tampilkan notif badge di tombol chat (bukan floating bubble)
-        if (!chatOpen) showChatNotifBadge();
+        showFloatingBubble(msg.senderId, displayName, msg.text);
       });
 
       // ── Listen for game events (weather sync, jetski, dll) ──
@@ -1922,7 +1921,6 @@ function addOwnerCrownToNameTag(nameCanvas) {
 
   function toggleChat() {
     chatOpen = !chatOpen;
-    if (chatOpen) clearChatNotifBadge();
     const box = document.getElementById("mpChatBox");
     box.style.display = chatOpen ? "flex" : "none";
     if (chatOpen) {
@@ -2045,41 +2043,32 @@ function addOwnerCrownToNameTag(nameCanvas) {
     }, 4000);
   }
 
-  // ── Chat notif badge (bukan floating bubble) ──
-  let _chatUnread = 0;
-  function showChatNotifBadge() {
-    _chatUnread++;
-    const btn = document.getElementById("mpChatBtn");
-    if (!btn) return;
-    // Buat badge kalau belum ada
-    let badge = document.getElementById("chatUnreadBadge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.id = "chatUnreadBadge";
-      Object.assign(badge.style, {
-        position: "absolute", top: "-5px", right: "-5px",
-        background: "#e74c3c", color: "#fff",
-        borderRadius: "50%", width: "16px", height: "16px",
-        fontSize: "10px", fontWeight: "bold",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        pointerEvents: "none", zIndex: "1001",
-        border: "2px solid rgba(0,0,0,0.5)"
-      });
-      btn.style.position = "relative";
-      btn.appendChild(badge);
-    }
-    badge.style.display = "flex";
-    badge.textContent = _chatUnread > 9 ? "9+" : String(_chatUnread);
-    // Animasi ping
-    btn.style.boxShadow = "0 0 0 3px rgba(231,76,60,0.5)";
-    setTimeout(() => { if(btn) btn.style.boxShadow = ""; }, 600);
-  }
-  function clearChatNotifBadge() {
-    _chatUnread = 0;
-    const badge = document.getElementById("chatUnreadBadge");
-    if (badge) badge.style.display = "none";
-    const btn = document.getElementById("mpChatBtn");
-    if (btn) btn.style.boxShadow = "";
+  function showFloatingBubble(senderId, name, text) {
+    const op = otherPlayers[senderId];
+    if (!op || !op.meshes) return;
+    const worldPos = op.meshes.group.position.clone(); worldPos.y += 6;
+    const v = worldPos.project(window.camera);
+    if (Math.abs(v.z) > 1) return;
+
+    const el = document.createElement("div");
+    const isOwnerMsg = name.startsWith("👑");
+    const isAdminMsg = name.startsWith("🛡");
+    const nameColor = isOwnerMsg ? "#f39c12" : isAdminMsg ? "#3498db" : "#7ecfff";
+    el.innerHTML = `<div style="font-size:10px;color:${nameColor};font-weight:bold;margin-bottom:3px">${name}</div><div>${text}</div>`;
+    Object.assign(el.style, {
+      position: "fixed",
+      left: ((v.x * 0.5 + 0.5) * window.innerWidth) + "px",
+      top: ((-v.y * 0.5 + 0.5) * window.innerHeight - 60) + "px",
+      transform: "translateX(-50%)",
+      background: "rgba(0,0,0,0.82)", color: "#fff",
+      padding: "6px 12px", borderRadius: "10px",
+      fontSize: "12px", zIndex: "1000",
+      pointerEvents: "none", maxWidth: "200px",
+      border: "1px solid rgba(255,255,255,0.2)",
+      textAlign: "center", lineHeight: "1.4"
+    });
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
   }
 
   // ═══════════════════════════════════════════════
