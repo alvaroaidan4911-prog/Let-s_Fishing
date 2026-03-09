@@ -3656,16 +3656,17 @@ function adaptUI(){
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
 }
+let _resizeLocked=false;
 function onScreenResize(){
+  if(_resizeLocked)return;
+  _resizeLocked=true;
   const w=window.innerWidth, h=window.innerHeight;
   camera.aspect=w/h;
   camera.updateProjectionMatrix();
-  renderer.setSize(w,h);
-  renderer.domElement.style.width=w+'px';
-  renderer.domElement.style.height=h+'px';
+  renderer.setSize(w,h,false); // false = jangan update style otomatis
   adaptUI();
   if(typeof _loadHudPositions==='function') _loadHudPositions();
-  if(typeof _loadHudPositions==='function') _loadHudPositions();
+  _resizeLocked=false;
 }
 window.addEventListener("resize", onScreenResize);
 window.addEventListener("orientationchange",()=>{
