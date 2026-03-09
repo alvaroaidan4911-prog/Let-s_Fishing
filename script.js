@@ -2760,15 +2760,15 @@ function showComboEffect(combo,bonus){
 
 // ─── DAILY QUEST ────────────────────────────────────────────
 const QUEST_POOL=[
-  {id:'catch10',   title:'Nelayan Rajin',   desc:'Tangkap 10 ikan hari ini',   type:'catch',   target:10,  reward:500,  icon:'🎣'},
-  {id:'catch25',   title:'Nelayan Hebat',   desc:'Tangkap 25 ikan hari ini',   type:'catch',   target:25,  reward:1500, icon:'🎣'},
-  {id:'catchRare', title:'Pemburu Langka',  desc:'Tangkap 3 ikan Rare+',       type:'rarity',  target:3,   reward:2000, icon:'💎', minRarity:'Rare'},
-  {id:'catchEpic', title:'Pemburu Epik',    desc:'Tangkap 1 ikan Epic+',       type:'rarity',  target:1,   reward:3000, icon:'👑', minRarity:'Epic'},
-  {id:'earn2000',  title:'Pedagang Ikan',   desc:'Kumpulkan 2000 koin hari ini',type:'coins',   target:2000,reward:800,  icon:'💰'},
-  {id:'earn5000',  title:'Pengusaha Kaya',  desc:'Kumpulkan 5000 koin hari ini',type:'coins',   target:5000,reward:2500, icon:'💰'},
-  {id:'combo3',    title:'Combo Master',    desc:'Capai combo x3',             type:'combo',   target:3,   reward:1000, icon:'🔥'},
-  {id:'visitIsle', title:'Penjelajah',      desc:'Kunjungi 3 pulau berbeda',   type:'island',  target:3,   reward:1200, icon:'🗺️'},
-  {id:'sell10',    title:'Penjual Ulung',   desc:'Jual 10 ikan di toko',       type:'sell',    target:10,  reward:600,  icon:'🏪'},
+  {id:'catch10',   title:'Nelayan Rajin',   desc:'Tangkap 10 ikan hari ini',   type:'catch',   target:10,  reward:120,  icon:'🎣'},
+  {id:'catch25',   title:'Nelayan Hebat',   desc:'Tangkap 25 ikan hari ini',   type:'catch',   target:25,  reward:300,  icon:'🎣'},
+  {id:'catchRare', title:'Pemburu Langka',  desc:'Tangkap 3 ikan Rare+',       type:'rarity',  target:3,   reward:400,  icon:'💎', minRarity:'Rare'},
+  {id:'catchEpic', title:'Pemburu Epik',    desc:'Tangkap 1 ikan Epic+',        type:'rarity',  target:1,   reward:500,  icon:'👑', minRarity:'Epic'},
+  {id:'earn2000',  title:'Pedagang Ikan',   desc:'Kumpulkan 2000 koin hari ini',type:'coins',   target:2000,reward:150,  icon:'💰'},
+  {id:'earn5000',  title:'Pengusaha Kaya',  desc:'Kumpulkan 5000 koin hari ini',type:'coins',   target:5000,reward:400,  icon:'💰'},
+  {id:'combo3',    title:'Combo Master',    desc:'Capai combo x3',             type:'combo',   target:3,   reward:180,  icon:'🔥'},
+  {id:'visitIsle', title:'Penjelajah',      desc:'Kunjungi 3 pulau berbeda',   type:'island',  target:3,   reward:250,  icon:'🗺️'},
+  {id:'sell10',    title:'Penjual Ulung',   desc:'Jual 10 ikan di toko',       type:'sell',    target:10,  reward:100,  icon:'🏪'},
 ];
 const RARITY_ORDER=['Junk','Common','Uncommon','Rare','Epic','Legendary'];
 let _dailyQuestData=null;
@@ -2998,14 +2998,14 @@ function showEventEnded(ev){
 
 // ─── ACHIEVEMENTS ─────────────────────────────────────────────
 const ACHIEVEMENTS=[
-  {id:'first_fish',   name:'Pemancing Pertama',  desc:'Tangkap ikan pertamamu',       check:(f,s)=>s.totalCatch>=1,        reward:200,  icon:'🎣'},
-  {id:'catch_50',     name:'Nelayan Berpengalaman',desc:'Tangkap 50 ikan',             check:(f,s)=>s.totalCatch>=50,       reward:1000, icon:'🐟'},
-  {id:'catch_200',    name:'Master Nelayan',      desc:'Tangkap 200 ikan',             check:(f,s)=>s.totalCatch>=200,      reward:5000, icon:'🏆'},
-  {id:'legendary',    name:'Pemburu Legenda',     desc:'Tangkap ikan Legendary',       check:(f,s)=>f&&f.rarity==='Legendary',reward:3000,icon:'⚡'},
-  {id:'streak_10',    name:'Streak 10',           desc:'Tangkap 10 ikan berturut',     check:(f,s)=>catchStreak>=10,        reward:2000, icon:'🔥'},
-  {id:'combo_5',      name:'Combo King',          desc:'Capai combo x5',               check:(f,s)=>catchCombo>=5,          reward:1500, icon:'💥'},
-  {id:'rich',         name:'Orang Kaya',          desc:'Kumpulkan 100,000 koin',       check:(f,s)=>coins>=100000,          reward:5000, icon:'💎'},
-  {id:'explorer',     name:'Penjelajah',          desc:'Kunjungi semua pulau',         check:(f,s)=>s.islandsVisited>=7,    reward:3000, icon:'🗺️'},
+  {id:'first_fish',   name:'Pemancing Pertama',  desc:'Tangkap ikan pertamamu',       check:(f,s)=>s.totalCatch>=1,          reward:50,   icon:'🎣'},
+  {id:'catch_50',     name:'Nelayan Berpengalaman',desc:'Tangkap 50 ikan',             check:(f,s)=>s.totalCatch>=50,         reward:200,  icon:'🐟'},
+  {id:'catch_200',    name:'Master Nelayan',      desc:'Tangkap 200 ikan',             check:(f,s)=>s.totalCatch>=200,        reward:600,  icon:'🏆'},
+  {id:'legendary',    name:'Pemburu Legenda',     desc:'Tangkap ikan Legendary',       check:(f,s)=>f&&f.rarity==='Legendary',reward:400,  icon:'⚡'},
+  {id:'streak_10',    name:'Streak 10',           desc:'Tangkap 10 ikan berturut',     check:(f,s)=>catchStreak>=10,          reward:300,  icon:'🔥'},
+  {id:'combo_5',      name:'Combo King',          desc:'Capai combo x5',               check:(f,s)=>catchCombo>=5,            reward:250,  icon:'💥'},
+  {id:'rich',         name:'Orang Kaya',          desc:'Kumpulkan 100,000 koin',       check:(f,s)=>coins>=100000,            reward:800,  icon:'💎'},
+  {id:'explorer',     name:'Penjelajah',          desc:'Kunjungi semua pulau',         check:(f,s)=>s.islandsVisited>=7,      reward:500,  icon:'🗺️'},
 ];
 let _earnedAch=new Set(JSON.parse(localStorage.getItem('achievements_v1')||'[]'));
 let _achStats={totalCatch:parseInt(localStorage.getItem('achStat_totalCatch')||'0')};
@@ -3656,13 +3656,24 @@ function adaptUI(){
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
 }
-window.addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight;
+function onScreenResize(){
+  const w=window.innerWidth, h=window.innerHeight;
+  camera.aspect=w/h;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+  renderer.setSize(w,h);
+  renderer.domElement.style.width=w+'px';
+  renderer.domElement.style.height=h+'px';
   adaptUI();
+  if(typeof _loadHudPositions==='function') _loadHudPositions();
+  if(typeof _loadHudPositions==='function') _loadHudPositions();
+}
+window.addEventListener("resize", onScreenResize);
+window.addEventListener("orientationchange",()=>{
+  // Browser butuh beberapa frame untuk update innerWidth/innerHeight setelah rotate
+  setTimeout(onScreenResize, 50);
+  setTimeout(onScreenResize, 200);
+  setTimeout(onScreenResize, 500);
 });
-window.addEventListener("orientationchange",()=>{setTimeout(adaptUI,200);});
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 
