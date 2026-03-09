@@ -488,10 +488,12 @@ const baitTypes=[
 
 // ═══ RODS ═══
 const rodDatabase={
-  FishingRod:{name:"Wood Rod",  icon:"🪵",price:0,    luckMult:1,  speedMult:1,  color:0x8b5a2b,desc:"Starter rod."},
-  LuckRod:   {name:"Luck Rod",  icon:"🍀",price:150,  luckMult:2.5,speedMult:1,  color:0xaaaaaa,desc:"More rare fish."},
-  MediumRod: {name:"Medium Rod",icon:"⚡",price:500,  luckMult:3,  speedMult:2,  color:0xffd700,desc:"Faster & luckier."},
-  GoldenRod: {name:"Golden Rod",icon:"✨",price:2000, luckMult:5,  speedMult:2,  color:0xFFD700,desc:"Max luck rod."},
+  // controlWidth: lebar zona hijau saat mancing (lebih besar = lebih mudah)
+  // 16=sulit, 20=normal, 26=mudah, 32=sangat mudah
+  FishingRod:{name:"Wood Rod",  icon:"🪵",price:0,    luckMult:1,  speedMult:1,  controlWidth:16, color:0x8b5a2b,desc:"Starter rod. Zona sempit."},
+  LuckRod:   {name:"Luck Rod",  icon:"🍀",price:150,  luckMult:2.5,speedMult:1,  controlWidth:20, color:0xaaaaaa,desc:"Ikan langka lebih sering."},
+  MediumRod: {name:"Medium Rod",icon:"⚡",price:500,  luckMult:3,  speedMult:2,  controlWidth:25, color:0xffd700,desc:"Lebih cepat & beruntung."},
+  GoldenRod: {name:"Golden Rod",icon:"✨",price:2000, luckMult:5,  speedMult:2,  controlWidth:30, color:0xFFD700,desc:"Zona besar, max luck."},
 };
 
 // ═══ INVENTORY DATA ═══
@@ -518,13 +520,13 @@ const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x87ceeb);
 scene.fog=new THREE.FogExp2(0x87ceeb,0.002);
 const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,3000);
-const renderer=new THREE.WebGLRenderer({antialias:true});
+const renderer=new THREE.WebGLRenderer({antialias:window.devicePixelRatio<=1,powerPreference:'high-performance'});
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.shadowMap.type=THREE.PCFShadowMap; // PCFSoft→PCF: lebih cepat
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5)); // max 1.5x (dari 2x)
 document.body.appendChild(renderer.domElement);
 
 // ═══ PERFORMANCE / AUTO QUALITY SYSTEM ═══
@@ -569,9 +571,9 @@ function updatePerformance(dt,time){
   if(perfFpsSamples.length>3)perfFpsSamples.shift();
   const avgFps=perfFpsSamples.reduce((a,b)=>a+b,0)/perfFpsSamples.length;
   // Auto degrade
-  if(avgFps<28&&perfQuality!=="low")applyQuality("low");
-  else if(avgFps>=28&&avgFps<50&&perfQuality==="high")applyQuality("medium");
-  else if(avgFps>=50&&perfQuality!=="high")applyQuality("high");
+  if(avgFps<35&&perfQuality!=="low")applyQuality("low");
+  else if(avgFps>=35&&avgFps<55&&perfQuality==="high")applyQuality("medium");
+  else if(avgFps>=55&&perfQuality!=="high")applyQuality("high");
   // Update FPS counter UI
   const el=document.getElementById("fpsCounter");
   if(el)el.textContent="FPS: "+Math.round(avgFps)+" ["+perfQuality+"]";
@@ -590,7 +592,7 @@ function updatePerformance(dt,time){
 })();
 const sun=new THREE.DirectionalLight(0xffffff,1.2);
 sun.position.set(80,120,60);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);
+sun.shadow.mapSize.set(1024,1024);
 sun.shadow.camera.left=-400;sun.shadow.camera.right=400;
 sun.shadow.camera.top=400;sun.shadow.camera.bottom=-400;
 sun.shadow.camera.far=2000;sun.shadow.bias=-0.0005;
@@ -742,7 +744,7 @@ waterTex.wrapS=waterTex.wrapT=THREE.RepeatWrapping;waterTex.repeat.set(30,30);
 
 // ═══ WATER ═══
 const water=new THREE.Mesh(
-  new THREE.PlaneGeometry(4000,4000,100,100),
+  new THREE.PlaneGeometry(4000,4000,40,40),
   new THREE.MeshStandardMaterial({map:waterTex,transparent:true,opacity:0.82,roughness:0.06,metalness:0.5,color:0xaaccee})
 );
 water.rotation.x=-Math.PI/2;water.position.y=-1;scene.add(water);
@@ -2003,7 +2005,11 @@ function updateCamera(){
   camera.position.lerp(des,0.18);camera.lookAt(tgt);
 }
 
+let _waterFrame=0;
 function animateWater(time){
+  // Skip rate: low quality=4 frame, medium=3, high=2
+  const skipRate=perfQuality==='low'?4:perfQuality==='medium'?3:2;
+  if(++_waterFrame%skipRate!==0)return;
   const pos=water.geometry.attributes.position;
   for(let i=0;i<pos.count;i+=4)pos.setZ(i,Math.sin(i*0.3+time*0.0015)*0.18);
   pos.needsUpdate=true;
@@ -2118,7 +2124,7 @@ function castLineSimple(){
   const rd=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
   const bd=baitTypes.find(b=>b.id===inventory.equippedBait)||baitTypes[0];
   const sm=(rd.speedMult||1)*currentWeather.speedMult*(1+bd.speedBonus);
-  biteTime=(Math.random()*4+2)/sm;
+  biteTime=((Math.random()*4+2)/sm)*(window._eventFishFrenzy?0.4:1);
 }
 function updateFishingWait(){
   if(!inventory.equipped||!hook.visible)return;
@@ -2138,7 +2144,10 @@ const RARITY_FISH_SPEED={Junk:0.18,Common:0.25,Uncommon:0.38,Rare:0.55,Epic:0.75
 
 function startTension(fish){
   fishBiting=true;tensionActive=true;
-  tensionVal=50;zoneMin=42;zoneMax=58;
+  // Zone width berdasarkan rod yang diequip
+  const equippedRod=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
+  const zw=(equippedRod.controlWidth||20)/2;
+  tensionVal=50;zoneMin=50-zw;zoneMax=50+zw;
   tensionProgress=25;tensionReeling=false;tensionGrace=1.5;
   tensionDifficulty=fish.diff||1;tensionFishSpeed=0;
   tensionDir=Math.random()<0.5?1:-1;tensionTimeout=20;freezePlayer=true;pendingFish=fish;
@@ -2253,16 +2262,29 @@ function catchFish(){
   const wr=WEIGHT_RANGE[pendingFish.rarity]||[50,500];
   const fishWeight=+(wr[0]+Math.random()*(wr[1]-wr[0])).toFixed(1);
   const cf={...pendingFish,id:Date.now()+Math.random(),weight:fishWeight};
+  // Apply double coins event
+  if(window._eventDoubleCoins>1) cf.price=Math.round(cf.price*window._eventDoubleCoins);
   inventory.fish.push(cf);
   inventory.fishLog.unshift({...cf,time:new Date().toLocaleTimeString()});
   if(inventory.fishLog.length>50)inventory.fishLog.pop();
-  unlockFishEntry(cf.name);showFishNotification(cf);gainXP(cf.xp);
+  unlockFishEntry(cf.name);showFishNotification(cf);
+  // Apply double XP event inside gainXP (already hooked)
+  gainXP(cf.xp);
   catchSound.play().catch(()=>{});
+  // Trigger gameplay systems
+  if(typeof onFishCaught==='function') onFishCaught(cf);
+  // Quest: sell tracking reset on catch (track in sellAllFish)
   stopFishingAll();pendingFish=null;
 }
 function loseFish(){
   tensionActive=false;fishBiting=false;
   document.getElementById("tensionContainer").style.display="none";
+  // Reset streak
+  if(catchStreak>0){
+    if(catchStreak>=5)showMessage('💔 Streak '+catchStreak+' terputus!');
+    catchStreak=0;
+    if(typeof updateStreakOverhead==='function')updateStreakOverhead();
+  }
   stopFishingAll();pendingFish=null;showMessage("🐟 The fish got away!");
 }
 function stopFishingAll(){
@@ -2504,11 +2526,16 @@ function toggleHoldFish(i){
 // ═══ SELL/BUY ═══
 function sellFish(){if(inventory.fish.length===0){showMessage("🚫 No fish!");return;}sellAllFish();}
 function sellAllFish(){
+  const soldCount=inventory.fish.length;
   let total=0;inventory.fish.forEach(f=>total+=f.price);
   coins+=total;inventory.fish=[];heldFishIndex=-1;heldFishGroup.visible=false;heldJunkGroup.visible=false;heldFishOverhead.visible=false;window._heldFishPose=null;
   document.getElementById("coinUI").textContent="💰 "+coins;
   document.getElementById("heldFishHUD").style.display="none";
   showMessage("🐟 Sold all! +💰"+total);
+  if(typeof updateQuestProgress==="function"){
+    updateQuestProgress("sell",soldCount,null);
+    updateQuestProgress("coins",total,null);
+  }
   if(inventoryOpen)renderTab("fish");saveProgress();
 }
 function buyRod(name){
@@ -2601,6 +2628,463 @@ function sellAllFishRemote(){
   showMessage('👑 Remote Sell! +💰'+total);
   if(inventoryOpen)renderTab('fish');saveProgress();
 }
+
+// ═══════════════════════════════════════════════════════════
+// 🎮 GAMEPLAY SYSTEMS — Daily Quest · Streak · Combo · Events
+// ═══════════════════════════════════════════════════════════
+
+// ─── STREAK & COMBO ────────────────────────────────────────
+let catchStreak=0, catchCombo=0, comboTimer=0, comboActive=false;
+let lastCatchTime=0, streakBest=parseInt(localStorage.getItem('streakBest')||'0');
+const COMBO_WINDOW=15; // detik untuk combo aktif
+
+function onFishCaught(fish){
+  const now=Date.now()/1000;
+  catchStreak++;
+  // Combo: tangkap ikan berikutnya dalam COMBO_WINDOW detik
+  if(comboActive && now-lastCatchTime<COMBO_WINDOW){
+    catchCombo++;
+  } else {
+    catchCombo=1; comboActive=true;
+  }
+  lastCatchTime=now;
+  comboTimer=COMBO_WINDOW;
+  if(catchStreak>streakBest){
+    streakBest=catchStreak;
+    localStorage.setItem('streakBest',streakBest);
+  }
+  // Bonus koin dari combo
+  const comboMult=Math.min(catchCombo,5); // max 5x
+  if(catchCombo>=2){
+    const bonus=Math.floor(fish.price*(comboMult-1)*0.5);
+    if(bonus>0){
+      coins+=bonus;
+      const coinUI=document.getElementById('coinUI');
+      if(coinUI)coinUI.textContent='💰 '+coins;
+      showComboEffect(catchCombo,bonus);
+    }
+  }
+  // Cek quest progress
+  updateQuestProgress('catch',1,fish);
+  updateQuestProgress('rarity',1,fish);
+  // Cek achievements
+  checkAchievements(fish);
+}
+
+function updateComboTimer(dt){
+  if(!comboActive)return;
+  comboTimer-=dt;
+  if(comboTimer<=0){
+    comboActive=false;
+    catchCombo=0;
+    updateComboUI();
+  }
+  updateComboUI();
+}
+
+// ─── STREAK OVERHEAD ───────────────────────────────────────
+let _streakEl=null;
+function updateStreakOverhead(){
+  if(!_streakEl){
+    _streakEl=document.createElement('div');
+    _streakEl.id='streakOverhead';
+    Object.assign(_streakEl.style,{
+      position:'fixed',pointerEvents:'none',zIndex:'55',
+      fontSize:'11px',fontWeight:'bold',textAlign:'center',
+      textShadow:'0 1px 4px rgba(0,0,0,0.9)',
+      display:'none',transition:'opacity 0.3s',
+      lineHeight:'1.3'
+    });
+    document.body.appendChild(_streakEl);
+  }
+  if(catchStreak<3){_streakEl.style.display='none';return;}
+  // Project player head position ke screen
+  if(!window.camera||!window.player)return;
+  const worldPos=new THREE.Vector3();
+  player.getWorldPosition(worldPos);
+  worldPos.y+=9; // di atas kepala
+  const v=worldPos.clone().project(camera);
+  if(v.z>1||v.z<-1){_streakEl.style.display='none';return;}
+  const sx=(v.x*0.5+0.5)*window.innerWidth;
+  const sy=(-v.y*0.5+0.5)*window.innerHeight;
+  _streakEl.style.left=sx+'px';
+  _streakEl.style.top=sy+'px';
+  _streakEl.style.transform='translateX(-50%)';
+  _streakEl.style.display='block';
+  // Warna berdasarkan streak level
+  const col=catchStreak>=20?'#f39c12':catchStreak>=10?'#e74c3c':catchStreak>=5?'#9b59b6':'#2ecc71';
+  const emoji=catchStreak>=20?'🔥':catchStreak>=10?'💥':catchStreak>=5?'⚡':'✨';
+  _streakEl.style.color=col;
+  _streakEl.innerHTML=`${emoji} ${catchStreak} Streak`;
+}
+
+let _comboEl=null;
+function updateComboUI(){
+  if(!_comboEl){
+    _comboEl=document.createElement('div');
+    _comboEl.id='comboUI';
+    Object.assign(_comboEl.style,{
+      position:'fixed',bottom:'180px',right:'16px',
+      background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)',
+      border:'1px solid rgba(255,255,255,0.15)',
+      borderRadius:'12px',padding:'6px 12px',
+      color:'#fff',fontSize:'12px',zIndex:'50',
+      display:'none',textAlign:'right',
+      transition:'opacity 0.3s'
+    });
+    document.body.appendChild(_comboEl);
+  }
+  if(!comboActive||catchCombo<2){_comboEl.style.display='none';return;}
+  _comboEl.style.display='block';
+  const pct=Math.max(0,comboTimer/COMBO_WINDOW);
+  const comboColor=catchCombo>=5?'#f39c12':catchCombo>=3?'#9b59b6':'#2ecc71';
+  _comboEl.innerHTML=`<span style="color:${comboColor};font-weight:bold;font-size:14px">🔥×${catchCombo} COMBO</span><br>
+    <div style="background:rgba(255,255,255,0.15);border-radius:4px;height:3px;margin-top:3px">
+      <div style="background:${comboColor};height:3px;border-radius:4px;width:${pct*100}%;transition:width 0.3s"></div>
+    </div>`;
+}
+
+function showComboEffect(combo,bonus){
+  const el=document.createElement('div');
+  el.textContent=(combo>=5?'🔥':'⚡')+' COMBO x'+combo+' +💰'+bonus+' BONUS!';
+  Object.assign(el.style,{
+    position:'fixed',top:'38%',left:'50%',transform:'translateX(-50%)',
+    background:'linear-gradient(135deg,rgba(243,156,18,0.9),rgba(230,126,34,0.9))',
+    color:'#fff',padding:'8px 20px',borderRadius:'20px',
+    fontSize:'14px',fontWeight:'bold',zIndex:'999',
+    animation:'popAnim 0.4s ease',pointerEvents:'none'
+  });
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2000);
+}
+
+// ─── DAILY QUEST ────────────────────────────────────────────
+const QUEST_POOL=[
+  {id:'catch10',   title:'Nelayan Rajin',   desc:'Tangkap 10 ikan hari ini',   type:'catch',   target:10,  reward:500,  icon:'🎣'},
+  {id:'catch25',   title:'Nelayan Hebat',   desc:'Tangkap 25 ikan hari ini',   type:'catch',   target:25,  reward:1500, icon:'🎣'},
+  {id:'catchRare', title:'Pemburu Langka',  desc:'Tangkap 3 ikan Rare+',       type:'rarity',  target:3,   reward:2000, icon:'💎', minRarity:'Rare'},
+  {id:'catchEpic', title:'Pemburu Epik',    desc:'Tangkap 1 ikan Epic+',       type:'rarity',  target:1,   reward:3000, icon:'👑', minRarity:'Epic'},
+  {id:'earn2000',  title:'Pedagang Ikan',   desc:'Kumpulkan 2000 koin hari ini',type:'coins',   target:2000,reward:800,  icon:'💰'},
+  {id:'earn5000',  title:'Pengusaha Kaya',  desc:'Kumpulkan 5000 koin hari ini',type:'coins',   target:5000,reward:2500, icon:'💰'},
+  {id:'combo3',    title:'Combo Master',    desc:'Capai combo x3',             type:'combo',   target:3,   reward:1000, icon:'🔥'},
+  {id:'visitIsle', title:'Penjelajah',      desc:'Kunjungi 3 pulau berbeda',   type:'island',  target:3,   reward:1200, icon:'🗺️'},
+  {id:'sell10',    title:'Penjual Ulung',   desc:'Jual 10 ikan di toko',       type:'sell',    target:10,  reward:600,  icon:'🏪'},
+];
+const RARITY_ORDER=['Junk','Common','Uncommon','Rare','Epic','Legendary'];
+let _dailyQuestData=null;
+let _questVisitedIslands=new Set();
+
+function getTodayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+
+function initDailyQuest(){
+  const today=getTodayStr();
+  const raw=localStorage.getItem('dailyQuest_v1');
+  if(raw){
+    try{
+      _dailyQuestData=JSON.parse(raw);
+      if(_dailyQuestData.date!==today){
+        _dailyQuestData=null; // reset hari baru
+      }
+    }catch(e){_dailyQuestData=null;}
+  }
+  if(!_dailyQuestData){
+    // Pilih 3 quest acak untuk hari ini
+    const shuffled=[...QUEST_POOL].sort(()=>Math.random()-0.5);
+    _dailyQuestData={
+      date:today,
+      quests:shuffled.slice(0,3).map(q=>({...q,progress:0,done:false}))
+    };
+    saveDailyQuest();
+  }
+  buildQuestUI();
+}
+
+function saveDailyQuest(){
+  localStorage.setItem('dailyQuest_v1',JSON.stringify(_dailyQuestData));
+}
+
+function updateQuestProgress(type,amount,fishOrData){
+  if(!_dailyQuestData)return;
+  let changed=false;
+  _dailyQuestData.quests.forEach(q=>{
+    if(q.done)return;
+    let matches=false;
+    if(q.type===type){
+      if(type==='rarity'&&q.minRarity&&fishOrData){
+        const fIdx=RARITY_ORDER.indexOf(fishOrData.rarity);
+        const mIdx=RARITY_ORDER.indexOf(q.minRarity);
+        matches=fIdx>=mIdx;
+      } else {
+        matches=true;
+      }
+    }
+    if(type==='combo'&&q.type==='combo'){
+      // Langsung set progress ke catchCombo
+      if(catchCombo>=q.target){
+        q.progress=q.target;
+        matches=false; // already set
+      }
+    }
+    if(matches){
+      q.progress=Math.min(q.progress+amount,q.target);
+    }
+    if(q.progress>=q.target&&!q.done){
+      q.done=true;
+      coins+=q.reward;
+      const coinUI=document.getElementById('coinUI');
+      if(coinUI)coinUI.textContent='💰 '+coins;
+      showQuestComplete(q);
+      changed=true;
+    } else if(matches){
+      changed=true;
+    }
+  });
+  if(changed){saveDailyQuest();refreshQuestUI();}
+}
+
+function showQuestComplete(q){
+  const el=document.createElement('div');
+  el.innerHTML=q.icon+' <b>Quest Selesai!</b><br>'+q.title+'<br><span style="color:#f1c40f">+💰'+q.reward+'</span>';
+  Object.assign(el.style,{
+    position:'fixed',top:'20%',left:'50%',transform:'translateX(-50%)',
+    background:'linear-gradient(135deg,rgba(39,174,96,0.95),rgba(46,204,113,0.95))',
+    color:'#fff',padding:'14px 24px',borderRadius:'16px',
+    fontSize:'14px',fontWeight:'bold',zIndex:'999',
+    textAlign:'center',animation:'popAnim 0.4s ease',pointerEvents:'none',
+    boxShadow:'0 4px 20px rgba(46,204,113,0.4)'
+  });
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+  saveProgress();
+}
+
+let _questPanelEl=null;
+function buildQuestUI(){
+  if(_questPanelEl)_questPanelEl.remove();
+  _questPanelEl=document.createElement('div');
+  _questPanelEl.id='questPanel';
+  Object.assign(_questPanelEl.style,{
+    position:'fixed',left:'12px',top:'50%',transform:'translateY(-50%)',
+    background:'rgba(5,10,20,0.82)',backdropFilter:'blur(8px)',
+    border:'1px solid rgba(255,255,255,0.12)',borderRadius:'14px',
+    padding:'10px 12px',zIndex:'50',minWidth:'170px',
+    display:'none'
+  });
+  // Toggle btn
+  const fab=document.createElement('div');
+  fab.id='questFab';
+  fab.textContent='📋';
+  fab.title='Daily Quest';
+  Object.assign(fab.style,{
+    position:'fixed',left:'12px',top:'50%',transform:'translateY(-50%)',
+    width:'40px',height:'40px',background:'rgba(0,0,0,0.65)',
+    border:'1px solid rgba(255,255,255,0.18)',borderRadius:'10px',
+    display:'flex',alignItems:'center',justifyContent:'center',
+    cursor:'pointer',zIndex:'60',fontSize:'18px',userSelect:'none'
+  });
+  fab.onclick=()=>{
+    const showing=_questPanelEl.style.display!=='none';
+    _questPanelEl.style.display=showing?'none':'block';
+    fab.style.left=showing?'12px':'186px';
+  };
+  document.body.appendChild(fab);
+  document.body.appendChild(_questPanelEl);
+  refreshQuestUI();
+}
+
+function refreshQuestUI(){
+  if(!_questPanelEl||!_dailyQuestData)return;
+  const allDone=_dailyQuestData.quests.every(q=>q.done);
+  _questPanelEl.innerHTML=`<div style="color:#f1c40f;font-size:12px;font-weight:bold;margin-bottom:8px">📋 Daily Quest</div>`
+    +_dailyQuestData.quests.map(q=>{
+      const pct=Math.min(100,(q.progress/q.target)*100);
+      const col=q.done?'#2ecc71':pct>50?'#f39c12':'#aaa';
+      return`<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07)">
+        <div style="color:${col};font-size:11px;font-weight:bold">${q.icon} ${q.title}${q.done?' ✅':''}</div>
+        <div style="color:#888;font-size:10px;margin:2px 0">${q.desc}</div>
+        <div style="background:rgba(255,255,255,0.1);border-radius:4px;height:5px">
+          <div style="background:${col};height:5px;border-radius:4px;width:${pct}%;transition:width 0.4s"></div>
+        </div>
+        <div style="color:#666;font-size:9px;margin-top:1px">${q.progress}/${q.target} · 💰${q.reward}</div>
+      </div>`;
+    }).join('')
+    +(allDone?'<div style="color:#2ecc71;font-size:11px;text-align:center;padding:4px 0">🎉 Semua quest selesai!</div>':'');
+}
+
+// ─── RANDOM WORLD EVENTS ─────────────────────────────────────
+const WORLD_EVENTS=[
+  {id:'goldRush',   name:'⭐ Ikan Emas Muncul!',  desc:'Legendary fish rate 3x selama 2 menit!', dur:120, effect:()=>{window._eventLegendaryBoost=3;},    end:()=>{window._eventLegendaryBoost=1;}},
+  {id:'baitFree',   name:'🪱 Umpan Gratis!',       desc:'Semua umpan unlimited selama 90 detik',  dur:90,  effect:()=>{window._eventFreeBait=true;},        end:()=>{window._eventFreeBait=false;}},
+  {id:'doubleXP',   name:'⭐ Double XP!',           desc:'XP 2x selama 2 menit',                  dur:120, effect:()=>{window._eventDoubleXP=2;},           end:()=>{window._eventDoubleXP=1;}},
+  {id:'fishFrenzy', name:'🐟 Fish Frenzy!',         desc:'Ikan muncul 2x lebih cepat selama 90 detik',dur:90,effect:()=>{window._eventFishFrenzy=true;},  end:()=>{window._eventFishFrenzy=false;}},
+  {id:'coinRain',   name:'💰 Hujan Koin!',          desc:'Harga jual ikan 2x selama 2 menit',      dur:120, effect:()=>{window._eventDoubleCoins=2;},       end:()=>{window._eventDoubleCoins=1;}},
+];
+let _activeEvent=null;
+let _eventTimer=0;
+let _nextEventIn=180+Math.random()*240; // event pertama 3-7 menit
+
+function updateWorldEvents(dt){
+  if(_activeEvent){
+    _eventTimer-=dt;
+    updateEventBar();
+    if(_eventTimer<=0){
+      _activeEvent.end();
+      showEventEnded(_activeEvent);
+      _activeEvent=null;
+      _nextEventIn=240+Math.random()*300; // next event 4-9 menit
+    }
+    return;
+  }
+  _nextEventIn-=dt;
+  if(_nextEventIn<=0){
+    triggerRandomEvent();
+  }
+}
+
+function triggerRandomEvent(){
+  const ev=WORLD_EVENTS[Math.floor(Math.random()*WORLD_EVENTS.length)];
+  _activeEvent=ev;
+  _eventTimer=ev.dur;
+  ev.effect();
+  showEventBanner(ev);
+  updateQuestProgress('event',1,null);
+}
+
+let _evBar=null;
+function updateEventBar(){
+  if(!_evBar){
+    _evBar=document.createElement('div');
+    _evBar.id='worldEventBar';
+    Object.assign(_evBar.style,{
+      position:'fixed',top:'56px',left:'50%',transform:'translateX(-50%)',
+      background:'rgba(0,0,0,0.8)',backdropFilter:'blur(8px)',
+      border:'1px solid rgba(243,156,18,0.4)',borderRadius:'20px',
+      padding:'5px 16px',zIndex:'60',display:'flex',
+      alignItems:'center',gap:'8px',maxWidth:'80vw'
+    });
+    document.body.appendChild(_evBar);
+  }
+  if(!_activeEvent){_evBar.style.display='none';return;}
+  _evBar.style.display='flex';
+  const pct=(_eventTimer/_activeEvent.dur)*100;
+  _evBar.innerHTML=`<span style="font-size:13px">${_activeEvent.name}</span>
+    <div style="background:rgba(255,255,255,0.15);border-radius:6px;height:6px;width:80px">
+      <div style="background:#f39c12;height:6px;border-radius:6px;width:${pct}%;transition:width 1s"></div>
+    </div>
+    <span style="font-size:11px;color:#aaa">${Math.ceil(_eventTimer)}s</span>`;
+}
+
+function showEventBanner(ev){
+  const el=document.createElement('div');
+  el.innerHTML=`<div style="font-size:20px">${ev.name}</div><div style="font-size:12px;opacity:0.85;margin-top:4px">${ev.desc}</div>`;
+  Object.assign(el.style,{
+    position:'fixed',top:'15%',left:'50%',transform:'translateX(-50%)',
+    background:'linear-gradient(135deg,rgba(243,156,18,0.95),rgba(230,126,34,0.95))',
+    color:'#fff',padding:'16px 28px',borderRadius:'18px',
+    fontWeight:'bold',zIndex:'999',textAlign:'center',
+    animation:'popAnim 0.4s ease',pointerEvents:'none',
+    boxShadow:'0 4px 24px rgba(243,156,18,0.5)'
+  });
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+function showEventEnded(ev){
+  showMessage('⏰ '+ev.name.split(' ').slice(1).join(' ')+' berakhir');
+}
+
+// ─── ACHIEVEMENTS ─────────────────────────────────────────────
+const ACHIEVEMENTS=[
+  {id:'first_fish',   name:'Pemancing Pertama',  desc:'Tangkap ikan pertamamu',       check:(f,s)=>s.totalCatch>=1,        reward:200,  icon:'🎣'},
+  {id:'catch_50',     name:'Nelayan Berpengalaman',desc:'Tangkap 50 ikan',             check:(f,s)=>s.totalCatch>=50,       reward:1000, icon:'🐟'},
+  {id:'catch_200',    name:'Master Nelayan',      desc:'Tangkap 200 ikan',             check:(f,s)=>s.totalCatch>=200,      reward:5000, icon:'🏆'},
+  {id:'legendary',    name:'Pemburu Legenda',     desc:'Tangkap ikan Legendary',       check:(f,s)=>f&&f.rarity==='Legendary',reward:3000,icon:'⚡'},
+  {id:'streak_10',    name:'Streak 10',           desc:'Tangkap 10 ikan berturut',     check:(f,s)=>catchStreak>=10,        reward:2000, icon:'🔥'},
+  {id:'combo_5',      name:'Combo King',          desc:'Capai combo x5',               check:(f,s)=>catchCombo>=5,          reward:1500, icon:'💥'},
+  {id:'rich',         name:'Orang Kaya',          desc:'Kumpulkan 100,000 koin',       check:(f,s)=>coins>=100000,          reward:5000, icon:'💎'},
+  {id:'explorer',     name:'Penjelajah',          desc:'Kunjungi semua pulau',         check:(f,s)=>s.islandsVisited>=7,    reward:3000, icon:'🗺️'},
+];
+let _earnedAch=new Set(JSON.parse(localStorage.getItem('achievements_v1')||'[]'));
+let _achStats={totalCatch:parseInt(localStorage.getItem('achStat_totalCatch')||'0')};
+
+function checkAchievements(fish){
+  _achStats.totalCatch++;
+  localStorage.setItem('achStat_totalCatch',_achStats.totalCatch);
+  ACHIEVEMENTS.forEach(a=>{
+    if(_earnedAch.has(a.id))return;
+    if(a.check(fish,_achStats)){
+      _earnedAch.add(a.id);
+      localStorage.setItem('achievements_v1',JSON.stringify([..._earnedAch]));
+      coins+=a.reward;
+      const coinUI=document.getElementById('coinUI');
+      if(coinUI)coinUI.textContent='💰 '+coins;
+      showAchievementToast(a);
+      saveProgress();
+    }
+  });
+}
+
+function showAchievementToast(a){
+  const el=document.createElement('div');
+  el.innerHTML=`<div style="font-size:11px;color:#f1c40f;letter-spacing:1px">ACHIEVEMENT UNLOCKED</div>
+    <div style="font-size:16px;margin:4px 0">${a.icon} ${a.name}</div>
+    <div style="font-size:11px;opacity:0.8">${a.desc}</div>
+    <div style="font-size:12px;color:#f1c40f;margin-top:4px">+💰${a.reward}</div>`;
+  Object.assign(el.style,{
+    position:'fixed',bottom:'120px',right:'12px',
+    background:'linear-gradient(135deg,rgba(15,25,50,0.97),rgba(20,40,80,0.97))',
+    border:'1px solid rgba(241,196,15,0.5)',
+    color:'#fff',padding:'12px 16px',borderRadius:'14px',
+    fontSize:'13px',zIndex:'999',textAlign:'center',
+    animation:'popAnim 0.4s ease',pointerEvents:'none',
+    boxShadow:'0 4px 20px rgba(241,196,15,0.3)',maxWidth:'200px'
+  });
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+// ─── INIT + LOOP HOOK ─────────────────────────────────────────
+window._eventLegendaryBoost=1;
+window._eventDoubleXP=1;
+window._eventDoubleCoins=1;
+window._eventFreeBait=false;
+window._eventFishFrenzy=false;
+
+// Init systems
+setTimeout(()=>{
+  initDailyQuest();
+},1000);
+
+// Hook gainXP for doubleXP event
+const _origGainXP=window.gainXP;
+if(typeof _origGainXP==='function'){
+  window.gainXP=function(amt){
+    _origGainXP(Math.round(amt*(window._eventDoubleXP||1)));
+  };
+}
+
+// ─── INJECT ke MAIN LOOP via updatePerformance ────────────────
+const _origUpdatePerf=updatePerformance;
+window._gameplayDt=0;
+function updatePerformance(dt,time){
+  _origUpdatePerf(dt,time);
+  window._gameplayDt=dt;
+  updateComboTimer(dt);
+  updateWorldEvents(dt);
+  // Track islands visited
+  if(typeof getPlayerIsland==='function'){
+    const isle=getPlayerIsland();
+    if(isle){
+      _questVisitedIslands.add(isle);
+      _achStats.islandsVisited=_questVisitedIslands.size;
+      if(_questVisitedIslands.size>0) updateQuestProgress('island',0,null);
+    }
+  }
+}
+
 
 // ═══ NOTIFICATIONS ═══
 function showFishNotification(fish){
@@ -2727,18 +3211,23 @@ function updateNPCInteraction(){
 
 // ═══ NPC ANIMATION ═══
 function animateNPCs(time){
-  // Main island NPCs
-  npcRoot.rotation.y=Math.sin(time*.002)*.1;
-  rodNpcRoot.rotation.y=Math.sin(time*.0022+1)*.1;
-  baitNpcRoot.rotation.y=Math.sin(time*.0018+2)*.1;
-  jsNpcRoot.rotation.y=Math.sin(time*.002+3)*.1;
   const pp=new THREE.Vector3();player.getWorldPosition(pp);
-  npcGroup.lookAt(pp.x,npcGroup.position.y,pp.z);
-  rodNpcGroup.lookAt(pp.x,rodNpcGroup.position.y,pp.z);
-  baitNpcGroup.lookAt(pp.x,baitNpcGroup.position.y,pp.z);
-  jsNpcGroup.lookAt(pp.x,jsNpcGroup.position.y,pp.z);
-  // Other island NPCs — lookAt player + idle bob
+  // Main island NPCs — hanya animasi kalau dekat (<200 unit)
+  const mainDist=pp.length(); // jarak dari origin
+  if(mainDist<200){
+    npcRoot.rotation.y=Math.sin(time*.002)*.1;
+    rodNpcRoot.rotation.y=Math.sin(time*.0022+1)*.1;
+    baitNpcRoot.rotation.y=Math.sin(time*.0018+2)*.1;
+    jsNpcRoot.rotation.y=Math.sin(time*.002+3)*.1;
+    npcGroup.lookAt(pp.x,npcGroup.position.y,pp.z);
+    rodNpcGroup.lookAt(pp.x,rodNpcGroup.position.y,pp.z);
+    baitNpcGroup.lookAt(pp.x,baitNpcGroup.position.y,pp.z);
+    jsNpcGroup.lookAt(pp.x,jsNpcGroup.position.y,pp.z);
+  }
+  // Other island NPCs — hanya animasi yang paling dekat
   allIslandNpcs.forEach(({g,r},i)=>{
+    const d=pp.distanceTo(g.position);
+    if(d>180)return; // skip kalau jauh
     r.rotation.y=Math.sin(time*.002+i*0.7)*.12;
     g.lookAt(pp.x,g.position.y,pp.z);
   });
@@ -2854,6 +3343,33 @@ simulateLoading();
 // ═══ SETTINGS ═══
 let settingsOpen=false;
 let gameSettings={shadows:true,waterAnim:true,volume:80,minimap:true,fps:false};
+function renderProfileStats(){
+  const el=document.getElementById('profileStats');
+  if(!el)return;
+  const rod=rodDatabase[inventory.equipped]||rodDatabase.FishingRod;
+  const luck=rod.luckMult||1;
+  const speed=rod.speedMult||1;
+  const control=rod.controlWidth||20;
+  const totalFish=(typeof _achStats!=='undefined'?_achStats.totalCatch:0);
+  const best=(typeof streakBest!=='undefined'?streakBest:0);
+  const achCount=(typeof _earnedAch!=='undefined'?_earnedAch.size:0);
+  const prem=(typeof premiumActive!=='undefined'&&premiumActive)?'👑 Aktif':'—';
+  const statCard=(icon,label,val,color)=>
+    `<div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 12px">
+      <div style="font-size:18px">${icon}</div>
+      <div style="color:${color||'#fff'};font-size:16px;font-weight:bold;margin:2px 0">${val}</div>
+      <div style="color:#777;font-size:10px">${label}</div>
+    </div>`;
+  el.innerHTML=
+    statCard('🍀','Total Luck',luck+'x','#2ecc71')+
+    statCard('⚡','Speed',speed+'x','#3498db')+
+    statCard('🎯','Zona Kontrol',control+'%','#f39c12')+
+    statCard('🎣','Ikan Ditangkap',totalFish,'#fff')+
+    statCard('🔥','Streak Terbaik',best,'#e74c3c')+
+    statCard('🏆','Achievement',achCount+'/'+((typeof ACHIEVEMENTS!=='undefined')?ACHIEVEMENTS.length:'?'),'#f1c40f')+
+    statCard('🎣','Rod Aktif',rod.name,'#aaa')+
+    statCard('👑','Premium',prem,'#f39c12');
+}
 function openSettings(){
   settingsOpen=true;
   const el=document.getElementById("settingsMenu");
@@ -2871,6 +3387,8 @@ function openSettings(){
   safeCheck("settingsWaterAnim",gameSettings.waterAnim);
   safeCheck("settingsMinimap",gameSettings.minimap);
   safeCheck("settingsFPS",gameSettings.fps);
+  // Render profile stats
+  renderProfileStats();
   freezeInput=true;
 }
 function closeSettings(){
@@ -2882,83 +3400,158 @@ function closeSettings(){
 
 // ─── HUD EDITOR ───────────────────────────────────────────
 let _hudEditActive=false;
-const _hudDraggables=['castBtn','reelBtn','jumpBtn','sellBtn','fishIndexBtn','openRodShopBtn','invBtn'];
+// Semua elemen HUD yang bisa digeser
+const _hudDraggables=[
+  'castBtn','reelBtn','jumpBtn','sellBtn',
+  'fishIndexBtn','openRodShopBtn','invBtn','runBtn','mountJetskiBtn'
+];
+
 function toggleHudEdit(){
   _hudEditActive=!_hudEditActive;
   const hint=document.getElementById('hudEditHint');
   const btn=document.getElementById('hudEditBtn');
-  if(btn)btn.textContent=_hudEditActive?'✅ Selesai Edit':'✏️ Edit HUD';
+  if(btn)btn.textContent=_hudEditActive?'✅ Selesai Edit HUD':'✏️ Edit HUD';
   if(hint)hint.style.display=_hudEditActive?'block':'none';
+
   _hudDraggables.forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
     if(_hudEditActive){
-      el.style.outline='2px dashed #3498db';
+      // Konversi posisi saat ini ke fixed+left+top sebelum attach drag
+      const r=el.getBoundingClientRect();
+      el.style.position='fixed';
+      el.style.left=r.left+'px';
+      el.style.top=r.top+'px';
+      el.style.right='auto';
+      el.style.bottom='auto';
+      el.style.margin='0';
+      el.style.outline='2px dashed rgba(52,152,219,0.9)';
+      el.style.boxShadow='0 0 10px rgba(52,152,219,0.5)';
       el.style.cursor='move';
+      el.style.zIndex='9999';
       _makeDraggable(el);
     } else {
       el.style.outline='';
+      el.style.boxShadow='';
       el.style.cursor='';
+      el.style.zIndex='';
       _saveHudPos(id,el);
     }
   });
-  // Close settings so user can drag
+
   if(_hudEditActive){
+    // Tutup settings, biarkan player drag di layar game
     const sm=document.getElementById('settingsMenu');
     if(sm){sm.style.display='none';sm.classList.remove('show');}
-    settingsOpen=false;freezeInput=false;
+    settingsOpen=false;
+    freezeInput=false;
+    freezePlayer=false;
+    showMessage('✏️ Mode Edit HUD aktif — drag tombol ke posisi yang diinginkan');
+  } else {
+    showMessage('✅ Posisi HUD disimpan!');
   }
 }
+
 function resetHudPositions(){
   _hudDraggables.forEach(id=>{
     localStorage.removeItem('hudPos_'+id);
     const el=document.getElementById(id);
-    if(el){el.style.position='';el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';}
+    if(!el)return;
+    // Hapus semua override inline style
+    el.style.cssText='';
   });
   showMessage('↺ HUD direset ke default');
 }
+
 function _saveHudPos(id,el){
   const r=el.getBoundingClientRect();
-  localStorage.setItem('hudPos_'+id,JSON.stringify({x:r.left,y:r.top}));
+  // Simpan sebagai persen viewport agar responsive di semua ukuran layar
+  const data={
+    leftPct: (r.left/window.innerWidth)*100,
+    topPct:  (r.top/window.innerHeight)*100,
+    w: window.innerWidth,
+    h: window.innerHeight
+  };
+  localStorage.setItem('hudPos_'+id, JSON.stringify(data));
 }
+
 function _loadHudPositions(){
   _hudDraggables.forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    const raw=localStorage.getItem('hudPos_'+id);if(!raw)return;
+    const el=document.getElementById(id);
+    if(!el)return;
+    const raw=localStorage.getItem('hudPos_'+id);
+    if(!raw)return;
     try{
-      const {x,y}=JSON.parse(raw);
-      el.style.position='fixed';el.style.left=x+'px';el.style.top=y+'px';
-      el.style.right='auto';el.style.bottom='auto';
+      const d=JSON.parse(raw);
+      // Scale posisi ke ukuran layar saat ini
+      const x=(d.leftPct/100)*window.innerWidth;
+      const y=(d.topPct/100)*window.innerHeight;
+      // Clamp agar tidak keluar layar
+      const r=el.getBoundingClientRect();
+      const safeX=Math.max(0,Math.min(x,window.innerWidth-(r.width||60)));
+      const safeY=Math.max(0,Math.min(y,window.innerHeight-(r.height||60)));
+      el.style.position='fixed';
+      el.style.left=safeX+'px';
+      el.style.top=safeY+'px';
+      el.style.right='auto';
+      el.style.bottom='auto';
+      el.style.margin='0';
     }catch(e){}
   });
 }
+
 function _makeDraggable(el){
-  if(el._dragBound)return;el._dragBound=true;
-  let ox,oy,sx,sy;
+  if(el._dragBound)return;
+  el._dragBound=true;
+  let startX,startY,origLeft,origTop;
+
+  function getClient(e){ return e.touches?e.touches[0]:e; }
+
   function onDown(e){
-    const t=e.touches?e.touches[0]:e;
-    sx=t.clientX;sy=t.clientY;
-    const r=el.getBoundingClientRect();ox=r.left;oy=r.top;
-    el.style.position='fixed';el.style.right='auto';el.style.bottom='auto';
-    document.addEventListener('mousemove',onMove);document.addEventListener('touchmove',onMove,{passive:false});
-    document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp);
-    e.preventDefault();e.stopPropagation();
-  }
-  function onMove(e){
     if(!_hudEditActive)return;
-    const t=e.touches?e.touches[0]:e;
-    el.style.left=(ox+t.clientX-sx)+'px';el.style.top=(oy+t.clientY-sy)+'px';
+    const c=getClient(e);
+    startX=c.clientX; startY=c.clientY;
+    origLeft=parseFloat(el.style.left)||0;
+    origTop=parseFloat(el.style.top)||0;
+    document.addEventListener('mousemove',onMove,{passive:false});
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchend',onUp);
+    e.stopPropagation();
     e.preventDefault();
   }
-  function onUp(){
-    document.removeEventListener('mousemove',onMove);document.removeEventListener('touchmove',onMove);
-    document.removeEventListener('mouseup',onUp);document.removeEventListener('touchend',onUp);
-    if(_hudEditActive)_saveHudPos(el.id,el);
+
+  function onMove(e){
+    if(!_hudEditActive)return;
+    const c=getClient(e);
+    const dx=c.clientX-startX;
+    const dy=c.clientY-startY;
+    const newLeft=origLeft+dx;
+    const newTop=origTop+dy;
+    // Clamp dalam viewport
+    const elW=el.offsetWidth||60;
+    const elH=el.offsetHeight||60;
+    el.style.left=Math.max(0,Math.min(newLeft,window.innerWidth-elW))+'px';
+    el.style.top=Math.max(0,Math.min(newTop,window.innerHeight-elH))+'px';
+    e.preventDefault();
   }
-  el.addEventListener('mousedown',onDown);el.addEventListener('touchstart',onDown,{passive:false});
+
+  function onUp(){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.removeEventListener('touchend',onUp);
+    if(_hudEditActive) _saveHudPos(el.id,el);
+  }
+
+  el.addEventListener('mousedown',onDown,{passive:false});
+  el.addEventListener('touchstart',onDown,{passive:false});
 }
-// Load saved HUD positions on start
-setTimeout(_loadHudPositions,500);
+
+// Load saved HUD positions on start — tunggu DOM siap
+setTimeout(_loadHudPositions, 800);
+// Re-apply setelah resize
+window.addEventListener('resize',()=>{ if(!_hudEditActive) _loadHudPositions(); });
 function settingsBack(){ closeSettings(); }
 // Expose ke window agar bisa dipanggil dari inline HTML
 window.closeSettings = closeSettings;
