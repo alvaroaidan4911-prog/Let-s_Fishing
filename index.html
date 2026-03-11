@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" id="vpmeta">
 <title>Let's Fishing!</title>
 <link rel="manifest" href="manifest.json">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;overflow:hidden;background:#000;touch-action:none;font-family:'Segoe UI',Arial,sans-serif;}
-canvas{display:block;}
+canvas{display:block;position:fixed;top:0;left:0;width:100%!important;height:100%!important;outline:none;}
 
 /* ── LOADING ── */
 #loadingScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0a1628,#1a3a5c);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;color:#fff;}
