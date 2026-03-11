@@ -521,15 +521,19 @@ scene.background=new THREE.Color(0x87ceeb);
 scene.fog=new THREE.FogExp2(0x87ceeb,0.002);
 const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,3000);
 const renderer=new THREE.WebGLRenderer({antialias:window.devicePixelRatio<=1,powerPreference:'high-performance'});
-renderer.setSize(window.innerWidth,window.innerHeight,false);
+renderer.setSize(window.innerWidth,window.innerHeight);
 // Canvas cover full screen
-renderer.domElement.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;';
+// Canvas dikelola ukurannya oleh Three.js setSize
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFShadowMap; // PCFSoft→PCF: lebih cepat
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5)); // max 1.5x (dari 2x)
-document.body.appendChild(renderer.domElement);
+// Bungkus canvas dalam gameWrap agar tidak terpengaruh resize browser
+const _gameWrap = document.createElement('div');
+_gameWrap.id = 'gameWrap';
+document.body.insertBefore(_gameWrap, document.body.firstChild);
+_gameWrap.appendChild(renderer.domElement);
 
 // ═══ PERFORMANCE / AUTO QUALITY SYSTEM ═══
 let perfQuality="high"; // "high"|"medium"|"low"
@@ -3658,37 +3662,22 @@ function adaptUI(){
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
 }
-let _resizeLocked=false;
 function onScreenResize(){
-  if(_resizeLocked)return;
-  _resizeLocked=true;
   const w=window.innerWidth, h=window.innerHeight;
-  // Sesuaikan FOV: landscape pakai FOV sedikit lebih kecil agar objek tidak gepeng
+  if(w===0||h===0)return; // guard
   const isLandscape = w > h;
   camera.fov = isLandscape ? 65 : 75;
-  camera.aspect=w/h;
+  camera.aspect = w/h;
   camera.updateProjectionMatrix();
-  renderer.setSize(w,h,false);
+  renderer.setSize(w, h);
   adaptUI();
   if(typeof _loadHudPositions==='function') _loadHudPositions();
-  _resizeLocked=false;
 }
 window.addEventListener("resize", onScreenResize);
 window.addEventListener("orientationchange",()=>{
-  // Paksa resize canvas setelah orientasi berubah — browser lambat update innerWidth/innerHeight
-  function doResize(){
-    // Pakai screen.width/height kalau lebih besar dari innerWidth/innerHeight
-    // (terjadi saat address bar belum shrink)
-    const realW = Math.max(window.innerWidth, window.screen.width, window.screen.height > window.screen.width ? window.screen.width : window.screen.height);
-    const realH = window.innerHeight;
-    _resizeLocked = false; // reset lock dulu
-    onScreenResize();
-    // Force render sekali agar tidak hitam
-    try{ renderer.render(scene, camera); }catch(e){}
-  }
-  setTimeout(doResize, 50);
-  setTimeout(doResize, 250);
-  setTimeout(doResize, 600);
+  // Tunggu browser selesai update dimensi layar
+  setTimeout(onScreenResize, 100);
+  setTimeout(onScreenResize, 400);
 });
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
