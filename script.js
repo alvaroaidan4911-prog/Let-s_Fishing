@@ -3662,22 +3662,33 @@ function adaptUI(){
     if(fps){Object.assign(fps.style,{bottom:"8px",fontSize:"10px"});}
   }
 }
-function onScreenResize(){
+let _resizeTimer=null;
+function _doResize(){
   const w=window.innerWidth, h=window.innerHeight;
-  if(w===0||h===0)return; // guard
-  const isLandscape = w > h;
-  camera.fov = isLandscape ? 65 : 75;
-  camera.aspect = w/h;
+  if(!w||!h)return;
+  const isLandscape=w>h;
+  camera.fov=isLandscape?65:75;
+  camera.aspect=w/h;
   camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
+  // updateStyle=false agar tidak trigger resize event lagi
+  // tapi kita tetap update canvas size via drawingBuffer
+  renderer.setSize(w,h,false);
+  // Fix canvas display size manual (karena false di atas)
+  const cv=renderer.domElement;
+  cv.style.width=w+'px';
+  cv.style.height=h+'px';
   adaptUI();
-  if(typeof _loadHudPositions==='function') _loadHudPositions();
+  if(typeof _loadHudPositions==='function')_loadHudPositions();
 }
-window.addEventListener("resize", onScreenResize);
+function onScreenResize(){
+  // Debounce: batalkan timer sebelumnya, jalankan setelah 50ms idle
+  clearTimeout(_resizeTimer);
+  _resizeTimer=setTimeout(_doResize,50);
+}
+window.addEventListener("resize",onScreenResize,{passive:true});
 window.addEventListener("orientationchange",()=>{
-  // Tunggu browser selesai update dimensi layar
-  setTimeout(onScreenResize, 100);
-  setTimeout(onScreenResize, 400);
+  clearTimeout(_resizeTimer);
+  _resizeTimer=setTimeout(_doResize,300);
 });
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
@@ -3708,6 +3719,7 @@ window.closePremiumModal=closePremiumModal;
 window.activatePremiumCode=activatePremiumCode;
 window.sellAllFishRemote=sellAllFishRemote;
 window.openSettings=openSettings;
+window._doResize=_doResize;
 window.closeSettings=closeSettings;
 window.toggleHudEdit=toggleHudEdit;
 window.resetHudPositions=resetHudPositions;
