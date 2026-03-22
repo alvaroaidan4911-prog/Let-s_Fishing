@@ -527,7 +527,9 @@ renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFShadowMap; // PCFSoft→PCF: lebih cepat
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5)); // max 1.5x (dari 2x)
+window._inResize=true;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5));
+setTimeout(()=>{ window._inResize=false; },50);
 // Bungkus canvas dalam gameWrap agar tidak terpengaruh resize browser
 const _gameWrap = document.createElement('div');
 _gameWrap.id = 'gameWrap';
@@ -546,6 +548,9 @@ function applyQuality(q){
   perfQuality=q;
   const labels={high:"🟢 High",medium:"🟡 Medium",low:"🔴 Low"};
   showMessage("⚙️ Kualitas grafik: "+labels[q]);
+  // Guard: setPixelRatio di Three.js r128 memanggil setSize internal
+  // yang mengubah canvas size → trigger resize event → infinite loop
+  window._inResize=true;
   if(q==="low"){
     renderer.setPixelRatio(1);
     renderer.shadowMap.enabled=false;
@@ -564,6 +569,7 @@ function applyQuality(q){
     starMesh&&(starMesh.visible=true);
     starMesh&&(starMesh.material.size=1.2);
   }
+  setTimeout(()=>{ window._inResize=false; },50);
 }
 
 function updatePerformance(dt,time){
@@ -579,6 +585,18 @@ function updatePerformance(dt,time){
   if(avgFps<35&&perfQuality!=="low")applyQuality("low");
   else if(avgFps>=35&&avgFps<55&&perfQuality==="high")applyQuality("medium");
   else if(avgFps>=55&&perfQuality!=="high")applyQuality("high");
+  // Update gameplay systems
+  window._gameplayDt=dt;
+  if(typeof updateComboTimer==='function') updateComboTimer(dt);
+  if(typeof updateWorldEvents==='function') updateWorldEvents(dt);
+  // Track islands visited (setiap 2 detik saja, bukan tiap frame)
+  if(typeof getPlayerIsland==='function'&&perfFrameTime===0){
+    const isle=getPlayerIsland();
+    if(isle){
+      _questVisitedIslands&&_questVisitedIslands.add(isle);
+      if(typeof _achStats!=='undefined')_achStats.islandsVisited=(_questVisitedIslands&&_questVisitedIslands.size)||0;
+    }
+  }
   // Update FPS counter UI
   const el=document.getElementById("fpsCounter");
   if(el)el.textContent="FPS: "+Math.round(avgFps)+" ["+perfQuality+"]";
@@ -3071,24 +3089,8 @@ if(typeof _origGainXP==='function'){
   };
 }
 
-// ─── INJECT ke MAIN LOOP via updatePerformance ────────────────
-const _origUpdatePerf=updatePerformance;
+// Gameplay systems dijalankan langsung dari animate loop (lihat bawah)
 window._gameplayDt=0;
-function updatePerformance(dt,time){
-  _origUpdatePerf(dt,time);
-  window._gameplayDt=dt;
-  updateComboTimer(dt);
-  updateWorldEvents(dt);
-  // Track islands visited
-  if(typeof getPlayerIsland==='function'){
-    const isle=getPlayerIsland();
-    if(isle){
-      _questVisitedIslands.add(isle);
-      _achStats.islandsVisited=_questVisitedIslands.size;
-      if(_questVisitedIslands.size>0) updateQuestProgress('island',0,null);
-    }
-  }
-}
 
 
 // ═══ NOTIFICATIONS ═══
