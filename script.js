@@ -522,7 +522,7 @@ scene.fog=new THREE.FogExp2(0x87ceeb,0.002);
 const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,3000);
 const renderer=new THREE.WebGLRenderer({antialias:window.devicePixelRatio<=1,powerPreference:'high-performance'});
 renderer.setSize(window.innerWidth,window.innerHeight,false);
-// Canvas size dikelola manual via _doResize
+// Canvas tampilan diatur CSS (100%x100%), buffer diatur setSize
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFShadowMap; // PCFSoft→PCF: lebih cepat
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -3672,16 +3672,13 @@ function _doResize(){
     camera.fov=isLandscape?65:75;
     camera.aspect=w/h;
     camera.updateProjectionMatrix();
+    // false = jangan ubah canvas element — CSS yang atur tampilannya (100%x100%)
+    // Ini mencegah resize event re-trigger dari perubahan canvas element
     renderer.setSize(w,h,false);
-    // Update canvas display size tanpa trigger resize
-    const cv=renderer.domElement;
-    cv.setAttribute('width',cv.width); // no-op tapi flush
-    cv.style.cssText='display:block;outline:none;position:fixed;top:0;left:0;width:'+w+'px;height:'+h+'px;';
     adaptUI();
     if(typeof _loadHudPositions==='function')_loadHudPositions();
   }
-  // Biarkan event loop selesai dulu, baru lepas flag
-  setTimeout(()=>{ window._inResize=false; },100);
+  window._inResize=false;
 }
 function onScreenResize(){
   if(window._inResize)return;
